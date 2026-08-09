@@ -27,8 +27,11 @@ public class StudentManageVO {
     /** 姓名 */
     private String realName;
 
-    /** 邮箱 */
-    private String email;
+    /** 毕业院校（最高学历） */
+    private String schoolName;
+
+    /** 专业（最高学历） */
+    private String major;
 
     /** 注册时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

@@ -15,6 +15,7 @@ const routes = [
     { path: 'recruit/brand', name: 'brand', component: () => import('@/views/recruit/brand/BrandConfig.vue'), meta: { title: '品牌配置', icon: 'Setting' } },
     { path: 'recruit/categories', name: 'categories', component: () => import('@/views/recruit/category/JobCategory.vue'), meta: { title: '岗位类别', icon: 'Menu' } },
     { path: 'recruit/students', name: 'students', component: () => import('@/views/system/student/StudentList.vue'), meta: { title: '学生管理', icon: 'UserFilled' } },
+    { path: 'recruit/students/:id', name: 'student-detail', component: () => import('@/views/system/student/StudentDetail.vue'), meta: { title: '学生详情' } },
     { path: 'system/users', name: 'users', component: () => import('@/views/system/user/SysUserList.vue'), meta: { title: 'HR账号', icon: 'User' } },
     { path: 'system/roles', name: 'roles', component: () => import('@/views/system/role/SysRoleList.vue'), meta: { title: '角色管理', icon: 'Avatar' } },
     { path: 'system/depts', name: 'depts', component: () => import('@/views/system/dept/SysDeptList.vue'), meta: { title: '部门管理', icon: 'OfficeBuilding' } },

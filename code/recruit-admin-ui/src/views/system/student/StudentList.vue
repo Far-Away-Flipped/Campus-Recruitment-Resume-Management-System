@@ -29,12 +29,15 @@
         stripe
         size="small"
         style="width: 100%;"
+        @sort-change="handleSortChange"
+        @row-click="handleDetail"
       >
         <el-table-column prop="studentId" label="ID" width="80" />
         <el-table-column prop="phone" label="手机号" width="130" />
         <el-table-column prop="realName" label="姓名" min-width="100" />
-        <el-table-column prop="email" label="邮箱" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="createTime" label="注册时间" width="170" />
+        <el-table-column prop="schoolName" label="毕业院校" min-width="140" sortable="custom" show-overflow-tooltip />
+        <el-table-column prop="major" label="专业" min-width="120" sortable="custom" show-overflow-tooltip />
+        <el-table-column prop="createTime" label="注册时间" width="170" sortable="custom" />
         <el-table-column label="账号状态" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'danger'" size="small">
@@ -43,14 +46,17 @@
           </template>
         </el-table-column>
         <el-table-column prop="applyCount" label="投递数" width="80" align="center" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
+            <el-button type="primary" link size="small" @click.stop="handleDetail(row)">
+              详情
+            </el-button>
             <el-button
               v-if="row.status === 'ACTIVE'"
               type="warning"
               link
               size="small"
-              @click="handleToggleStatus(row)"
+              @click.stop="handleToggleStatus(row)"
             >
               禁用
             </el-button>
@@ -59,11 +65,11 @@
               type="success"
               link
               size="small"
-              @click="handleToggleStatus(row)"
+              @click.stop="handleToggleStatus(row)"
             >
               启用
             </el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button type="danger" link size="small" @click.stop="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -86,9 +92,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import request from '@/utils/request';
 
+const router = useRouter();
 const loading = ref(false);
 const list = ref([]);
 const total = ref(0);
@@ -98,6 +106,8 @@ const query = reactive({
   pageSize: 10,
   keyword: '',
   status: '',
+  sortField: 'createTime',
+  sortOrder: 'desc',
 });
 
 /** 获取学生用户列表 */
@@ -123,7 +133,27 @@ function handleReset() {
   query.keyword = '';
   query.status = '';
   query.pageNum = 1;
+  query.sortField = 'createTime';
+  query.sortOrder = 'desc';
   fetchList();
+}
+
+/** 排序变更 */
+function handleSortChange({ prop, order }) {
+  if (!order) {
+    query.sortField = 'createTime';
+    query.sortOrder = 'desc';
+  } else {
+    query.sortField = prop;
+    query.sortOrder = order === 'ascending' ? 'asc' : 'desc';
+  }
+  query.pageNum = 1;
+  fetchList();
+}
+
+/** 跳转详情页 */
+function handleDetail(row) {
+  router.push({ name: 'student-detail', params: { id: row.studentId } });
 }
 
 /** 启用/禁用切换 */
