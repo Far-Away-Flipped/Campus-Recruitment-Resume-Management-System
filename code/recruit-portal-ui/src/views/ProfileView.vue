@@ -826,4 +826,91 @@ onMounted(() => {
 .btn-rights--danger:hover:not(:disabled) {
   background: rgba(224, 82, 82, 0.1);
 }
+
+/* ===== 移动端触摸优化 ===== */
+@media (max-width: 767px) {
+  .profile-page {
+    padding: 24px var(--container-px) 60px;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+
+  /* 表单输入防iOS缩放 */
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="tel"],
+  .form-group input[type="date"] {
+    min-height: var(--input-min-h);
+    font-size: 16px;
+  }
+
+  /* 提交按钮全宽 */
+  .btn-submit {
+    width: 100%;
+    min-height: var(--touch-min);
+  }
+
+  /* 双列表单 → 单列 */
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Tab导航横向滚动 */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    padding: 14px 16px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* 性别 Radio 组间距加大 */
+  .radio-group {
+    gap: 32px;
+  }
+  .radio-label {
+    min-height: var(--touch-min);
+    font-size: 16px;
+  }
+
+  /* 头像区域移动端适配 */
+  .avatar-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  /* 个人信息权利项 */
+  .rights-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .btn-rights {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    min-height: var(--touch-min);
+  }
+
+  /* 隐私设置项 */
+  .privacy-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 0;
+  }
+  .toggle-switch {
+    align-self: flex-start;
+  }
+}
 </style>

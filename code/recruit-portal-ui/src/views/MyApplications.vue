@@ -675,5 +675,55 @@ onMounted(() => {
   .detail-grid {
     grid-template-columns: 1fr;
   }
+  }
+
+/* ===== 移动端触摸优化 ===== */
+@media (max-width: 767px) {
+  .applications-page {
+    padding: 24px var(--container-px) 60px;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+
+  /* 投递卡片触摸优化 */
+  .app-card {
+    padding: 16px;
+    min-height: 80px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .app-card__status {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* 详情弹窗底部滑入 */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-card {
+    border-radius: 16px 16px 0 0;
+    max-width: 100%;
+    max-height: 90vh;
+    padding: 18px 16px;
+  }
+  .modal-close {
+    width: var(--touch-min);
+    height: var(--touch-min);
+  }
+
+  /* 详情网格单列 */
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* 分页按钮触摸优化 */
+  .page-btn {
+    min-height: var(--touch-min);
+    padding: 10px 20px;
+  }
 }
 </style>

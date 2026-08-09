@@ -362,4 +362,74 @@ onMounted(loadItems);
 .back-link:hover { color: var(--color-primary); }
 
 @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
+
+/* ===== 移动端触摸优化 ===== */
+@media (max-width: 767px) {
+  .profile-list-page {
+    padding: 24px var(--container-px) 60px;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+
+  /* 添加按钮全宽 */
+  .btn-add {
+    width: 100%;
+    text-align: center;
+    min-height: var(--touch-min);
+  }
+
+  /* 列表项垂直堆叠 */
+  .list-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .list-item__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .btn-sm {
+    min-height: var(--touch-min);
+    min-width: var(--touch-min);
+    padding: 8px 16px;
+  }
+
+  /* 弹窗底部滑入 */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 85vh;
+    padding: 24px 20px;
+  }
+
+  /* 弹窗表单 */
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    min-height: var(--input-min-h);
+    font-size: 16px;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* 弹窗按钮区 */
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .btn-cancel,
+  .btn-save {
+    width: 100%;
+    min-height: var(--touch-min);
+    text-align: center;
+  }
+}
 </style>

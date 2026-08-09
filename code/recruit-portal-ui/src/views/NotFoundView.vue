@@ -104,4 +104,13 @@
     text-align: center;
   }
 }
+
+@media (max-width: 375px) {
+  .not-found-code {
+    font-size: 64px;
+  }
+  .not-found-title {
+    font-size: 20px;
+  }
+}
 </style>

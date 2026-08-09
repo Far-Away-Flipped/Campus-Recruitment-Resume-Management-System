@@ -125,4 +125,52 @@ onMounted(loadMessages);
 .modal-time { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 16px; }
 .modal-body { font-size: 14px; color: var(--color-text); line-height: 1.7; white-space: pre-wrap; margin-bottom: 20px; }
 .btn-close { padding: 10px 24px; background: var(--color-primary); border: none; border-radius: 6px; color: #fff; font-size: 14px; cursor: pointer; font-family: inherit; }
+
+/* ===== 移动端触摸优化 ===== */
+@media (max-width: 767px) {
+  .messages-page {
+    padding: 24px var(--container-px) 60px;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+
+  /* 消息列表项触摸优化 */
+  .message-item {
+    padding: 14px 16px;
+    min-height: 72px;
+  }
+  .message-item__title {
+    font-size: 15px;
+  }
+  .message-item__preview {
+    font-size: 13px;
+  }
+
+  /* 弹窗底部滑入 */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 85vh;
+    padding: 24px 20px;
+  }
+
+  /* 关闭按钮全宽 */
+  .btn-close {
+    width: 100%;
+    min-height: var(--touch-min);
+    text-align: center;
+  }
+
+  /* 分页按钮触摸优化 */
+  .pagination button {
+    min-height: var(--touch-min);
+    padding: 10px 20px;
+  }
+}
 </style>

@@ -579,4 +579,65 @@ onMounted(() => {
     justify-content: center;
   }
 }
+
+/* ===== 移动端触摸优化 ===== */
+@media (max-width: 767px) {
+  .education-page {
+    padding: 24px var(--container-px) 60px;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+
+  /* 页头按钮区 */
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .btn-add {
+    width: 100%;
+    text-align: center;
+    min-height: var(--touch-min);
+  }
+
+  /* 卡片body单列 */
+  .edu-card__body {
+    grid-template-columns: 1fr;
+  }
+
+  /* 弹窗底部滑入 */
+  .dialog-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .dialog-card {
+    border-radius: 16px 16px 0 0;
+    max-width: 100%;
+    max-height: 85vh;
+    padding: 24px 20px;
+  }
+
+  /* 弹窗表单 */
+  .form-group input,
+  .form-group select {
+    min-height: var(--input-min-h);
+    font-size: 16px;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* 弹窗按钮 */
+  .dialog-buttons {
+    flex-direction: column-reverse;
+  }
+  .btn-cancel,
+  .btn-submit {
+    width: 100%;
+    min-height: var(--touch-min);
+    text-align: center;
+    justify-content: center;
+  }
+}
 </style>

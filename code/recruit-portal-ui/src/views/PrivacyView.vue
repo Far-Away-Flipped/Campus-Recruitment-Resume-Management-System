@@ -299,4 +299,44 @@
     font-size: 16px;
   }
 }
+
+/* ===== 移动端字号间距微调 ===== */
+@media (max-width: 767px) {
+  .privacy-page {
+    padding: 24px var(--container-px) 60px;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+
+  /* 内容卡片 */
+  .privacy-card {
+    padding: 20px 16px;
+  }
+
+  /* 正文字号缩小 */
+  .privacy-card p {
+    font-size: 14px;
+  }
+  .privacy-card li {
+    font-size: 14px;
+  }
+
+  /* 标题字号 */
+  .privacy-card h2 {
+    font-size: 16px;
+  }
+  .privacy-card h3 {
+    font-size: 15px;
+  }
+
+  /* 联系方式框 */
+  .contact-box {
+    padding: 16px;
+    gap: 12px;
+  }
+  .contact-item {
+    font-size: 13px;
+  }
+}
 </style>

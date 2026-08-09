@@ -757,4 +757,74 @@ onMounted(() => {
   border-radius: 6px;
   background: #fff;
 }
+
+/* ===== 移动端触摸优化 ===== */
+@media (max-width: 767px) {
+  .resume-page {
+    padding: 24px var(--container-px) 60px;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+
+  /* 文件卡片堆叠 */
+  .file-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 14px 16px;
+  }
+  .file-card__info {
+    width: 100%;
+  }
+  .file-card__status {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  /* 操作按钮增大触摸区域 */
+  .file-card__actions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .action-btn {
+    width: var(--touch-min);
+    height: var(--touch-min);
+    min-width: var(--touch-min);
+    min-height: var(--touch-min);
+  }
+
+  /* 预览弹窗底部滑入 + 全屏 */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-card {
+    border-radius: 16px 16px 0 0;
+    max-width: 100%;
+    max-height: 90vh;
+    padding: 18px 16px;
+  }
+  .modal-card--wide {
+    border-radius: 16px 16px 0 0;
+    max-width: 100%;
+    max-height: 90vh;
+  }
+  .preview-frame {
+    height: 60vh;
+  }
+  .modal-close {
+    width: var(--touch-min);
+    height: var(--touch-min);
+  }
+
+  /* 上传区域 */
+  .upload-zone__inner {
+    padding: 32px 16px;
+  }
+}
 </style>
