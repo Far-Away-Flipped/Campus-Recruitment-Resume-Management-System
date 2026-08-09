@@ -1,0 +1,54 @@
+<!--
+  ============================================================
+  WinSW 配置 — 遨天校园招聘管理系统 (recruit-backend)
+  使用: WinSW 可从 https://github.com/winsw/winsw/releases 下载
+  部署: 将 WinSW.exe 重命名为 recruit-service.exe 与 xml 同目录
+  命令: recruit-service.exe install | start | stop | restart | uninstall
+  ============================================================
+-->
+<service>
+  <!-- 服务唯一标识 -->
+  <id>atmoto-recruit</id>
+  <name>遨天校园招聘管理系统 (atmoto-recruit)</name>
+  <description>遨天科技校园招聘简历管理系统后端服务 (Spring Boot, port 8080)</description>
+
+  <!-- 可执行文件 -->
+  <executable>java</executable>
+  <arguments>-jar "E:\atmoto-recruit\recruit-admin.jar" --spring.profiles.active=prod</arguments>
+
+  <!-- 工作目录 -->
+  <workingdirectory>E:\atmoto-recruit</workingdirectory>
+
+  <!-- 日志 -->
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+  <logpath>E:\atmoto-recruit\logs\service</logpath>
+
+  <!-- 使用专用低权限本地账号运行（非 LocalSystem） -->
+  <serviceaccount>
+    <domain>.\svc-recruit</domain>
+    <user>svc-recruit</user>
+    <password>PLACEHOLDER_CHANGE_ME</password>
+    <allowservicelogon>true</allowservicelogon>
+  </serviceaccount>
+
+  <!-- 启动模式 -->
+  <startmode>Automatic</startmode>
+
+  <!-- 失败重启策略 -->
+  <onfailure action="restart" delay="10 sec" />
+  <onfailure action="restart" delay="30 sec" />
+  <onfailure action="none" />
+
+  <!-- 优雅关闭（等待 Spring Boot 完成清理） -->
+  <stoptimeout>30 sec</stoptimeout>
+
+  <!-- 依赖项（按需启用） -->
+  <!-- <depend>mysql</depend> -->
+
+  <!-- 环境变量 -->
+  <env name="JAVA_HOME" value="C:\Program Files\Java\jdk-17" />
+  <env name="SERVER_PORT" value="8080" />
+</service>

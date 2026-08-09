@@ -1,0 +1,36 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  font-size: 14px;
+  color: #333;
+  background: #f5f7fa;
+}
+
+a {
+  text-decoration: none;
+  color: #5FB8D6;
+}
+
+/* 表格容器通用样式 */
+.table-container {
+  background: #fff;
+  padding: 16px;
+  border-radius: 4px;
+}
+
+/* 搜索栏通用样式 */
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 4px;
+}

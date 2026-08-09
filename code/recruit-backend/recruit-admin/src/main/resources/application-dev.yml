@@ -1,0 +1,45 @@
+server:
+  # 开发环境局域网联调需要：0.0.0.0 监听所有网卡，允许公司WiFi内其他设备（如HR手机）直连8080
+  # 详见《HR 后台「网络管理」模块设计方案 V1.0》第 2.1 节
+  address: 0.0.0.0
+
+spring:
+  datasource:
+    druid:
+      url: jdbc:mysql://localhost:3306/atmoto_recruit?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      # 监控
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+      web-stat-filter:
+        enabled: true
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: 1000
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: delFlag
+      logic-delete-value: "2"
+      logic-not-delete-value: "0"
+
+# 开发环境日志
+logging:
+  level:
+    com.atmoto.recruit: DEBUG
+    org.springframework.security: INFO
+  file:
+    path: logs
