@@ -129,7 +129,7 @@ public interface ApplicationMapper extends BaseMapper<Application> {
             "</if>" +
             "WHERE a.del_flag = '0' " +
             "<if test='startDate != null'>AND a.apply_time &gt;= #{startDate}</if> " +
-            "<if test='endDate != null'>AND a.apply_time &lt;= #{endDate}</if> " +
+            "<if test='endDate != null'>AND a.apply_time &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)</if> " +
             "<if test='ownerUserId != null'>AND jp.owner_user_id = #{ownerUserId}</if> " +
             "GROUP BY DATE(a.apply_time) " +
             "ORDER BY date ASC" +
@@ -216,7 +216,7 @@ public interface ApplicationMapper extends BaseMapper<Application> {
             "</if>" +
             "WHERE a.del_flag = '0' " +
             "<if test='startDate != null'>AND a.apply_time &gt;= #{startDate}</if> " +
-            "<if test='endDate != null'>AND a.apply_time &lt;= #{endDate}</if> " +
+            "<if test='endDate != null'>AND a.apply_time &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)</if> " +
             "<if test='ownerUserId != null'>AND jp.owner_user_id = #{ownerUserId}</if> " +
             "GROUP BY a.source " +
             "ORDER BY value DESC" +
