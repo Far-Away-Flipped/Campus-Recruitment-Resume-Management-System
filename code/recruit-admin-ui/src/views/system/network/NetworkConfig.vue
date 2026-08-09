@@ -126,21 +126,118 @@
         </el-card>
       </el-tab-pane>
 
-      <!-- ──────── Tab 3：网络诊断（阶段3占位） ──────── -->
+      <!-- ──────── Tab 3：网络诊断 ──────── -->
       <el-tab-pane label="网络诊断" name="diagnostics">
-        <el-empty description="网络诊断功能规划中，将在后续阶段上线" />
+        <div class="toolbar">
+          <el-button :loading="diagLoading" @click="fetchDiagnostics">
+            <el-icon><Refresh /></el-icon> 刷新诊断
+          </el-button>
+          <span class="perm-tip diag-tip">诊断信息为被动读取当前请求上下文，不做任何主动网络探测；请手动点击刷新</span>
+        </div>
+
+        <el-card shadow="never" v-loading="diagLoading">
+          <template #header><span class="card-header-title">服务器与白名单配置</span></template>
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="服务器监听地址">{{ diagnostics.serverAddress || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="服务器监听端口">{{ diagnostics.serverPort ?? '-' }}</el-descriptions-item>
+            <el-descriptions-item label="局域网访问开关">
+              <el-tag :type="diagnostics.lanAccessEnabled ? 'success' : 'info'" size="small">
+                {{ diagnostics.lanAccessEnabled ? '已开启' : '已关闭' }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="当前生效CORS白名单条数">{{ (diagnostics.corsAllowedOrigins || []).length }}</el-descriptions-item>
+            <el-descriptions-item label="当前生效CORS白名单" :span="2">
+              <div v-if="(diagnostics.corsAllowedOrigins || []).length === 0">-</div>
+              <el-tag
+                v-for="origin in diagnostics.corsAllowedOrigins"
+                :key="origin"
+                size="small"
+                style="margin: 2px 4px 2px 0"
+              >{{ origin }}</el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+
+        <el-card shadow="never" style="margin-top: 16px" v-loading="diagLoading">
+          <template #header><span class="card-header-title">本次请求上下文（被动推断，非主动探测）</span></template>
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="来源客户端IP">{{ diagnostics.requestClientIp || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="请求Host头">{{ diagnostics.requestHost || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="X-Forwarded-For">{{ diagnostics.forwardedForHeader || '（无该请求头）' }}</el-descriptions-item>
+            <el-descriptions-item label="X-Forwarded-Proto">{{ diagnostics.forwardedProtoHeader || '（无该请求头）' }}</el-descriptions-item>
+            <el-descriptions-item label="是否检测到Nginx反代痕迹" :span="2">
+              <el-tag :type="diagnostics.nginxProxyDetected ? 'success' : 'info'" size="small">
+                {{ diagnostics.nginxProxyDetected ? '是（存在Forwarded系列请求头）' : '否（未见Forwarded系列请求头，可能是直连）' }}
+              </el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
       </el-tab-pane>
 
-      <!-- ──────── Tab 4：变更历史（阶段3占位） ──────── -->
+      <!-- ──────── Tab 4：变更历史 ──────── -->
       <el-tab-pane label="变更历史" name="audit">
-        <el-empty description="变更历史功能规划中，将在后续阶段上线" />
+        <el-card class="filter-card" shadow="never">
+          <el-form :inline="true" :model="auditQuery" size="default">
+            <el-form-item label="配置来源">
+              <el-select v-model="auditQuery.configType" placeholder="全部" clearable style="width:160px">
+                <el-option label="CORS白名单" value="CORS_ORIGIN" />
+                <el-option label="局域网开关" value="NETWORK_CONFIG" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="操作类型">
+              <el-select v-model="auditQuery.operationType" placeholder="全部" clearable style="width:160px">
+                <el-option v-for="t in auditOpTypes" :key="t" :label="formatAuditOpType(t)" :value="t" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="操作人">
+              <el-input v-model="auditQuery.operatorName" placeholder="搜索操作人" clearable style="width:160px" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="fetchAuditList">查询</el-button>
+              <el-button @click="resetAuditQuery">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-card>
+
+        <el-card shadow="never" style="margin-top: 12px">
+          <el-table :data="auditList" v-loading="auditLoading" stripe border style="width: 100%;">
+            <el-table-column prop="id" label="ID" width="70" />
+            <el-table-column prop="createTime" label="操作时间" width="170" />
+            <el-table-column prop="operatorName" label="操作人" width="110" />
+            <el-table-column label="配置来源" width="110">
+              <template #default="{ row }">
+                {{ row.configTable === 'CORS_ORIGIN' ? 'CORS白名单' : row.configTable === 'NETWORK_CONFIG' ? '局域网开关' : (row.configTable || '-') }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作类型" width="110">
+              <template #default="{ row }">
+                <el-tag :type="auditTagType(row.operationType)" size="small">{{ formatAuditOpType(row.operationType) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="operationDetail" label="操作详情" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="oldValue" label="变更前" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="newValue" label="变更后" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="ipAddress" label="来源IP" width="140" />
+          </el-table>
+
+          <div class="pagination-wrap">
+            <el-pagination
+              v-model:current-page="auditQuery.pageNum"
+              v-model:page-size="auditQuery.pageSize"
+              :total="auditTotal"
+              :page-sizes="[10, 20, 50, 100]"
+              layout="total, sizes, prev, pager, next, jumper"
+              @change="fetchAuditList"
+            />
+          </div>
+        </el-card>
       </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import systemRequest from '@/utils/systemRequest';
 
@@ -360,6 +457,108 @@ onMounted(() => {
   fetchCorsList();
   fetchLanAccess();
 });
+
+// ──────── Tab 3：网络诊断 ────────
+const diagLoading = ref(false);
+const diagnostics = reactive({
+  serverAddress: '',
+  serverPort: null,
+  corsAllowedOrigins: [],
+  lanAccessEnabled: false,
+  requestClientIp: '',
+  requestHost: '',
+  forwardedForHeader: '',
+  forwardedProtoHeader: '',
+  nginxProxyDetected: false,
+});
+
+async function fetchDiagnostics() {
+  diagLoading.value = true;
+  try {
+    const res = await systemRequest.get('/network/diagnostics');
+    Object.assign(diagnostics, res.data || {});
+  } catch {
+    // 错误已在拦截器统一提示
+  } finally {
+    diagLoading.value = false;
+  }
+}
+
+// ──────── Tab 4：变更历史 ────────
+const auditList = ref([]);
+const auditTotal = ref(0);
+const auditLoading = ref(false);
+const auditOpTypes = ref(['ADD', 'UPDATE', 'DELETE', 'ENABLE', 'DISABLE', 'TOGGLE']);
+
+const auditQuery = reactive({
+  pageNum: 1,
+  pageSize: 20,
+  configType: '',
+  operationType: '',
+  operatorName: '',
+});
+
+const auditOpTypeLabels = {
+  ADD: '新增',
+  UPDATE: '修改',
+  DELETE: '删除',
+  ENABLE: '启用',
+  DISABLE: '停用',
+  TOGGLE: '切换',
+};
+
+function formatAuditOpType(type) {
+  return auditOpTypeLabels[type] || type || '—';
+}
+
+function auditTagType(type) {
+  const map = {
+    ADD: 'success', UPDATE: '', DELETE: 'danger',
+    ENABLE: 'success', DISABLE: 'info', TOGGLE: 'warning',
+  };
+  return map[type] || 'info';
+}
+
+async function fetchAuditList() {
+  auditLoading.value = true;
+  try {
+    const params = {
+      pageNum: auditQuery.pageNum,
+      pageSize: auditQuery.pageSize,
+    };
+    if (auditQuery.configType) params.configType = auditQuery.configType;
+    if (auditQuery.operationType) params.operationType = auditQuery.operationType;
+    if (auditQuery.operatorName) params.operatorName = auditQuery.operatorName;
+
+    const res = await systemRequest.get('/network/audit/list', { params });
+    if (res.data) {
+      auditList.value = res.data.rows || [];
+      auditTotal.value = res.data.total || 0;
+    }
+  } catch {
+    auditList.value = [];
+  } finally {
+    auditLoading.value = false;
+  }
+}
+
+function resetAuditQuery() {
+  auditQuery.configType = '';
+  auditQuery.operationType = '';
+  auditQuery.operatorName = '';
+  auditQuery.pageNum = 1;
+  fetchAuditList();
+}
+
+// Tab 切换到诊断/变更历史时，若尚无数据则自动首拉一次（诊断页仍保留手动"刷新诊断"按钮，
+// 这里只解决"点进Tab却是空白"的问题，不做自动轮询）
+watch(activeTab, (tab) => {
+  if (tab === 'diagnostics' && !diagnostics.requestHost) {
+    fetchDiagnostics();
+  } else if (tab === 'audit' && auditList.value.length === 0) {
+    fetchAuditList();
+  }
+});
 </script>
 
 <style scoped>
@@ -397,6 +596,20 @@ onMounted(() => {
 .perm-tip {
   color: #E6A23C;
   font-size: 12px;
+}
+
+.diag-tip {
+  color: #909399;
+}
+
+.filter-card {
+  margin-bottom: 0;
+}
+
+.pagination-wrap {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .card-header-title {

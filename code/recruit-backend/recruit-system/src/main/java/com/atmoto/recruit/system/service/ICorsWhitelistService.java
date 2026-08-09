@@ -1,6 +1,7 @@
 package com.atmoto.recruit.system.service;
 
 import com.atmoto.recruit.system.domain.CorsWhitelistRule;
+import com.atmoto.recruit.system.domain.NetworkAuditContext;
 
 import java.util.List;
 
@@ -46,35 +47,46 @@ public interface ICorsWhitelistService {
      * <p>与阶段1已实现的 addRule() 不同：addRule() 是内部幂等写入（无校验，供数据迁移/降级场景使用），
      * 本方法是管理界面新增操作的入口，校验不通过时抛 BizException，不做"查重转update"的幂等语义——
      * 若ruleValue已存在应直接报错拒绝，而不是静默转成更新。</p>
+     * <p>写入成功后落一条 {@code audit_network_config} 审计记录（config_table=CORS_ORIGIN，
+     * operation_type=ADD），详见方案 4.2.3/5.1 节。</p>
      *
-     * @param rule 规则信息（id应为null，由数据库自增）
+     * @param rule    规则信息（id应为null，由数据库自增）
+     * @param context 审计上下文（操作人/来源IP/User-Agent），由 Controller 层构造
      * @return 影响行数
      */
-    int createRule(CorsWhitelistRule rule);
+    int createRule(CorsWhitelistRule rule, NetworkAuditContext context);
 
     /**
      * 更新规则（含完整输入校验，同新增）
      * <p>更新时的唯一性校验需排除自身：如果ruleValue未变，不应误判为"与自己重复"。</p>
+     * <p>写入成功后落一条审计记录（operation_type=UPDATE），old_value/new_value 记录变更前后的
+     * JSON快照。</p>
      *
-     * @param rule 规则信息（id必填，标识要更新哪条）
+     * @param rule    规则信息（id必填，标识要更新哪条）
+     * @param context 审计上下文
      * @return 影响行数
      */
-    int updateRule(CorsWhitelistRule rule);
+    int updateRule(CorsWhitelistRule rule, NetworkAuditContext context);
 
     /**
      * 删除规则（is_builtin=1 的内置规则拒绝物理删除）
+     * <p>写入成功后落一条审计记录（operation_type=DELETE），old_value 记录删除前的JSON快照，
+     * new_value 为null。</p>
      *
-     * @param id 规则ID
+     * @param id      规则ID
+     * @param context 审计上下文
      * @return 影响行数
      */
-    int deleteRule(Long id);
+    int deleteRule(Long id, NetworkAuditContext context);
 
     /**
      * 启用/停用规则
+     * <p>写入成功后落一条审计记录（operation_type=ENABLE/DISABLE）。</p>
      *
      * @param id       规则ID
      * @param isActive 目标状态："1"启用 "0"停用
+     * @param context  审计上下文
      * @return 影响行数
      */
-    int toggleStatus(Long id, String isActive);
+    int toggleStatus(Long id, String isActive, NetworkAuditContext context);
 }

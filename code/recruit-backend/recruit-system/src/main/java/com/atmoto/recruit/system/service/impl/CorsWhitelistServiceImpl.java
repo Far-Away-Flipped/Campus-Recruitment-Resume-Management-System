@@ -3,10 +3,14 @@ package com.atmoto.recruit.system.service.impl;
 import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
 import com.atmoto.recruit.system.domain.CorsWhitelistRule;
+import com.atmoto.recruit.system.domain.NetworkAuditContext;
+import com.atmoto.recruit.system.domain.NetworkConfigLog;
 import com.atmoto.recruit.system.mapper.CorsWhitelistRuleMapper;
+import com.atmoto.recruit.system.mapper.NetworkConfigLogMapper;
 import com.atmoto.recruit.system.service.ICorsWhitelistService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +63,10 @@ public class CorsWhitelistServiceImpl implements ICorsWhitelistService {
     );
 
     private final CorsWhitelistRuleMapper corsWhitelistRuleMapper;
+
+    private final NetworkConfigLogMapper networkConfigLogMapper;
+
+    private final ObjectMapper objectMapper;
 
     @Qualifier("corsWhitelistCache")
     private final Cache<String, List<CorsWhitelistRule>> corsWhitelistCache;
@@ -119,7 +127,7 @@ public class CorsWhitelistServiceImpl implements ICorsWhitelistService {
     }
 
     @Override
-    public int createRule(CorsWhitelistRule rule) {
+    public int createRule(CorsWhitelistRule rule, NetworkAuditContext context) {
         validateRule(rule, null);
         // 新增规则强制isBuiltin=0：内置规则语义只属于阶段1种子数据的5条，
         // 避免通过管理界面新增的规则被意外标记为内置规则（不管调用方传了什么，强制覆盖）
@@ -130,11 +138,15 @@ public class CorsWhitelistServiceImpl implements ICorsWhitelistService {
         int rows = corsWhitelistRuleMapper.insert(rule);
         // 先写DB成功 → 再 invalidate 缓存（3.6节写路径策略）
         corsWhitelistCache.invalidate(CACHE_KEY);
+        if (rows > 0) {
+            writeAuditLog(rule.getId(), "CORS_ORIGIN", "ADD", null, toJson(rule),
+                    "新增CORS白名单规则：" + rule.getRuleValue(), context);
+        }
         return rows;
     }
 
     @Override
-    public int updateRule(CorsWhitelistRule rule) {
+    public int updateRule(CorsWhitelistRule rule, NetworkAuditContext context) {
         CorsWhitelistRule existing = corsWhitelistRuleMapper.selectById(rule.getId());
         if (existing == null) {
             throw new BizException(ErrorCode.NETWORK_ORIGIN_NOT_FOUND);
@@ -143,13 +155,18 @@ public class CorsWhitelistServiceImpl implements ICorsWhitelistService {
         // 更新时不允许修改isBuiltin：强制沿用数据库原值，防止通过编辑接口把普通规则伪装成内置规则，
         // 或把内置规则的isBuiltin改成0从而绕过删除保护
         rule.setIsBuiltin(existing.getIsBuiltin());
+        String oldSnapshot = toJson(existing);
         int rows = corsWhitelistRuleMapper.updateById(rule);
         corsWhitelistCache.invalidate(CACHE_KEY);
+        if (rows > 0) {
+            writeAuditLog(rule.getId(), "CORS_ORIGIN", "UPDATE", oldSnapshot, toJson(rule),
+                    "修改CORS白名单规则：" + rule.getRuleValue(), context);
+        }
         return rows;
     }
 
     @Override
-    public int deleteRule(Long id) {
+    public int deleteRule(Long id, NetworkAuditContext context) {
         CorsWhitelistRule existing = corsWhitelistRuleMapper.selectById(id);
         if (existing == null) {
             throw new BizException(ErrorCode.NETWORK_ORIGIN_NOT_FOUND);
@@ -160,11 +177,15 @@ public class CorsWhitelistServiceImpl implements ICorsWhitelistService {
         }
         int rows = corsWhitelistRuleMapper.deleteById(id);
         corsWhitelistCache.invalidate(CACHE_KEY);
+        if (rows > 0) {
+            writeAuditLog(id, "CORS_ORIGIN", "DELETE", toJson(existing), null,
+                    "删除CORS白名单规则：" + existing.getRuleValue(), context);
+        }
         return rows;
     }
 
     @Override
-    public int toggleStatus(Long id, String isActive) {
+    public int toggleStatus(Long id, String isActive, NetworkAuditContext context) {
         CorsWhitelistRule existing = corsWhitelistRuleMapper.selectById(id);
         if (existing == null) {
             throw new BizException(ErrorCode.NETWORK_ORIGIN_NOT_FOUND);
@@ -175,6 +196,11 @@ public class CorsWhitelistServiceImpl implements ICorsWhitelistService {
                 .set(CorsWhitelistRule::getIsActive, isActive);
         int rows = corsWhitelistRuleMapper.update(null, updateWrapper);
         corsWhitelistCache.invalidate(CACHE_KEY);
+        if (rows > 0) {
+            String opType = "1".equals(isActive) ? "ENABLE" : "DISABLE";
+            writeAuditLog(id, "CORS_ORIGIN", opType, existing.getIsActive(), isActive,
+                    "切换CORS白名单规则状态：" + existing.getRuleValue(), context);
+        }
         return rows;
     }
 
@@ -263,6 +289,61 @@ public class CorsWhitelistServiceImpl implements ICorsWhitelistService {
             throw new BizException("EXACT".equals(ruleType)
                     ? ErrorCode.NETWORK_ORIGIN_DUPLICATE
                     : ErrorCode.NETWORK_CIDR_DUPLICATE);
+        }
+    }
+
+    /**
+     * 将规则对象序列化为JSON快照（供 audit_network_config.old_value/new_value 存储）
+     * <p>序列化失败（理论上不应发生）时降级返回简单文本，不让审计失败影响主业务操作——
+     * 审计记录本身的可用性不应该成为CORS白名单写操作失败的阻塞点。</p>
+     */
+    private String toJson(CorsWhitelistRule rule) {
+        if (rule == null) {
+            return null;
+        }
+        try {
+            String json = objectMapper.writeValueAsString(rule);
+            // audit_network_config.old_value/new_value 为 VARCHAR(512)，防御性截断避免SQL插入失败
+            return json.length() > 512 ? json.substring(0, 512) : json;
+        } catch (Exception e) {
+            log.warn("CORS白名单规则序列化为JSON快照失败，降级使用简单文本", e);
+            return "ruleValue=" + rule.getRuleValue();
+        }
+    }
+
+    /**
+     * 写入一条网络配置变更审计记录（audit_network_config）
+     * <p>审计写入失败仅记录日志，不抛异常、不影响调用方主业务操作已提交的写操作结果——
+     * 审计是可观测性增强，其自身故障不应导致CORS白名单/局域网开关操作被回滚或报错。</p>
+     *
+     * @param ruleId          关联规则ID，非规则类配置（如局域网开关）传null
+     * @param configTable     CORS_ORIGIN / NETWORK_CONFIG
+     * @param operationType   ADD/UPDATE/DELETE/ENABLE/DISABLE/TOGGLE
+     * @param oldValue        变更前JSON快照或简单值
+     * @param newValue        变更后JSON快照或简单值
+     * @param operationDetail 操作详情补充说明
+     * @param context         审计上下文，null时使用"system"兜底（理论上不应发生，Controller层已保证非null）
+     */
+    private void writeAuditLog(Long ruleId, String configTable, String operationType,
+                                String oldValue, String newValue, String operationDetail,
+                                NetworkAuditContext context) {
+        try {
+            NetworkConfigLog logEntry = new NetworkConfigLog();
+            logEntry.setRuleId(ruleId);
+            logEntry.setConfigTable(configTable);
+            logEntry.setOperationType(operationType);
+            logEntry.setOldValue(oldValue);
+            logEntry.setNewValue(newValue);
+            logEntry.setOperationDetail(operationDetail);
+            logEntry.setOperatorId(context != null ? context.getOperatorId() : null);
+            logEntry.setOperatorName(context != null && context.getOperatorName() != null
+                    ? context.getOperatorName() : "system");
+            logEntry.setIpAddress(context != null ? context.getIpAddress() : null);
+            logEntry.setUserAgent(context != null ? context.getUserAgent() : null);
+            logEntry.setCreateTime(LocalDateTime.now());
+            networkConfigLogMapper.insert(logEntry);
+        } catch (Exception e) {
+            log.error("写入网络配置变更审计记录失败：configTable={}, operationType={}", configTable, operationType, e);
         }
     }
 
