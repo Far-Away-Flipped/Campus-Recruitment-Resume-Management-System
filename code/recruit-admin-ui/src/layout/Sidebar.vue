@@ -40,6 +40,7 @@
         <el-menu-item index="/system/dict">字典管理</el-menu-item>
         <el-menu-item index="/system/templates">通知模板</el-menu-item>
         <el-menu-item index="/system/audit">操作审计</el-menu-item>
+        <el-menu-item index="/system/network">网络管理</el-menu-item>
 </el-sub-menu>
     </el-menu>
   </div>

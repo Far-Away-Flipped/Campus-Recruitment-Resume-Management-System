@@ -21,6 +21,7 @@ const routes = [
     { path: 'system/dict', name: 'dict', component: () => import('@/views/system/dict/SysDictList.vue'), meta: { title: '字典管理', icon: 'Collection' } },
     { path: 'system/templates', name: 'templates', component: () => import('@/views/system/template/NotifyTemplate.vue'), meta: { title: '通知模板', icon: 'ChatDotRound' } },
     { path: 'system/audit', name: 'audit', component: () => import('@/views/system/audit/AuditLog.vue'), meta: { title: '操作审计', icon: 'List' } },
+    { path: 'system/network', name: 'network', component: () => import('@/views/system/network/NetworkConfig.vue'), meta: { title: '网络管理', icon: 'Connection' } },
   ]},
   { path: '/:pathMatch(.*)*', name: '404', component: () => import('@/views/error/404.vue'), meta: { title: '404', noAuth: true } }
 ];
