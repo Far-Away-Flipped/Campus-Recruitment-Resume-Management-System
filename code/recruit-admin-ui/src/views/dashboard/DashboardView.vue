@@ -167,7 +167,7 @@ async function fetchStats() {
     const recentRes = await request.get('/resumes/list', {
       params: { pageNum: 1, pageSize: 5 },
     });
-    recentList.value = (recentRes.data?.records || []).map(r => ({
+    recentList.value = (recentRes.data?.rows || []).map(r => ({
       id: r.applicationId,
       snapshotName: r.snapshotName,
       jobTitle: r.jobTitle,

@@ -334,7 +334,7 @@ async function fetchDataList() {
     const res = await systemRequest.get('/dict/data/list', {
       params: { ...dataQuery, dictType: selectedType.value?.dictType },
     });
-    dataList.value = res.data?.records || [];
+    dataList.value = res.data?.rows || [];
     dataTotal.value = res.data?.total || 0;
   } catch {
     // ignore
