@@ -652,15 +652,15 @@ onMounted(async () => {
 .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(-12px); }
 
 /* 响应式 */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .apply-page {
-    padding: 32px 16px 60px;
+    padding: 24px 16px 100px;
   }
   .page-title {
     font-size: 24px;
   }
   .section-card {
-    padding: 18px 16px;
+    padding: 16px;
   }
   .job-meta {
     gap: 12px;
@@ -670,6 +670,22 @@ onMounted(async () => {
   }
   .form-select {
     max-width: 100%;
+    min-height: var(--input-min-h);
+    font-size: 16px;
+  }
+  .btn-submit {
+    min-height: var(--input-min-h);
+    font-size: 16px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    border-radius: 0;
+  }
+  .file-radio-item {
+    padding: 14px 16px;
+    min-height: 56px;
   }
 }
 

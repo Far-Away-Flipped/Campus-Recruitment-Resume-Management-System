@@ -14,4 +14,12 @@
   --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Source Han Sans SC', sans-serif;
   --radius: 8px;
   --shadow-card: 0 0 20px rgba(95, 184, 214, 0.08);
+
+  /* ===== 移动端响应式变量 ===== */
+  --container-px: 24px;            /* 页面水平padding（桌面默认） */
+  --container-max: 1200px;         /* 容器最大宽度 */
+  --touch-min: 44px;               /* 最小触摸目标(Apple HIG) */
+  --input-min-h: 48px;             /* 移动端输入框最小高度 */
+  --header-h: 56px;                /* 移动端Header高度 */
+  --safe-bottom: env(safe-area-inset-bottom, 16px); /* 安全区域底部 */
 }

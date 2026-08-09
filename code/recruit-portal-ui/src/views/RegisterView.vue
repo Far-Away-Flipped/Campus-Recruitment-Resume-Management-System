@@ -571,17 +571,42 @@ onUnmounted(() => {
 }
 
 /* 响应式 */
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .form-card {
-    padding: 28px 20px;
+    padding: 24px 16px;
+  }
+  .form-group input[type="text"],
+  .form-group input[type="tel"],
+  .form-group input[type="password"] {
+    min-height: var(--input-min-h);
+    font-size: 16px;
+    padding: 12px 16px;
+  }
+  .form-group label {
+    margin-bottom: 8px;
+  }
+  .btn-submit {
+    min-height: var(--input-min-h);
+    font-size: 16px;
   }
   .captcha-row {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
   }
   .captcha-img {
     width: 100%;
     height: 48px;
+    object-fit: contain;
+  }
+  .checkbox-label {
+    min-height: var(--touch-min);
+    padding: 8px 0;
+    align-items: center;
+  }
+  .checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
   }
 }
 </style>

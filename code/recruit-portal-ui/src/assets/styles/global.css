@@ -14,3 +14,21 @@ body {
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* ===== 移动端全局 ===== */
+@media (max-width: 767px) {
+  body { font-size: 16px; -webkit-text-size-adjust: 100%; }
+  :root { --container-px: 16px; }
+  input, select, textarea { min-height: var(--input-min-h); }
+  button, .btn-submit, .btn-primary, .btn-ghost {
+    min-height: var(--touch-min); min-width: var(--touch-min);
+  }
+}
+
+/* 系统动效降级 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -16,7 +16,8 @@
     <!-- ====== 筛选栏 ====== -->
     <section class="filter-bar">
       <div class="container">
-        <div class="filter-bar__inner">
+        <!-- 桌面端筛选栏 -->
+        <div class="filter-bar__inner" v-show="!isMobile">
           <!-- 关键词搜索 -->
           <div class="filter-bar__search">
             <svg class="filter-bar__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -133,6 +134,27 @@
           <button class="filter-bar__btn-reset" @click="handleReset">重置</button>
         </div>
 
+        <!-- 移动端筛选区 -->
+        <div class="filter-bar__mobile" v-show="isMobile">
+          <div class="filter-bar__search filter-bar__search--mobile">
+            <svg class="filter-bar__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input
+              v-model="filters.keyword"
+              type="text"
+              placeholder="搜索岗位..."
+              class="filter-bar__search-input"
+              @keyup.enter="handleSearch"
+            />
+          </div>
+          <button class="filter-bar__filter-btn" @click="showFilterSheet = true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="8" x2="20" y2="8"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+            筛选
+            <span class="filter-bar__filter-badge" v-if="activeFilterCount > 0">{{ activeFilterCount }}</span>
+          </button>
+        </div>
+
         <!-- 已选筛选标签 -->
         <div class="filter-bar__active-tags" v-if="activeFilterCount > 0">
           <span class="filter-bar__active-label">已选条件：</span>
@@ -159,6 +181,64 @@
         </div>
       </div>
     </section>
+
+    <!-- ====== Bottom Sheet（移动端筛选面板） ====== -->
+    <Teleport to="body">
+      <Transition name="sheet-slide">
+        <div v-if="showFilterSheet" class="filter-sheet-overlay" @click="closeFilterSheet">
+          <div class="filter-sheet" @click.stop>
+            <div class="filter-sheet__header">
+              <h3>筛选条件</h3>
+              <button class="filter-sheet__close" @click="closeFilterSheet">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="filter-sheet__body">
+              <!-- 部门 -->
+              <div class="filter-sheet__group">
+                <label class="filter-sheet__label">部门</label>
+                <select v-model="filters.deptId" class="filter-sheet__select">
+                  <option value="">全部部门</option>
+                  <option v-for="dept in filterOptions.depts" :key="dept.deptId" :value="dept.deptId">{{ dept.deptName }}</option>
+                </select>
+              </div>
+              <!-- 岗位类别 -->
+              <div class="filter-sheet__group">
+                <label class="filter-sheet__label">岗位类别</label>
+                <select v-model="filters.categoryId" class="filter-sheet__select">
+                  <option value="">全部类别</option>
+                  <template v-for="cat in filterOptions.categories" :key="cat.categoryId">
+                    <option :value="cat.categoryId">{{ cat.categoryName }}</option>
+                    <option v-for="child in cat.children" :key="child.categoryId" :value="child.categoryId">&nbsp;&nbsp;{{ child.categoryName }}</option>
+                  </template>
+                </select>
+              </div>
+              <!-- 工作地点 -->
+              <div class="filter-sheet__group">
+                <label class="filter-sheet__label">工作地点</label>
+                <select v-model="filters.location" class="filter-sheet__select">
+                  <option value="">全部地点</option>
+                  <option v-for="loc in filterOptions.locations" :key="loc" :value="loc">{{ loc }}</option>
+                </select>
+              </div>
+              <!-- 学历要求 -->
+              <div class="filter-sheet__group">
+                <label class="filter-sheet__label">学历要求</label>
+                <select v-model="filters.degree" class="filter-sheet__select">
+                  <option value="">全部学历</option>
+                  <option v-for="deg in filterOptions.degrees" :key="deg" :value="deg">{{ deg }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="filter-sheet__footer">
+              <button class="filter-sheet__btn filter-sheet__btn--reset" @click="handleReset(); closeFilterSheet();">重置</button>
+              <button class="filter-sheet__btn filter-sheet__btn--apply" @click="closeFilterSheet(); handleSearch();">应用筛选</button>
+            </div>
+            <div class="filter-sheet__safe"></div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- ====== 加载态 ====== -->
     <LoadingSpinner :visible="loading" text="加载岗位列表..." />
@@ -260,6 +340,18 @@ import api from '@/utils/axios';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 
 const router = useRouter();
+
+// ---- 移动端检测 ----
+const isMobile = ref(false);
+const showFilterSheet = ref(false);
+
+function checkMobile() {
+  isMobile.value = window.matchMedia('(max-width: 767px)').matches;
+}
+
+function closeFilterSheet() {
+  showFilterSheet.value = false;
+}
 
 // ---- 筛选条件 ----
 const filters = reactive({
@@ -469,6 +561,9 @@ function onDocumentClick(e) {
 
 // ---- 生命周期 ----
 onMounted(async () => {
+  checkMobile();
+  const mediaQuery = window.matchMedia('(max-width: 767px)');
+  mediaQuery.addEventListener('change', checkMobile);
   document.addEventListener('click', onDocumentClick);
   await Promise.all([fetchJobs(), fetchFilterOptions()]);
 });
@@ -880,6 +975,178 @@ onUnmounted(() => {
   cursor: default;
   color: #6E7D8A;
 }
+
+/* ====== 移动端筛选区域 ====== */
+.filter-bar__mobile {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.filter-bar__search--mobile {
+  flex: 1;
+  max-width: none;
+}
+.filter-bar__filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 16px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  position: relative;
+}
+.filter-bar__filter-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.filter-bar__filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: var(--color-bg);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 5px;
+}
+
+/* ====== Bottom Sheet 筛选面板 ====== */
+.filter-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+}
+.filter-sheet {
+  width: 100%;
+  max-height: 70vh;
+  background: var(--color-card);
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.filter-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.filter-sheet__header h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.filter-sheet__close {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.filter-sheet__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.filter-sheet__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.filter-sheet__label {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+.filter-sheet__select {
+  min-height: 48px;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: auto;
+}
+.filter-sheet__select:focus {
+  border-color: var(--color-primary);
+}
+.filter-sheet__select option {
+  background: var(--color-card);
+  color: var(--color-text);
+}
+.filter-sheet__footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border);
+}
+.filter-sheet__btn {
+  flex: 1;
+  min-height: 48px;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-sheet__btn--reset {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+.filter-sheet__btn--reset:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.filter-sheet__btn--apply {
+  background: linear-gradient(135deg, #5FB8D6, #6BB3FF);
+  border: none;
+  color: var(--color-bg);
+}
+.filter-sheet__btn--apply:hover {
+  opacity: 0.9;
+}
+.filter-sheet__safe {
+  height: env(safe-area-inset-bottom, 16px);
+  flex-shrink: 0;
+}
+
+/* Bottom Sheet 动画 */
+.sheet-slide-enter-active { transition: all 0.3s ease; }
+.sheet-slide-leave-active { transition: all 0.3s ease; }
+.sheet-slide-enter-from { opacity: 0; }
+.sheet-slide-enter-from .filter-sheet { transform: translateY(100%); }
+.sheet-slide-leave-to { opacity: 0; }
+.sheet-slide-leave-to .filter-sheet { transform: translateY(100%); }
+.filter-sheet { transition: transform 0.3s ease; }
 
 /* ====== 响应式 ====== */
 @media (max-width: 768px) {

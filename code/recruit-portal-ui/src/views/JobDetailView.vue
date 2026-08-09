@@ -732,12 +732,37 @@ onUnmounted(() => {
   .detail-meta {
     grid-template-columns: 1fr;
   }
+  .detail-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    background: rgba(10, 14, 23, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--color-border);
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 16px));
+  }
   .apply-card {
-    flex-direction: column;
-    text-align: center;
+    flex-direction: row;
+    padding: 0;
+    background: none;
+    border: none;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .apply-card__logo,
+  .apply-card__countdown,
+  .apply-card__info {
+    display: none;
   }
   .apply-card__btn {
-    width: 100%;
+    flex: 1;
+    min-height: var(--touch-min);
+  }
+  .detail-layout {
+    padding-bottom: 80px;
   }
   .detail-header {
     flex-direction: column;

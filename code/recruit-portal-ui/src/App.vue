@@ -16,3 +16,7 @@
 import PortalHeader from './components/PortalHeader.vue';
 import PortalFooter from './components/PortalFooter.vue';
 </script>
+
+<style scoped>
+.main-content { padding-bottom: var(--safe-bottom); }
+</style>

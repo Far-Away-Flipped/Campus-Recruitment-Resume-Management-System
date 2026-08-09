@@ -666,17 +666,31 @@ onUnmounted(() => {
 }
 
 /* 响应式 */
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .form-card {
-    padding: 28px 20px;
+    padding: 24px 16px;
+  }
+  .form-group input {
+    min-height: var(--input-min-h);
+    font-size: 16px;
+    padding: 12px 16px;
+  }
+  .form-group label {
+    margin-bottom: 8px;
+  }
+  .btn-submit {
+    min-height: var(--input-min-h);
+    font-size: 16px;
   }
   .captcha-row {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
   }
   .captcha-img {
     width: 100%;
     height: 48px;
+    object-fit: contain;
   }
 }
 </style>

@@ -42,4 +42,17 @@
 .footer-contact a:hover {
   text-decoration: underline;
 }
+
+/* 移动端垂直堆叠 */
+@media (max-width: 767px) {
+  .footer-inner {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    padding: 0 16px;
+  }
+  .portal-footer {
+    padding: 20px 0;
+  }
+}
 </style>

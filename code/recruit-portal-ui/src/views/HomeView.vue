@@ -139,32 +139,6 @@
       </div>
     </section>
 
-    <!-- ====== 页脚 ====== -->
-    <footer class="footer">
-      <div class="container">
-        <div class="footer__grid">
-          <div class="footer__brand">
-            <img src="/logo.png" alt="遨天科技" class="footer__logo" />
-            <p class="footer__slogan">赋能人类太空活动</p>
-          </div>
-          <div class="footer__links">
-            <h4>快速链接</h4>
-            <router-link to="/jobs">浏览岗位</router-link>
-            <a href="http://www.at-moto.com/home" target="_blank">公司官网</a>
-            <router-link to="/privacy">隐私政策</router-link>
-          </div>
-          <div class="footer__contact">
-            <h4>联系方式</h4>
-            <p>邮箱：AT-HR@atmoto.cn</p>
-            <p>地址：北京市海淀区上地信息路12号 中关村发展大厦二层E座</p>
-          </div>
-        </div>
-        <div class="footer__bottom">
-          <span>&copy; 2026 遨天科技（北京）有限公司 版权所有</span>
-          <a href="https://beian.miit.gov.cn/" target="_blank">京ICP备20000185号-1</a>
-        </div>
-      </div>
-    </footer>
   </div>
 </template>
 
@@ -285,31 +259,41 @@ onMounted(async () => {
 .about__biz-card h4 { font-size: 15px; color: #fff; margin-bottom: 6px; }
 .about__biz-card p { font-size: 13px; color: #6E7D8A; line-height: 1.6; }
 
-/* 页脚 */
-.footer { background: #050507; padding: 60px 0 30px; border-top: 1px solid rgba(95,184,214,0.08); }
-.footer__grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 48px; margin-bottom: 40px; }
-.footer__logo { height: 28px; margin-bottom: 12px; }
-.footer__slogan { font-size: 13px; color: #6E7D8A; }
-.footer__links h4, .footer__contact h4 { font-size: 14px; color: #fff; margin-bottom: 16px; letter-spacing: 1px; }
-.footer__links a { display: block; font-size: 13px; color: #9CA3AF; text-decoration: none; margin-bottom: 10px; transition: color 0.2s; }
-.footer__links a:hover { color: #5FB8D6; }
-.footer__contact p { font-size: 13px; color: #9CA3AF; margin-bottom: 8px; line-height: 1.6; }
-.footer__bottom { display: flex; justify-content: space-between; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 12px; color: #6E7D8A; }
-.footer__bottom a { color: #6E7D8A; text-decoration: none; }
-.footer__bottom a:hover { color: #5FB8D6; }
-
 /* 滚动动画 */
 [v-motion-fade] { opacity: 0; transform: translateY(24px); transition: opacity 0.8s ease, transform 0.8s ease; }
 [v-motion-fade].motion-visible { opacity: 1; transform: translateY(0); }
 
 /* 响应式 */
-@media (max-width: 768px) {
-  .hero__stats { gap: 20px; }
-  .hero__stat-divider { display: none; }
-  .hero__title { font-size: 32px; }
+@media (max-width: 767px) {
+  .hero {
+    min-height: auto;
+    padding: 80px 16px 60px;
+  }
+  .hero__title {
+    font-size: 28px;
+  }
+  .hero__stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .hero__stat-divider {
+    display: none;
+  }
+  .hero__cta {
+    width: 100%;
+    justify-content: center;
+  }
+  .hero__stars {
+    background-size: 200px 200px;
+  }
   .jobs__grid { grid-template-columns: 1fr; }
   .about__grid { grid-template-columns: 1fr; gap: 40px; }
-  .footer__grid { grid-template-columns: 1fr; gap: 32px; }
-  .footer__bottom { flex-direction: column; gap: 8px; }
+}
+
+/* 动效降级 */
+@media (prefers-reduced-motion: reduce) {
+  .hero__stars {
+    background-image: radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.2), transparent);
+  }
 }
 </style>
