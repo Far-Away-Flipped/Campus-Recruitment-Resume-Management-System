@@ -146,6 +146,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import request from '@/utils/request';
+import axios from 'axios';
 
 const router = useRouter();
 const loading = ref(false);
@@ -277,34 +278,54 @@ async function handleBatchEliminate() {
 
 async function handleExport() {
   try {
+    // 1. 组装筛选参数
     const params = { ...query };
     if (params.dateRange && params.dateRange.length === 2) {
       params.startDate = params.dateRange[0];
       params.endDate = params.dateRange[1];
     }
     delete params.dateRange;
-    // 先按筛选条件拉取全部 id
+
+    // 2. 先按筛选条件拉取全量 ID（复用项目 request，不走 blob 所以安全）
     const allRes = await request.get('/resumes/list', { params: { ...params, pageNum: 1, pageSize: 10000 } });
     const allIds = (allRes.data?.rows || []).map(r => r.applicationId);
     if (allIds.length === 0) {
       ElMessage.warning('没有可导出的数据');
       return;
     }
-    const exportRes = await request.post('/resumes/export', { applicationIds: allIds }, { responseType: 'blob' });
-    // 如果后端返回 filePath 则跳转下载
-    if (exportRes.data?.filePath) {
-      window.open(exportRes.data.filePath, '_blank');
-    } else if (exportRes instanceof Blob) {
-      // 直接 blob 下载
-      const url = window.URL.createObjectURL(exportRes);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = '简历导出.xlsx';
-      a.click();
-      window.URL.revokeObjectURL(url);
+
+    // 3. 用原生 axios 发起 POST /export（避开 request.js 响应拦截器）
+    const token = localStorage.getItem('admin_token');
+    const exportRes = await axios.post('/api/admin/resumes/export',
+      { applicationIds: allIds },
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+    );
+    // exportRes.data 是已解析的 JSON: { code: 200, msg: "导出成功", data: "E:\\Temp\\..." }
+
+    if (exportRes.data?.code !== 200) {
+      ElMessage.error(exportRes.data?.msg || '导出失败');
+      return;
     }
+
+    const filePath = exportRes.data?.data;
+    if (!filePath) {
+      ElMessage.error('导出文件路径为空');
+      return;
+    }
+
+    // 4. 通过已有的下载端点触发浏览器下载
+    const downloadUrl = `/api/admin/resumes/export/download?path=${encodeURIComponent(filePath)}`;
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = '';  // 让服务器 Content-Disposition 决定文件名
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
     ElMessage.success('导出成功');
-  } catch { /* ignore */ }
+  } catch {
+    ElMessage.error('导出失败，请重试');
+  }
 }
 
 onMounted(() => {
