@@ -37,7 +37,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="6">
-        <el-card shadow="hover" class="stat-card" :body-style="{ padding: '20px' }" @click="$router.push({path:'/recruit/resumes', query:{status:'PENDING'}})">
+        <el-card shadow="hover" class="stat-card" :body-style="{ padding: '20px' }" @click="$router.push({path:'/recruit/resumes', query:{status:'PENDING_SCREEN'}})">
           <div class="stat-inner">
             <div class="stat-icon" style="background: rgba(232,163,61,0.12); color: #E8A33D;">
               <el-icon :size="28"><Clock /></el-icon>
@@ -159,7 +159,7 @@ async function fetchStats() {
 
     // 获取待筛选简历数
     const pendingRes = await request.get('/resumes/list', {
-      params: { pageNum: 1, pageSize: 1, status: 'PENDING' },
+      params: { pageNum: 1, pageSize: 1, status: 'PENDING_SCREEN' },
     });
     stats.pendingCount = pendingRes.data?.total ?? 0;
 

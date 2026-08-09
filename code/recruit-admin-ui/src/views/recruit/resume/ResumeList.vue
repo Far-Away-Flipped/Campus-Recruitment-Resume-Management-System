@@ -10,8 +10,8 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" placeholder="全部" clearable style="width: 140px;">
-            <el-option label="待筛选" value="PENDING" />
-            <el-option label="已通过" value="PASSED" />
+            <el-option label="待筛选" value="PENDING_SCREEN" />
+            <el-option label="已通过" value="SCREEN_PASSED" />
             <el-option label="已淘汰" value="ELIMINATED" />
           </el-select>
         </el-form-item>
@@ -104,7 +104,7 @@
               详情
             </el-button>
             <el-button
-              v-if="row.status === 'PENDING'"
+              v-if="row.status === 'PENDING_SCREEN'"
               type="success"
               link
               size="small"
@@ -113,7 +113,7 @@
               通过
             </el-button>
             <el-button
-              v-if="row.status === 'PENDING'"
+              v-if="row.status === 'PENDING_SCREEN'"
               type="danger"
               link
               size="small"
@@ -166,8 +166,8 @@ const query = reactive({
   dateRange: null,
 });
 
-const statusMap = { PENDING: '待筛选', PASSED: '已通过', ELIMINATED: '已淘汰' };
-const statusTagMap = { PENDING: 'warning', PASSED: 'success', ELIMINATED: 'danger' };
+const statusMap = { PENDING_SCREEN: '待筛选', SCREEN_PASSED: '已通过', ELIMINATED: '已淘汰' };
+const statusTagMap = { PENDING_SCREEN: 'warning', SCREEN_PASSED: 'success', ELIMINATED: 'danger' };
 
 function statusLabel(s) {
   return statusMap[s] || s;

@@ -207,7 +207,7 @@ async function fetchStats() {
     stats.jobCount = jobRes.data?.total ?? 0;
 
     // 待筛选简历数
-    const pendingRes = await request.get('/resumes/list', { params: { pageNum: 1, pageSize: 1, status: 'PENDING' } });
+    const pendingRes = await request.get('/resumes/list', { params: { pageNum: 1, pageSize: 1, status: 'PENDING_SCREEN' } });
     stats.pendingCount = pendingRes.data?.total ?? 0;
 
     // 本周新增
@@ -236,7 +236,7 @@ async function fetchStats() {
     }
 
     // 筛选通过率
-    const passedRes = await request.get('/resumes/list', { params: { pageNum: 1, pageSize: 1, status: 'PASSED' } });
+    const passedRes = await request.get('/resumes/list', { params: { pageNum: 1, pageSize: 1, status: 'SCREEN_PASSED' } });
     const totalRes = await request.get('/resumes/list', { params: { pageNum: 1, pageSize: 1 } });
     const passedTotal = passedRes.data?.total ?? 0;
     const allTotal = totalRes.data?.total ?? 0;
