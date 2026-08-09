@@ -313,14 +313,22 @@ async function handleExport() {
       return;
     }
 
-    // 4. 通过已有的下载端点触发浏览器下载
+    // 4. 用原生 axios 以 blob 方式下载文件（带 auth header，避开 request.js 拦截器）
     const downloadUrl = `/api/admin/resumes/export/download?path=${encodeURIComponent(filePath)}`;
+    const blobRes = await axios.get(downloadUrl,
+      { responseType: 'blob',
+        headers: token ? { Authorization: `Bearer ${token}` } : {} }
+    );
+
+    // 创建临时 URL 触发浏览器原生下载
+    const url = window.URL.createObjectURL(blobRes.data);
     const a = document.createElement('a');
-    a.href = downloadUrl;
+    a.href = url;
     a.download = '';  // 让服务器 Content-Disposition 决定文件名
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 
     ElMessage.success('导出成功');
   } catch {
