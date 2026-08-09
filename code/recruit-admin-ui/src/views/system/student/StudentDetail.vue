@@ -89,9 +89,13 @@
 
     <!-- 投递历史 -->
     <el-card shadow="never" class="info-card">
-      <template #header><span class="card-title">投递历史（最近10条）</span></template>
+      <template #header><span class="card-title">投递历史（最近5条）</span></template>
       <el-table :data="detail.applications || []" size="small" style="width: 100%;">
-        <el-table-column prop="jobTitle" label="投递岗位" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="jobTitle" label="投递岗位" min-width="180" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="job-link" @click="goResumeDetail(row)">{{ row.jobTitle }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="applyTime" label="投递时间" width="170" />
         <el-table-column label="当前状态" width="120">
           <template #default="{ row }">
@@ -141,6 +145,11 @@ const statusTagMap = {
 };
 function statusTagType(s) { return statusTagMap[s] || ''; }
 
+/** 跳转简历详情 */
+function goResumeDetail(row) {
+  router.push({ name: 'resume-detail', params: { id: row.applicationId } });
+}
+
 async function fetchDetail() {
   loading.value = true;
   try {
@@ -189,4 +198,6 @@ onMounted(() => { fetchDetail(); });
 }
 .file-name { color: #303133; font-weight: 500; }
 .file-meta { color: #909399; font-size: 12px; }
+.job-link { color: #409eff; cursor: pointer; }
+.job-link:hover { text-decoration: underline; }
 </style>

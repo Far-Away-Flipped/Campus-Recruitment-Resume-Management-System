@@ -44,6 +44,9 @@ public class StudentDetailVO {
     /** 账号状态 */
     private String status;
 
+    /** 账号状态中文标签 */
+    private String statusLabel;
+
     /** 注册时间 */
     private String createTime;
 

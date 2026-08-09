@@ -84,8 +84,17 @@ public class StudentManageController {
         if (detail == null) {
             return AjaxResult.error("学生账号不存在");
         }
+        // 状态中文标签
+        detail.setStatusLabel("ACTIVE".equals(detail.getStatus()) ? "正常" : "已禁用");
+
         detail.setEducations(studentMapper.selectEducationsByStudentId(id));
-        detail.setInternships(studentMapper.selectInternshipsByStudentId(id));
+
+        // 实习/项目经历 — recordType 映射为中文标签
+        java.util.List<InternshipBriefVO> internships = studentMapper.selectInternshipsByStudentId(id);
+        for (InternshipBriefVO intern : internships) {
+            intern.setRecordTypeLabel("I".equals(intern.getRecordType()) ? "实习经历" : "项目经历");
+        }
+        detail.setInternships(internships);
         detail.setResumeFiles(studentMapper.selectResumeFilesByStudentId(id));
 
         // 投递历史 — 状态码映射为中文标签

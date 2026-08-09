@@ -24,6 +24,9 @@ public class InternshipBriefVO {
     /** 记录类型：I-实习经历, P-项目经历 */
     private String recordType;
 
+    /** 记录类型中文标签 */
+    private String recordTypeLabel;
+
     /** 公司/项目名称 */
     private String orgName;
 

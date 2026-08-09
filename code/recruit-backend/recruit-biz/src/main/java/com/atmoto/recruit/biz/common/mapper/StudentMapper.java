@@ -98,6 +98,6 @@ public interface StudentMapper extends BaseMapper<Student> {
             "FROM app_application a " +
             "LEFT JOIN job_position j ON a.job_id = j.job_id " +
             "WHERE a.student_id = #{studentId} AND a.del_flag = '0' " +
-            "ORDER BY a.apply_time DESC LIMIT 10")
+            "ORDER BY a.apply_time DESC LIMIT 5")
     List<ApplicationBriefVO> selectApplicationsByStudentId(@Param("studentId") Long studentId);
 }
