@@ -192,7 +192,7 @@ onMounted(async () => {
 .hero__bg { position: absolute; inset: 0; }
 .hero__stars { position: absolute; inset: 0; background-image: radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.4), transparent), radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,0.3), transparent), radial-gradient(1px 1px at 60% 20%, rgba(255,255,255,0.5), transparent), radial-gradient(1px 1px at 80% 50%, rgba(255,255,255,0.3), transparent), radial-gradient(1.5px 1.5px at 10% 80%, rgba(95,184,214,0.6), transparent), radial-gradient(1px 1px at 70% 90%, rgba(255,255,255,0.4), transparent), radial-gradient(1px 1px at 90% 10%, rgba(95,184,214,0.5), transparent); background-size: 200px 200px; }
 .hero__nebula { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(ellipse, rgba(95,184,214,0.08) 0%, transparent 70%); pointer-events: none; }
-.hero__earth { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; max-width: 900px; height: auto; opacity: 0.18; pointer-events: none; object-fit: contain; filter: brightness(0.8) saturate(1.2); }
+.hero__earth { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; max-width: 700px; height: auto; opacity: 0.25; pointer-events: none; object-fit: contain; filter: brightness(0.75) saturate(1.1); }
 .hero__content { position: relative; z-index: 1; text-align: center; max-width: 800px; }
 .hero__eyebrow { font-size: 13px; color: #5FB8D6; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 24px; }
 .hero__title { font-size: clamp(40px, 8vw, 80px); font-weight: 700; line-height: 1.15; letter-spacing: 2px; margin-bottom: 24px; }
@@ -288,7 +288,7 @@ onMounted(async () => {
   .hero__stars {
     background-size: 200px 200px;
   }
-  .hero__earth { opacity: 0.09; max-width: 100%; }
+  .hero__earth { opacity: 0.16; max-width: 100%; }
   .jobs__grid { grid-template-columns: 1fr; }
   .about__grid { grid-template-columns: 1fr; gap: 40px; }
 }
