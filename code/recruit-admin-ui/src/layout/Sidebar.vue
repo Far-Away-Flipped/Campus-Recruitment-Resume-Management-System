@@ -1,8 +1,10 @@
 <template>
   <div class="admin-sidebar">
     <div class="logo-area">
-      <span v-if="!isCollapse" class="logo-text">校招管理</span>
-      <span v-else class="logo-text-mini">招</span>
+      <router-link to="/dashboard" class="logo-link">
+        <img class="logo-img" src="/logo.png" alt="遨天科技" />
+      </router-link>
+      <span v-if="!isCollapse" class="logo-sub">校园招聘管理</span>
     </div>
     <el-menu
       :default-active="$route.path"
@@ -52,7 +54,9 @@ defineProps({ isCollapse: { type: Boolean, default: false } });
 
 <style scoped>
 .admin-sidebar { background: #304156; height: 100%; overflow-y: auto; }
-.logo-area { height: 56px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.logo-text-mini { font-size: 20px; }
+.logo-area { height: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px 12px 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.logo-link { display: flex; align-items: center; justify-content: center; }
+.logo-img { height: 30px; width: auto; }
+.logo-sub { font-size: 11px; color: #8899aa; margin-top: 6px; }
 .el-menu { border-right: none; }
 </style>

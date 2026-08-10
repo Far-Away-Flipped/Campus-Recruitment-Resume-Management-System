@@ -14,8 +14,8 @@
       </button>
 
       <router-link to="/" class="logo">
-        <span class="logo-text">ATMOTO</span>
-        <span class="logo-sub">遨天科技 · 校园招聘</span>
+        <img class="logo-img" src="/logo.png" alt="遨天科技" />
+        <span class="logo-sub">校园招聘</span>
       </router-link>
 
       <!-- 桌面端导航 -->
@@ -45,8 +45,7 @@
         <aside v-if="drawerOpen" class="drawer" @click.stop>
           <div class="drawer__header">
             <router-link to="/" class="drawer__logo" @click="closeDrawer">
-              <span class="drawer__logo-text">ATMOTO</span>
-              <span class="drawer__logo-sub">遨天科技 · 校园招聘</span>
+              <img class="drawer__logo-img" src="/logo.png" alt="遨天科技" />
             </router-link>
             <button class="drawer__close" @click="closeDrawer" aria-label="关闭导航菜单">
               <span></span>
@@ -158,20 +157,19 @@ onUnmounted(() => {
 }
 .logo {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
   text-decoration: none;
   flex-shrink: 0;
 }
-.logo-text {
-  font-family: var(--font-mono);
-  font-size: 22px;
-  color: var(--color-primary);
-  letter-spacing: 2px;
+.logo-img {
+  height: 32px;
+  width: auto;
 }
 .logo-sub {
   font-size: 13px;
   color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 .nav-links {
   display: flex;
@@ -280,18 +278,12 @@ onUnmounted(() => {
 }
 .drawer__logo {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   text-decoration: none;
 }
-.drawer__logo-text {
-  font-family: var(--font-mono);
-  font-size: 20px;
-  color: var(--color-primary);
-  letter-spacing: 2px;
-}
-.drawer__logo-sub {
-  font-size: 11px;
-  color: var(--color-text-secondary);
+.drawer__logo-img {
+  height: 28px;
+  width: auto;
 }
 .drawer__close {
   width: 48px;
@@ -426,8 +418,8 @@ onUnmounted(() => {
     flex: 1;
     justify-content: center;
   }
-  .logo-text {
-    font-size: 18px;
+  .logo-img {
+    height: 26px;
   }
   .logo-sub {
     font-size: 11px;
