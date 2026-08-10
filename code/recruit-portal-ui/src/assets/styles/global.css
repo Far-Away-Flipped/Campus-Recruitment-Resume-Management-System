@@ -23,6 +23,11 @@ body {
   button, .btn-submit, .btn-primary, .btn-ghost {
     min-height: var(--touch-min); min-width: var(--touch-min);
   }
+  /* 全局触摸 active 反馈 */
+  a:not([class]):active, button:not([class]):active, [role="button"]:not([class]):active {
+    opacity: 0.7;
+    transition: opacity 0.05s ease;
+  }
 }
 
 /* 系统动效降级 */
