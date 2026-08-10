@@ -34,7 +34,13 @@ Write-Host "========================================" -ForegroundColor Cyan
 
 $mysqlListening = netstat -ano 2>$null | Select-String ":3306 " | Select-String "LISTENING"
 if ($mysqlListening) {
-    Write-Host "[MySQL] Port 3306 already listening, skip startup." -ForegroundColor Green
+    Write-Host "[MySQL] Port 3306 already listening, verifying connectivity..."
+    $result = & "D:/program/MySQL/bin/mysql.exe" -u root -e "SELECT 1" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Port 3306 is listening but MySQL rejects connections. It may be mid-restart — wait 5s and retry, or restart MySQL manually."
+        exit 1
+    }
+    Write-Host "[MySQL] Accepting queries, skip startup." -ForegroundColor Green
 } else {
     Write-Host "[MySQL] Starting mysqld.exe..."
     $mysqlProc = Start-Process -FilePath $MYSQLD_EXE -ArgumentList "--defaults-file=`"D:/program/MySQL/my.ini`"" -PassThru -NoNewWindow
@@ -60,6 +66,29 @@ if ($mysqlListening) {
         Write-Error "MySQL failed to start within ${timeout}s. Check D:/program/MySQL/data/*.err"
         exit 1
     }
+
+    # InnoDB recovery can lag behind TCP listen — verify with mysqladmin ping
+    $MYSQL_EXE = "D:/program/MySQL/bin/mysql.exe"
+    Write-Host "[MySQL] Waiting for InnoDB recovery..."
+    $dbTimeout = 15
+    $dbElapsed = 0
+    $dbReady = $false
+    while ($dbElapsed -lt $dbTimeout) {
+        Start-Sleep -Seconds 1
+        $dbElapsed++
+        $result = & $MYSQL_EXE -u root -e "SELECT 1" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            $dbReady = $true
+            break
+        }
+    }
+    if (-not $dbReady) {
+        Write-Error "MySQL is listening but not accepting queries after ${dbTimeout}s. Check D:/program/MySQL/data/*.err"
+        exit 1
+    }
+    Write-Host "[MySQL] Accepting queries (${dbElapsed}s after port ready)" -ForegroundColor Green
+    Write-Host "[MySQL] Waiting 5s for InnoDB buffer pool to stabilize..."
+    Start-Sleep -Seconds 5
 }
 
 Write-Host ""
