@@ -113,10 +113,15 @@ if (Test-Path $SQL_DATA) {
 
 # --- LibreOffice (optional) ---
 Write-Host "[Check] LibreOffice (optional)..." -NoNewline
-$librePath = "C:\Program Files\LibreOffice\program\soffice.exe"
-if (Test-Path $librePath) {
-    Write-Host " OK" -ForegroundColor Green
-} else {
+$librePaths = @(
+    "D:\Program Files\LibreOffice\program\soffice.exe",
+    "C:\Program Files\LibreOffice\program\soffice.exe"
+)
+$libreFound = $false
+foreach ($lp in $librePaths) {
+    if (Test-Path $lp) { $libreFound = $true; Write-Host " OK ($lp)" -ForegroundColor Green; break }
+}
+if (-not $libreFound) {
     Write-Host " NOT FOUND (Word-to-PDF preview will be unavailable)" -ForegroundColor Yellow
 }
 
@@ -203,47 +208,49 @@ if (-not $mysqlRunning) {
         Write-Error "MySQL failed to start within ${timeout}s. Check D:/program/MySQL/data/*.err for details."
         exit 1
     }
+
+    # InnoDB recovery can lag behind TCP listen — verify with mysqladmin ping
+    Write-Host "[MySQL] Waiting for InnoDB recovery..."
+    $dbTimeout = 15
+    $dbElapsed = 0
+    $dbReady = $false
+    while ($dbElapsed -lt $dbTimeout) {
+        Start-Sleep -Seconds 1
+        $dbElapsed++
+        $result = & $MYSQL_EXE -u root -e "SELECT 1" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            $dbReady = $true
+            break
+        }
+    }
+    if (-not $dbReady) {
+        Write-Error "MySQL is listening but not accepting queries after ${dbTimeout}s. Check D:/program/MySQL/data/*.err"
+        exit 1
+    }
+    Write-Host "[MySQL] Accepting queries (${dbElapsed}s after port ready)" -ForegroundColor Green
+    Write-Host "[MySQL] Waiting 5s for InnoDB buffer pool to stabilize..."
+    Start-Sleep -Seconds 5
 } else {
-    Write-Host "[MySQL] Already running on port 3306, skip startup." -ForegroundColor Green
+    Write-Host "[MySQL] Already running on port 3306, verifying connectivity..."
+    $result = & $MYSQL_EXE -u root -e "SELECT 1" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Port 3306 is listening but MySQL rejects connections. It may be mid-restart — wait 5s and retry."
+        exit 1
+    }
+    Write-Host "[MySQL] Accepting queries, skip startup." -ForegroundColor Green
 }
 
 # Check database status
 Write-Host "[DB] Checking database atmoto_recruit..."
-$dbCheckCmd = "& `"$MYSQL_EXE`" -u root -e `"SELECT COUNT(*) AS table_count FROM information_schema.TABLES WHERE TABLE_SCHEMA='atmoto_recruit';`" 2>&1"
-$dbCheck = Invoke-Expression $dbCheckCmd
-$dbExists = $dbCheck -match "table_count"
+$dbOutput = & $MYSQL_EXE -u root -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='atmoto_recruit'" 2>&1
+$tableCount = 0
+$intMatch = [regex]::Match($dbOutput, '(\d+)')
+if ($intMatch.Success) { $tableCount = [int]$intMatch.Groups[1].Value }
 
-if ($dbExists) {
-    # Extract the count after the header line
-    $lines = $dbCheck -split "`n"
-    $count = 0
-    foreach ($line in $lines) {
-        if ($line -match '^\s*(\d+)\s*$') {
-            $count = [int]$matches[1]
-            break
-        }
-    }
-    if ($count -gt 0) {
-        Write-Host "[DB] Database atmoto_recruit already has $count tables, skip initialization." -ForegroundColor Green
-    } else {
-        Write-Host "[DB] Database exists but has 0 tables, re-initializing..." -ForegroundColor Yellow
-        & $MYSQL_EXE -u root -e "DROP DATABASE IF EXISTS atmoto_recruit; CREATE DATABASE atmoto_recruit DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-        Write-Host "[DB] Executing init-schema.sql..."
-        Get-Content $SQL_SCHEMA | & $MYSQL_EXE -u root atmoto_recruit
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Failed to execute init-schema.sql"
-            exit 1
-        }
-        Write-Host "[DB] Executing init-data.sql..."
-        Get-Content $SQL_DATA | & $MYSQL_EXE -u root atmoto_recruit
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Failed to execute init-data.sql"
-            exit 1
-        }
-        Write-Host "[DB] Database initialized successfully." -ForegroundColor Green
-    }
+if ($tableCount -gt 0) {
+    Write-Host "[DB] Database atmoto_recruit already has $tableCount tables, skip initialization." -ForegroundColor Green
 } else {
-    Write-Host "[DB] Database atmoto_recruit does not exist, creating..." -ForegroundColor Yellow
+    Write-Host "[DB] Database atmoto_recruit has 0 tables or doesn't exist, initializing..." -ForegroundColor Yellow
     & $MYSQL_EXE -u root -e "CREATE DATABASE atmoto_recruit DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
     Write-Host "[DB] Executing init-schema.sql..."
     # Use Get-Content + pipe for reliable execution
@@ -260,6 +267,10 @@ if ($dbExists) {
     }
     Write-Host "[DB] Database created and initialized successfully." -ForegroundColor Green
 }
+
+# InnoDB may still be flushing — brief cooldown
+Write-Host "[DB] Waiting 3s for InnoDB flush..."
+Start-Sleep -Seconds 3
 
 Write-Host ""
 
@@ -322,7 +333,7 @@ if ($Env -eq "prod") {
     try {
         if (-not (Test-Path "node_modules")) {
             Write-Host "[HR-UI] node_modules not found, running npm install..."
-            npm install 2>&1 | ForEach-Object { Write-Host "  $_" }
+            cmd /c "npm install" 2>&1 | ForEach-Object { Write-Host "  $_" }
             if ($LASTEXITCODE -ne 0) {
                 Write-Host ""
                 Write-Host "  npm install failed." -ForegroundColor Red
@@ -335,7 +346,7 @@ if ($Env -eq "prod") {
             Write-Host "[HR-UI] node_modules exists, skip npm install."
         }
         Write-Host "[HR-UI] Running npm run build..."
-        npm run build 2>&1 | ForEach-Object { Write-Host "  $_" }
+        cmd /c "npm run build" 2>&1 | ForEach-Object { Write-Host "  $_" }
         if ($LASTEXITCODE -ne 0) {
             Write-Error "npm run build failed for HR Admin UI."
             exit 1
@@ -351,7 +362,7 @@ if ($Env -eq "prod") {
     try {
         if (-not (Test-Path "node_modules")) {
             Write-Host "[Portal-UI] node_modules not found, running npm install..."
-            npm install 2>&1 | ForEach-Object { Write-Host "  $_" }
+            cmd /c "npm install" 2>&1 | ForEach-Object { Write-Host "  $_" }
             if ($LASTEXITCODE -ne 0) {
                 Write-Host ""
                 Write-Host "  npm install failed." -ForegroundColor Red
@@ -364,7 +375,7 @@ if ($Env -eq "prod") {
             Write-Host "[Portal-UI] node_modules exists, skip npm install."
         }
         Write-Host "[Portal-UI] Running npm run build..."
-        npm run build 2>&1 | ForEach-Object { Write-Host "  $_" }
+        cmd /c "npm run build" 2>&1 | ForEach-Object { Write-Host "  $_" }
         if ($LASTEXITCODE -ne 0) {
             Write-Error "npm run build failed for Student Portal UI."
             exit 1
