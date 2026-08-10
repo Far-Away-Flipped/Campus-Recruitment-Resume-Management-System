@@ -75,15 +75,15 @@ INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, css_cla
 
 INSERT INTO job_category (category_id, parent_id, ancestors, category_name, category_code, sort_order, status, create_by, create_time) VALUES
 -- 三大父级序列
-(1,  0, '0',     '硬件研发', 'HARDWARE_RD', 1, '0', 'admin', NOW()),
-(2,  0, '0',     '软件研发', 'SOFTWARE_RD', 2, '0', 'admin', NOW()),
-(3,  0, '0',     '职能',     'FUNCTION',    3, '0', 'admin', NOW()),
+(1,  0, '0',     '硬件研发', 'HARDWARE_RD', 1, '1', 'admin', NOW()),
+(2,  0, '0',     '软件研发', 'SOFTWARE_RD', 2, '1', 'admin', NOW()),
+(3,  0, '0',     '职能',     'FUNCTION',    3, '1', 'admin', NOW()),
 -- 硬件研发子类别
-(11, 1, '0,1',   '电源',     'HW_POWER',     1, '0', 'admin', NOW()),
-(12, 1, '0,1',   '结构',     'HW_STRUCTURE', 2, '0', 'admin', NOW()),
-(13, 1, '0,1',   '控制',     'HW_CONTROL',   3, '0', 'admin', NOW()),
-(14, 1, '0,1',   '测试',     'HW_TEST',      4, '0', 'admin', NOW()),
-(15, 1, '0,1',   '工艺',     'HW_PROCESS',   5, '0', 'admin', NOW());
+(11, 1, '0,1',   '电源',     'HW_POWER',     1, '1', 'admin', NOW()),
+(12, 1, '0,1',   '结构',     'HW_STRUCTURE', 2, '1', 'admin', NOW()),
+(13, 1, '0,1',   '控制',     'HW_CONTROL',   3, '1', 'admin', NOW()),
+(14, 1, '0,1',   '测试',     'HW_TEST',      4, '1', 'admin', NOW()),
+(15, 1, '0,1',   '工艺',     'HW_PROCESS',   5, '1', 'admin', NOW());
 
 -- ============================================================================
 -- 4. 菜单表（sys_menu）—— 管理后台菜单树
