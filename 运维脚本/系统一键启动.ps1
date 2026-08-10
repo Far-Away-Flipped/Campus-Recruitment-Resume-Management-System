@@ -134,7 +134,7 @@ if ($hrListening) {
             Write-Error "node_modules not found in $HR_UI_DIR. Please run 系统部署.bat first."
             exit 1
         }
-        $hrProc = Start-Process -FilePath "npx" -ArgumentList "vite", "--host", "--port", "5174" -PassThru -NoNewWindow -WorkingDirectory $HR_UI_DIR
+        $hrProc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "npx vite --host --port 5174" -PassThru -NoNewWindow -WorkingDirectory $HR_UI_DIR
         $hrPid = $hrProc.Id
         $hrPid | Out-File -FilePath "$RUNTIME_DIR\admin-ui.pid" -Encoding ASCII
         Write-Host "[HR-UI] Started with PID: $hrPid" -ForegroundColor Green
@@ -163,7 +163,7 @@ if ($portalListening) {
             Write-Error "node_modules not found in $PORTAL_UI_DIR. Please run 系统部署.bat first."
             exit 1
         }
-        $portalProc = Start-Process -FilePath "npx" -ArgumentList "vite", "--host", "--port", "5173" -PassThru -NoNewWindow -WorkingDirectory $PORTAL_UI_DIR
+        $portalProc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "npx vite --host --port 5173" -PassThru -NoNewWindow -WorkingDirectory $PORTAL_UI_DIR
         $portalPid = $portalProc.Id
         $portalPid | Out-File -FilePath "$RUNTIME_DIR\portal-ui.pid" -Encoding ASCII
         Write-Host "[Portal-UI] Started with PID: $portalPid" -ForegroundColor Green
