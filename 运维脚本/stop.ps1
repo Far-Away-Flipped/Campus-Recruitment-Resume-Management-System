@@ -93,7 +93,14 @@ function Stop-ByPidFile {
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  [1/4] Stopping Student Portal UI" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-Stop-ByPidFile -PidFile "$RUNTIME_DIR\portal-ui.pid" -ServiceName "Portal-UI"
+$portalPid = netstat -ano 2>$null | Select-String ":5173 " | Select-String "LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] }
+if ($portalPid) {
+    Write-Host "[Portal-UI] Stopping PID=$portalPid (found by port 5173)..."
+    Stop-Process -Id $portalPid -Force -ErrorAction SilentlyContinue
+    Write-Host "[Portal-UI] Stopped." -ForegroundColor Green
+} else {
+    Stop-ByPidFile -PidFile "$RUNTIME_DIR\portal-ui.pid" -ServiceName "Portal-UI"
+}
 Write-Host ""
 
 # ============================================
@@ -102,7 +109,14 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  [2/4] Stopping HR Admin UI" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-Stop-ByPidFile -PidFile "$RUNTIME_DIR\admin-ui.pid" -ServiceName "HR-UI"
+$hrPid = netstat -ano 2>$null | Select-String ":5174 " | Select-String "LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] }
+if ($hrPid) {
+    Write-Host "[HR-UI] Stopping PID=$hrPid (found by port 5174)..."
+    Stop-Process -Id $hrPid -Force -ErrorAction SilentlyContinue
+    Write-Host "[HR-UI] Stopped." -ForegroundColor Green
+} else {
+    Stop-ByPidFile -PidFile "$RUNTIME_DIR\admin-ui.pid" -ServiceName "HR-UI"
+}
 Write-Host ""
 
 # ============================================
@@ -111,7 +125,14 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  [3/4] Stopping Backend" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-Stop-ByPidFile -PidFile "$RUNTIME_DIR\backend.pid" -ServiceName "Backend"
+$backendPid = netstat -ano 2>$null | Select-String ":8080 " | Select-String "LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] }
+if ($backendPid) {
+    Write-Host "[Backend] Stopping PID=$backendPid (found by port 8080)..."
+    Stop-Process -Id $backendPid -Force -ErrorAction SilentlyContinue
+    Write-Host "[Backend] Stopped." -ForegroundColor Green
+} else {
+    Stop-ByPidFile -PidFile "$RUNTIME_DIR\backend.pid" -ServiceName "Backend"
+}
 Write-Host ""
 
 # ============================================
@@ -123,7 +144,14 @@ Write-Host "========================================" -ForegroundColor Cyan
 if ($KeepMySQL) {
     Write-Host "[MySQL] --keep-mysql specified, skip shutdown." -ForegroundColor Yellow
 } else {
-    Stop-ByPidFile -PidFile "$RUNTIME_DIR\mysql.pid" -ServiceName "MySQL"
+    $mysqlPid = netstat -ano 2>$null | Select-String ":3306 " | Select-String "LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] }
+    if ($mysqlPid) {
+        Write-Host "[MySQL] Stopping PID=$mysqlPid (found by port 3306)..."
+        Stop-Process -Id $mysqlPid -Force -ErrorAction SilentlyContinue
+        Write-Host "[MySQL] Stopped." -ForegroundColor Green
+    } else {
+        Stop-ByPidFile -PidFile "$RUNTIME_DIR\mysql.pid" -ServiceName "MySQL"
+    }
 }
 
 Write-Host ""
