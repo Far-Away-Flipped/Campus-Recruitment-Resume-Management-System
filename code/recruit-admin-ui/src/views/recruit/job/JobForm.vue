@@ -276,20 +276,30 @@ onMounted(() => {
   applyTemplate();
 });
 
-/** 从岗位模板跳转过来时，用 query 参数预填表单 */
-function applyTemplate() {
+/** 从岗位模板跳转过来时，通过 templateId 查询模板详情并预填表单 */
+async function applyTemplate() {
   const q = route.query;
   if (!q.templateId) return;
-  if (q.title) form.title = q.title;
-  if (q.deptId) form.deptId = Number(q.deptId);
-  if (q.categoryId) form.categoryId = Number(q.categoryId);
-  if (q.location) form.location = q.location;
-  if (q.degreeRequirement) form.degreeRequirement = q.degreeRequirement;
-  if (q.headcount) form.headcount = Number(q.headcount);
-  if (q.description) form.description = q.description;
-  if (q.requirement) form.requirement = q.requirement;
-  if (q.tags) form.tags = q.tags;
-  ElMessage.success('模板数据已加载，请补充截止日期后发布');
+  try {
+    const res = await request.get(`/job-templates/${q.templateId}`);
+    if (res.code === 200 && res.data) {
+      const t = res.data;
+      if (t.title) form.title = t.title;
+      if (t.deptId) form.deptId = Number(t.deptId);
+      if (t.categoryId) form.categoryId = Number(t.categoryId);
+      if (t.location) form.location = t.location;
+      if (t.degreeRequirement) form.degreeRequirement = t.degreeRequirement;
+      if (t.headcount) form.headcount = Number(t.headcount);
+      if (t.description) form.description = t.description;
+      if (t.requirement) form.requirement = t.requirement;
+      if (t.tags) form.tags = t.tags;
+      ElMessage.success('模板数据已加载，请补充截止日期后发布');
+    } else {
+      ElMessage.warning('模板数据加载失败，请手动填写');
+    }
+  } catch {
+    ElMessage.warning('模板数据加载失败，请手动填写');
+  }
 }
 </script>
 

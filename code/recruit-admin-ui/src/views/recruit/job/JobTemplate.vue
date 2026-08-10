@@ -228,20 +228,11 @@ function handleEdit(row) {
 }
 
 function handleUse(row) {
-  // 跳转到岗位创建页面，通过 query 参数预填数据
+  // 跳转到岗位创建页面，只传 templateId，由 JobForm 通过 API 回查模板详情
   router.push({
     path: '/recruit/jobs/create',
     query: {
       templateId: row.id,
-      title: row.title || '',
-      deptId: row.deptId || '',
-      categoryId: row.categoryId || '',
-      location: row.location || '',
-      degreeRequirement: row.degreeRequirement || '',
-      headcount: row.headcount || 1,
-      description: row.description || '',
-      requirement: row.requirement || '',
-      tags: row.tags || '',
     },
   });
 }

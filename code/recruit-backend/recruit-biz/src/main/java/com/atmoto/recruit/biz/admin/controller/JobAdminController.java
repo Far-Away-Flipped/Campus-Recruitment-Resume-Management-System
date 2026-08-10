@@ -13,7 +13,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.util.HtmlUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +31,16 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/jobs")
 public class JobAdminController {
+
+    /** 富文本安全白名单：允许基础格式化标签，禁止脚本和事件属性 */
+    private static final Safelist SAFE_HTML = Safelist.basic()
+            .addTags("h1", "h2", "h3", "h4", "h5", "h6", "table", "thead", "tbody", "tr", "td", "th",
+                    "img", "span", "div", "pre", "blockquote", "hr")
+            .addAttributes("img", "src", "alt", "width", "height")
+            .addAttributes("a", "target", "rel")
+            .addAttributes("td", "colspan", "rowspan")
+            .addAttributes("th", "colspan", "rowspan")
+            .addProtocols("img", "src", "http", "https");
 
     private final JobPositionService jobPositionService;
     private final SysDeptMapper deptMapper;
@@ -98,9 +109,9 @@ public class JobAdminController {
         String tags = str(body, "tags");
 
         if (title == null || title.isBlank()) return AjaxResult.error("岗位名称不能为空");
-        title = HtmlUtils.htmlEscape(title);
-        description = description != null ? HtmlUtils.htmlEscape(description) : null;
-        requirement = requirement != null ? HtmlUtils.htmlEscape(requirement) : null;
+        title = Jsoup.clean(title, Safelist.none());
+        description = description != null ? Jsoup.clean(description, SAFE_HTML) : null;
+        requirement = requirement != null ? Jsoup.clean(requirement, SAFE_HTML) : null;
         if (deptId == null) return AjaxResult.error("请选择所属部门");
         if (categoryId == null) return AjaxResult.error("请选择岗位类别");
         if (location == null || location.isBlank()) return AjaxResult.error("请选择工作地点");
@@ -155,9 +166,9 @@ public class JobAdminController {
 
         if (jobId == null) return AjaxResult.error("岗位ID不能为空");
         if (title == null || title.isBlank()) return AjaxResult.error("岗位名称不能为空");
-        title = HtmlUtils.htmlEscape(title);
-        description = description != null ? HtmlUtils.htmlEscape(description) : null;
-        requirement = requirement != null ? HtmlUtils.htmlEscape(requirement) : null;
+        title = Jsoup.clean(title, Safelist.none());
+        description = description != null ? Jsoup.clean(description, SAFE_HTML) : null;
+        requirement = requirement != null ? Jsoup.clean(requirement, SAFE_HTML) : null;
 
         String deadlineStr = str(body, "deadline");
         LocalDateTime deadline = null;

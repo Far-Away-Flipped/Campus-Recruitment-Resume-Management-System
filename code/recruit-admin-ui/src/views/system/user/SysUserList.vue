@@ -8,8 +8,8 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px;">
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
+            <el-option label="启用" :value="'0'" />
+            <el-option label="禁用" :value="'1'" />
           </el-select>
         </el-form-item>
         <el-form-item label="部门">
@@ -48,8 +48,13 @@
         <el-table-column prop="phonenumber" label="手机号" width="130" />
         <el-table-column label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-              {{ row.status === 1 ? '启用' : '禁用' }}
+            <el-tag
+              :type="row.status === '0' ? 'success' : 'info'"
+              size="small"
+              style="cursor: pointer;"
+              @click="handleToggleStatus(row)"
+            >
+              {{ row.status === '0' ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -59,7 +64,7 @@
             <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button type="warning" link size="small" @click="handleResetPwd(row)">重置密码</el-button>
             <el-button
-              v-if="row.status === 1"
+              v-if="row.status === '0'"
               type="danger"
               link
               size="small"
@@ -129,7 +134,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="form.status" :active-value="'0'" :inactive-value="'1'" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -188,7 +193,7 @@ const form = reactive({
   phonenumber: '',
   email: '',
   roleIds: [],
-  status: 1,
+  status: '0',
 });
 
 const rules = {
@@ -274,7 +279,7 @@ function resetForm() {
   form.phonenumber = '';
   form.email = '';
   form.roleIds = [];
-  form.status = 1;
+  form.status = '0';
   isEdit.value = false;
   editId.value = null;
   formRef.value?.resetFields();
@@ -352,14 +357,14 @@ async function handlePwdSubmit() {
 
 // 启禁用
 async function handleToggleStatus(row) {
-  const action = row.status === 1 ? '禁用' : '启用';
+  const action = row.status === '0' ? '禁用' : '启用';
   try {
     await ElMessageBox.confirm(`确认${action}账号「${row.userName}」吗？`, '确认操作', {
       confirmButtonText: `确认${action}`,
       cancelButtonText: '取消',
       type: 'warning',
     });
-    const newStatus = row.status === 1 ? 0 : 1;
+    const newStatus = row.status === '0' ? '1' : '0';
     await systemRequest.put('/user', { userId: row.userId, status: newStatus });
     ElMessage.success(`${action}成功`);
     fetchList();

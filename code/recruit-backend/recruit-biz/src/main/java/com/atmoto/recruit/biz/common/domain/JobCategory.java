@@ -8,6 +8,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.List;
+
 /**
  * 岗位类别（A-002）
  * <p>三大序列：硬件研发 / 软件研发 / 职能</p>
@@ -27,4 +29,8 @@ public class JobCategory extends BaseEntity {
     @TableField("sort_order")
     private Integer orderNum;
     private String status;
+
+    /** 子类别列表（非数据库字段，仅用于树形返回） */
+    @TableField(exist = false)
+    private List<JobCategory> children;
 }

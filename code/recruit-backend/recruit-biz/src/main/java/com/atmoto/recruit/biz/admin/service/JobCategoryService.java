@@ -21,11 +21,12 @@ public interface JobCategoryService {
     List<JobCategory> selectJobCategoryList(JobCategory jobCategory);
 
     /**
-     * 查询岗位类别树（组装父子层级）
+     * 查询岗位类别树（组装父子层级，默认仅返回启用类别）
      *
+     * @param includeDisabled true=也包含禁用类别
      * @return 岗位类别树
      */
-    List<JobCategory> selectJobCategoryTree();
+    List<JobCategory> selectJobCategoryTree(boolean includeDisabled);
 
     /**
      * 根据ID查询岗位类别
@@ -74,4 +75,20 @@ public interface JobCategoryService {
      * @return true=唯一
      */
     boolean checkCategoryNameUnique(JobCategory jobCategory);
+
+    /**
+     * 查询关联该类别且未删除的岗位数量
+     *
+     * @param categoryId 类别ID
+     * @return 关联岗位数
+     */
+    long countPositionRefs(Long categoryId);
+
+    /**
+     * 查询关联该类别且未删除的模板数量
+     *
+     * @param categoryId 类别ID
+     * @return 关联模板数
+     */
+    long countTemplateRefs(Long categoryId);
 }

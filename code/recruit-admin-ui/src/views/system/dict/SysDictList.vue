@@ -77,8 +77,8 @@
               <el-table-column prop="sortOrder" label="排序" width="80" align="center" />
               <el-table-column label="状态" width="90">
                 <template #default="{ row }">
-                  <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-                    {{ row.status === 1 ? '启用' : '禁用' }}
+                  <el-tag :type="row.status === '0' ? 'success' : 'danger'" size="small">
+                    {{ row.status === '0' ? '启用' : '禁用' }}
                   </el-tag>
                 </template>
               </el-table-column>
@@ -123,7 +123,7 @@
           <el-input v-model="typeForm.dictType" placeholder="如：sys_user_sex" :disabled="isTypeEdit" maxlength="50" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-switch v-model="typeForm.status" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="typeForm.status" :active-value="'0'" :inactive-value="'1'" />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="typeForm.remark" type="textarea" :rows="2" placeholder="可选" maxlength="200" />
@@ -153,7 +153,7 @@
           <el-input-number v-model="dataForm.sortOrder" :min="0" :max="999" style="width: 140px;" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-switch v-model="dataForm.status" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="dataForm.status" :active-value="'0'" :inactive-value="'1'" />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="dataForm.remark" type="textarea" :rows="2" placeholder="可选" maxlength="200" />
@@ -189,7 +189,7 @@ const typeEditId = ref(null);
 const typeForm = reactive({
   dictName: '',
   dictType: '',
-  status: 1,
+  status: '0',
   remark: '',
 });
 
@@ -216,7 +216,7 @@ const dataForm = reactive({
   dictLabel: '',
   dictValue: '',
   sortOrder: 0,
-  status: 1,
+  status: '0',
   remark: '',
 });
 
@@ -259,7 +259,7 @@ function selectType(item) {
 function resetTypeForm() {
   typeForm.dictName = '';
   typeForm.dictType = '';
-  typeForm.status = 1;
+  typeForm.status = '0';
   typeForm.remark = '';
   isTypeEdit.value = false;
   typeEditId.value = null;
@@ -278,7 +278,7 @@ function handleEditType(row) {
   typeEditId.value = row.id;
   typeForm.dictName = row.dictName;
   typeForm.dictType = row.dictType;
-  typeForm.status = row.status ?? 1;
+  typeForm.status = row.status ?? '0';
   typeForm.remark = row.remark || '';
   typeDialogTitle.value = '编辑字典类型';
   typeDialogVisible.value = true;
@@ -347,7 +347,7 @@ function resetDataForm() {
   dataForm.dictLabel = '';
   dataForm.dictValue = '';
   dataForm.sortOrder = 0;
-  dataForm.status = 1;
+  dataForm.status = '0';
   dataForm.remark = '';
   isDataEdit.value = false;
   dataEditId.value = null;
@@ -367,7 +367,7 @@ function handleEditData(row) {
   dataForm.dictLabel = row.dictLabel;
   dataForm.dictValue = row.dictValue;
   dataForm.sortOrder = row.sortOrder ?? 0;
-  dataForm.status = row.status ?? 1;
+  dataForm.status = row.status ?? '0';
   dataForm.remark = row.remark || '';
   dataDialogTitle.value = '编辑字典数据';
   dataDialogVisible.value = true;

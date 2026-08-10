@@ -83,7 +83,18 @@ INSERT INTO job_category (category_id, parent_id, ancestors, category_name, cate
 (12, 1, '0,1',   '结构',     'HW_STRUCTURE', 2, '1', 'admin', NOW()),
 (13, 1, '0,1',   '控制',     'HW_CONTROL',   3, '1', 'admin', NOW()),
 (14, 1, '0,1',   '测试',     'HW_TEST',      4, '1', 'admin', NOW()),
-(15, 1, '0,1',   '工艺',     'HW_PROCESS',   5, '1', 'admin', NOW());
+(15, 1, '0,1',   '工艺',     'HW_PROCESS',   5, '1', 'admin', NOW()),
+-- 软件研发子类别
+(22, 2, '0,2',   '数据平台',   'SW_DATA',      1, '1', 'admin', NOW()),
+(23, 2, '0,2',   '算法工程师', 'SW_ALGO',      2, '1', 'admin', NOW()),
+(24, 2, '0,2',   '前端开发',   'SW_FRONTEND',  3, '1', 'admin', NOW()),
+(25, 2, '0,2',   '后端开发',   'SW_BACKEND',   4, '1', 'admin', NOW()),
+(26, 2, '0,2',   '测试开发',   'SW_TEST',      5, '1', 'admin', NOW()),
+-- 职能子类别
+(31, 3, '0,3',   '行政管理',   'FN_ADMIN',     1, '1', 'admin', NOW()),
+(33, 3, '0,3',   '人力资源',   'FN_HR',        2, '1', 'admin', NOW()),
+(35, 3, '0,3',   '财务管理',   'FN_FINANCE',   3, '1', 'admin', NOW()),
+(36, 3, '0,3',   '法务合规',   'FN_LEGAL',     4, '1', 'admin', NOW());
 
 -- ============================================================================
 -- 4. 菜单表（sys_menu）—— 管理后台菜单树

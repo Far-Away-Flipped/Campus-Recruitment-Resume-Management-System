@@ -3,17 +3,17 @@ package com.atmoto.recruit.biz.task;
 import com.atmoto.recruit.biz.common.domain.JobPosition;
 import com.atmoto.recruit.biz.common.enums.JobStatus;
 import com.atmoto.recruit.biz.common.mapper.JobPositionMapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 /**
  * 岗位到期自动下架定时任务
- * <p>每 5 分钟扫描一次，将已过截止日期的已发布岗位自动下架</p>
+ * <p>每 5 分钟扫描一次，将已过截止日期的已发布岗位自动标记为已过期</p>
  *
  * @author atmoto-recruit
  */
@@ -25,33 +25,20 @@ public class JobExpireTask {
     private final JobPositionMapper jobPositionMapper;
 
     /**
-     * 每 5 分钟执行一次：自动下架过期的已发布岗位
+     * 每 5 分钟执行一次：自动将过期的已发布岗位设为 EXPIRED（区分手动下架的 CLOSED）
      */
     @Scheduled(cron = "0 */5 * * * ?")
     public void autoOfflineExpiredJobs() {
-        // 查询 status='PUBLISHED' 且 deadline < NOW() 的岗位
-        // ★ 使用 DB 层 NOW() 比较，保证 DATETIME 精度（而非 Java LocalDate）
-        QueryWrapper<JobPosition> wrapper = new QueryWrapper<>();
-        wrapper.eq("status", JobStatus.PUBLISHED.getCode())
-                .apply("deadline < NOW()");
+        // 批量 UPDATE status='EXPIRED' WHERE status='PUBLISHED' AND deadline < NOW()
+        LambdaUpdateWrapper<JobPosition> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.set(JobPosition::getStatus, JobStatus.EXPIRED.getCode())
+                .eq(JobPosition::getStatus, JobStatus.PUBLISHED.getCode())
+                .lt(JobPosition::getDeadline, LocalDateTime.now());
 
-        List<JobPosition> expiredJobs = jobPositionMapper.selectList(wrapper);
+        int count = jobPositionMapper.update(null, updateWrapper);
 
-        if (expiredJobs.isEmpty()) {
-            return;
+        if (count > 0) {
+            log.info("定时任务-岗位到期自动标记过期：共标记 {} 个过期岗位", count);
         }
-
-        // 批量更新 status='CLOSED'
-        int count = 0;
-        for (JobPosition job : expiredJobs) {
-            JobPosition update = new JobPosition();
-            update.setJobId(job.getJobId());
-            update.setStatus(JobStatus.CLOSED.getCode());
-            jobPositionMapper.updateById(update);
-            count++;
-        }
-
-        log.info("定时任务-岗位到期自动下架：共下架 {} 个到期岗位（共扫描 {} 个过期岗位）",
-                count, expiredJobs.size());
     }
 }

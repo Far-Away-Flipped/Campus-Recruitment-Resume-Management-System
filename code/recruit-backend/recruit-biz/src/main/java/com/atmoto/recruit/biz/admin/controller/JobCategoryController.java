@@ -3,9 +3,6 @@ package com.atmoto.recruit.biz.admin.controller;
 import com.atmoto.recruit.biz.admin.service.JobCategoryService;
 import com.atmoto.recruit.biz.common.domain.JobCategory;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
-import com.atmoto.recruit.common.core.page.PageQuery;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -30,8 +27,8 @@ public class JobCategoryController {
      * 查询岗位类别树
      */
     @GetMapping("/tree")
-    public AjaxResult tree() {
-        List<JobCategory> tree = jobCategoryService.selectJobCategoryTree();
+    public AjaxResult tree(@RequestParam(required = false, defaultValue = "false") boolean includeDisabled) {
+        List<JobCategory> tree = jobCategoryService.selectJobCategoryTree(includeDisabled);
         return AjaxResult.success(tree);
     }
 
@@ -92,6 +89,13 @@ public class JobCategoryController {
         if (category == null) {
             return AjaxResult.error("岗位类别不存在");
         }
+        // 禁用时检查是否有已发布岗位关联
+        if ("0".equals(status)) {
+            long positionCount = jobCategoryService.countPositionRefs(categoryId);
+            if (positionCount > 0) {
+                return AjaxResult.error("该类别下有 " + positionCount + " 个已发布岗位，禁用后这些岗位将无法按此类别筛选，请先处理关联岗位");
+            }
+        }
         category.setStatus(status);
         int rows = jobCategoryService.updateJobCategory(category);
         String action = "1".equals(status) ? "启用" : "禁用";
@@ -106,6 +110,16 @@ public class JobCategoryController {
         // 存在子类别时不允许删除
         if (jobCategoryService.hasChildren(categoryId)) {
             return AjaxResult.error("该类别下存在子类别，无法删除");
+        }
+        // 检查是否有岗位关联
+        long positionCount = jobCategoryService.countPositionRefs(categoryId);
+        if (positionCount > 0) {
+            return AjaxResult.error("该类别被 " + positionCount + " 个岗位引用，无法删除");
+        }
+        // 检查是否有模板关联
+        long templateCount = jobCategoryService.countTemplateRefs(categoryId);
+        if (templateCount > 0) {
+            return AjaxResult.error("该类别被 " + templateCount + " 个模板引用，无法删除");
         }
         int rows = jobCategoryService.deleteJobCategoryById(categoryId);
         return rows > 0 ? AjaxResult.success("删除岗位类别成功") : AjaxResult.error("删除岗位类别失败");

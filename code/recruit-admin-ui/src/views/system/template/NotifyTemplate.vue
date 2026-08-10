@@ -15,8 +15,8 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" placeholder="全部" clearable style="width: 110px;">
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
+            <el-option label="启用" :value="'0'" />
+            <el-option label="禁用" :value="'1'" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -55,8 +55,8 @@
         </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-              {{ row.status === 1 ? '启用' : '禁用' }}
+            <el-tag :type="row.status === '0' ? 'success' : 'danger'" size="small">
+              {{ row.status === '0' ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -105,7 +105,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="form.status" :active-value="'0'" :inactive-value="'1'" />
         </el-form-item>
         <el-form-item label="模板内容" prop="content">
           <el-input
@@ -169,7 +169,7 @@ const form = reactive({
   templateCode: '',
   templateName: '',
   channel: '',
-  status: 1,
+  status: '0',
   content: '',
 });
 
@@ -241,7 +241,7 @@ function resetForm() {
   form.templateCode = '';
   form.templateName = '';
   form.channel = '';
-  form.status = 1;
+  form.status = '0';
   form.content = '';
   isEdit.value = false;
   editId.value = null;
@@ -261,7 +261,7 @@ function handleEdit(row) {
   form.templateCode = row.templateCode;
   form.templateName = row.templateName;
   form.channel = row.channel;
-  form.status = row.status ?? 1;
+  form.status = row.status ?? '0';
   form.content = row.content || '';
   dialogTitle.value = '编辑模板';
   dialogVisible.value = true;

@@ -2,7 +2,11 @@ package com.atmoto.recruit.biz.admin.service.impl;
 
 import com.atmoto.recruit.biz.admin.service.JobCategoryService;
 import com.atmoto.recruit.biz.common.domain.JobCategory;
+import com.atmoto.recruit.biz.common.domain.JobPosition;
+import com.atmoto.recruit.biz.common.domain.JobTemplate;
 import com.atmoto.recruit.biz.common.mapper.JobCategoryMapper;
+import com.atmoto.recruit.biz.common.mapper.JobPositionMapper;
+import com.atmoto.recruit.biz.common.mapper.JobTemplateMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * 岗位类别 Service 实现
@@ -24,6 +27,8 @@ import java.util.UUID;
 public class JobCategoryServiceImpl implements JobCategoryService {
 
     private final JobCategoryMapper jobCategoryMapper;
+    private final JobPositionMapper jobPositionMapper;
+    private final JobTemplateMapper jobTemplateMapper;
 
     @Override
     public List<JobCategory> selectJobCategoryList(JobCategory jobCategory) {
@@ -39,14 +44,13 @@ public class JobCategoryServiceImpl implements JobCategoryService {
     }
 
     @Override
-    public List<JobCategory> selectJobCategoryTree() {
-        // 查询所有正常状态的类别
-        List<JobCategory> all = jobCategoryMapper.selectList(
-                new LambdaQueryWrapper<JobCategory>()
-                        .eq(JobCategory::getStatus, "1")
-                        .orderByAsc(JobCategory::getParentId, JobCategory::getOrderNum)
-        );
-        // 构建树形结构
+    public List<JobCategory> selectJobCategoryTree(boolean includeDisabled) {
+        LambdaQueryWrapper<JobCategory> wrapper = new LambdaQueryWrapper<JobCategory>()
+                .orderByAsc(JobCategory::getParentId, JobCategory::getOrderNum);
+        if (!includeDisabled) {
+            wrapper.eq(JobCategory::getStatus, "1");
+        }
+        List<JobCategory> all = jobCategoryMapper.selectList(wrapper);
         return buildCategoryTree(all);
     }
 
@@ -57,9 +61,9 @@ public class JobCategoryServiceImpl implements JobCategoryService {
 
     @Override
     public int insertJobCategory(JobCategory jobCategory) {
-        // 自动生成 categoryCode（前端未传时）
+        // categoryCode 由前端必填传入，后端不再自动生成
         if (jobCategory.getCategoryCode() == null || jobCategory.getCategoryCode().isBlank()) {
-            jobCategory.setCategoryCode(UUID.randomUUID().toString().substring(0, 8));
+            throw new IllegalArgumentException("类别编码不能为空");
         }
         // 计算 ancestors
         fillAncestors(jobCategory);
@@ -98,6 +102,22 @@ public class JobCategoryServiceImpl implements JobCategoryService {
         return exist == null || exist.getCategoryId().equals(categoryId);
     }
 
+    @Override
+    public long countPositionRefs(Long categoryId) {
+        return jobPositionMapper.selectCount(
+                new LambdaQueryWrapper<JobPosition>()
+                        .eq(JobPosition::getCategoryId, categoryId)
+        );
+    }
+
+    @Override
+    public long countTemplateRefs(Long categoryId) {
+        return jobTemplateMapper.selectCount(
+                new LambdaQueryWrapper<JobTemplate>()
+                        .eq(JobTemplate::getCategoryId, categoryId)
+        );
+    }
+
     // ────────────────── 内部工具方法 ──────────────────
 
     /**
@@ -132,9 +152,17 @@ public class JobCategoryServiceImpl implements JobCategoryService {
         return tree;
     }
 
-    /** 递归挂载子节点（通过 parentId 关联，前端自行组装树） */
+    /** 递归挂载子节点到父类别（通过 children 集合返回完整树形结构） */
     private void attachChildren(JobCategory parent, List<JobCategory> all) {
-        // 前端通过 parentId 字段自行组装树形，此处仅保证返回数据完整
-        // 此方法为预留扩展点，未来可在此处添加 children 集合
+        List<JobCategory> children = new ArrayList<>();
+        for (JobCategory cat : all) {
+            if (cat.getParentId() != null && cat.getParentId().equals(parent.getCategoryId())) {
+                children.add(cat);
+                attachChildren(cat, all);
+            }
+        }
+        if (!children.isEmpty()) {
+            parent.setChildren(children);
+        }
     }
 }

@@ -19,4 +19,7 @@ public class PortalJobVo extends JobPosition {
 
     /** 岗位类别名称（连表 job_category） */
     private String categoryName;
+
+    /** 当前学生是否已投递该岗位（匿名用户为false） */
+    private Boolean hasApplied;
 }

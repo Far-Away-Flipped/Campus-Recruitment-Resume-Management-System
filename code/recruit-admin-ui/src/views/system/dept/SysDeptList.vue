@@ -24,19 +24,42 @@
         <el-table-column prop="phone" label="联系电话" width="130" />
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-              {{ row.status === 1 ? '启用' : '禁用' }}
+            <el-tag
+              :type="row.status === '0' ? 'success' : 'info'"
+              size="small"
+              style="cursor: pointer;"
+              @click="handleToggleStatus(row)"
+            >
+              {{ row.status === '0' ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="340" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="handleAdd(row)">
               添加子部门
             </el-button>
             <el-button type="primary" link size="small" @click="handleEdit(row)">
               编辑
+            </el-button>
+            <el-button
+              v-if="row.status === '0'"
+              type="warning"
+              link
+              size="small"
+              @click="handleToggleStatus(row)"
+            >
+              禁用
+            </el-button>
+            <el-button
+              v-else
+              type="success"
+              link
+              size="small"
+              @click="handleToggleStatus(row)"
+            >
+              启用
             </el-button>
             <el-button type="danger" link size="small" @click="handleDelete(row)">
               删除
@@ -67,7 +90,7 @@
           <el-input v-model="form.phone" placeholder="请输入联系电话" maxlength="11" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="form.status" :active-value="'0'" :inactive-value="'1'" />
         </el-form-item>
         <el-form-item v-if="form.parentId" label="上级部门">
           <el-input :value="parentName" disabled />
@@ -104,7 +127,7 @@ const form = reactive({
   sortOrder: 0,
   leader: '',
   phone: '',
-  status: 1,
+  status: '0',
   parentId: null,
 });
 
@@ -163,7 +186,7 @@ function resetForm() {
   form.sortOrder = 0;
   form.leader = '';
   form.phone = '';
-  form.status = 1;
+  form.status = '0';
   form.parentId = null;
   parentName.value = '';
   isEdit.value = false;
@@ -189,7 +212,7 @@ function handleEdit(row) {
   form.sortOrder = row.sortOrder ?? 0;
   form.leader = row.leader || '';
   form.phone = row.phone || '';
-  form.status = row.status ?? 1;
+  form.status = row.status ?? '0';
   form.parentId = row.parentId || null;
   if (row.parentId) {
     parentName.value = findParentName(row.parentId);
@@ -235,6 +258,24 @@ async function handleDelete(row) {
     });
     await systemRequest.delete(`/dept/${row.deptId}`);
     ElMessage.success('删除成功');
+    fetchList();
+  } catch {
+    // 取消或错误
+  }
+}
+
+// 启禁用
+async function handleToggleStatus(row) {
+  const action = row.status === '0' ? '禁用' : '启用';
+  try {
+    await ElMessageBox.confirm(`确认${action}部门「${row.deptName}」吗？`, '确认操作', {
+      confirmButtonText: `确认${action}`,
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
+    const newStatus = row.status === '0' ? '1' : '0';
+    await systemRequest.put('/dept', { deptId: row.deptId, status: newStatus });
+    ElMessage.success(`${action}成功`);
     fetchList();
   } catch {
     // 取消或错误
