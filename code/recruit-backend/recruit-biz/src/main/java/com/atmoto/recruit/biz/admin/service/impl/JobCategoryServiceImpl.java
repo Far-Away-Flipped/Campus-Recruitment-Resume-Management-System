@@ -43,7 +43,7 @@ public class JobCategoryServiceImpl implements JobCategoryService {
         // 查询所有正常状态的类别
         List<JobCategory> all = jobCategoryMapper.selectList(
                 new LambdaQueryWrapper<JobCategory>()
-                        .eq(JobCategory::getStatus, "0")
+                        .eq(JobCategory::getStatus, "1")
                         .orderByAsc(JobCategory::getParentId, JobCategory::getOrderNum)
         );
         // 构建树形结构
