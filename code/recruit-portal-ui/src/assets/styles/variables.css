@@ -22,4 +22,11 @@
   --input-min-h: 48px;             /* 移动端输入框最小高度 */
   --header-h: 56px;                /* 移动端Header高度 */
   --safe-bottom: env(safe-area-inset-bottom, 16px); /* 安全区域底部 */
+
+  /* ===== 手机版首页新增变量 ===== */
+  --color-text-weak: #6E7D8A;              /* 极弱化文字 */
+  --color-primary-10: rgba(95, 184, 214, 0.1);  /* 主色微透明（标签背景） */
+  --color-primary-15: rgba(95, 184, 214, 0.15); /* 主色分隔线 */
+  --section-gap: 40px;                     /* Section 间距 */
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);    /* 缓出曲线 */
 }
