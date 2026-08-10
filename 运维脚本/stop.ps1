@@ -40,37 +40,37 @@ function Stop-ByPidFile {
         return
     }
 
-    $pid = Get-Content $PidFile -Raw
-    $pid = $pid.Trim()
-    if (-not $pid) {
+    $targetPid = Get-Content $PidFile -Raw
+    $targetPid = $targetPid.Trim()
+    if (-not $targetPid) {
         Write-Host "[$ServiceName] PID file is empty, skip." -ForegroundColor Yellow
         Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
         return
     }
 
     # Check if process exists
-    $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
+    $proc = Get-Process -Id $targetPid -ErrorAction SilentlyContinue
     if (-not $proc) {
-        Write-Host "[$ServiceName] Process PID=$pid not found, cleaning up PID file." -ForegroundColor Yellow
+        Write-Host "[$ServiceName] Process PID=$targetPid not found, cleaning up PID file." -ForegroundColor Yellow
         Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
         return
     }
 
-    Write-Host "[$ServiceName] Stopping PID=$pid ($($proc.ProcessName))..."
+    Write-Host "[$ServiceName] Stopping PID=$targetPid ($($proc.ProcessName))..."
 
     if ($ForceStop) {
-        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+        Stop-Process -Id $targetPid -Force -ErrorAction SilentlyContinue
         Write-Host "[$ServiceName] Force stopped." -ForegroundColor Green
     } else {
         # Graceful first
-        Stop-Process -Id $pid -ErrorAction SilentlyContinue
+        Stop-Process -Id $targetPid -ErrorAction SilentlyContinue
         Write-Host "[$ServiceName] Sent stop signal, waiting up to 5s..."
 
         $waited = 0
         while ($waited -lt 5) {
             Start-Sleep -Seconds 1
             $waited++
-            $stillAlive = Get-Process -Id $pid -ErrorAction SilentlyContinue
+            $stillAlive = Get-Process -Id $targetPid -ErrorAction SilentlyContinue
             if (-not $stillAlive) {
                 Write-Host "[$ServiceName] Stopped gracefully (${waited}s)." -ForegroundColor Green
                 Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
@@ -80,7 +80,7 @@ function Stop-ByPidFile {
 
         # Force kill if still alive
         Write-Host "[$ServiceName] Still running after 5s, force killing..." -ForegroundColor Yellow
-        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+        Stop-Process -Id $targetPid -Force -ErrorAction SilentlyContinue
         Write-Host "[$ServiceName] Force stopped." -ForegroundColor Green
     }
 
