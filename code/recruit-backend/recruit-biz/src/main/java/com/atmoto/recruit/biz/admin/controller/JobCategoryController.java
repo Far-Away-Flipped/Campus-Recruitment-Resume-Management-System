@@ -80,6 +80,25 @@ public class JobCategoryController {
     }
 
     /**
+     * 切换岗位类别启用/禁用状态
+     */
+    @PutMapping("/{categoryId}/status")
+    public AjaxResult toggleStatus(@PathVariable Long categoryId,
+                                   @RequestParam String status) {
+        if (!"0".equals(status) && !"1".equals(status)) {
+            return AjaxResult.error("状态值仅支持 0（禁用）或 1（启用）");
+        }
+        JobCategory category = jobCategoryService.selectJobCategoryById(categoryId);
+        if (category == null) {
+            return AjaxResult.error("岗位类别不存在");
+        }
+        category.setStatus(status);
+        int rows = jobCategoryService.updateJobCategory(category);
+        String action = "1".equals(status) ? "启用" : "禁用";
+        return rows > 0 ? AjaxResult.success(action + "成功") : AjaxResult.error(action + "失败");
+    }
+
+    /**
      * 删除岗位类别
      */
     @DeleteMapping("/{categoryId}")

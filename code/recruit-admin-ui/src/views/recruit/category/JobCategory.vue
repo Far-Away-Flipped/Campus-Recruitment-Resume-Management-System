@@ -20,16 +20,39 @@
         <el-table-column prop="orderNum" label="排序" width="80" align="center" />
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.status == 1 ? 'success' : 'info'" size="small">
+            <el-tag
+              :type="row.status == 1 ? 'success' : 'info'"
+              size="small"
+              style="cursor: pointer;"
+              @click="handleToggleStatus(row)"
+            >
               {{ row.status == 1 ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="handleAdd(row)">
               添加子类
+            </el-button>
+            <el-button
+              v-if="row.status == 1"
+              type="warning"
+              link
+              size="small"
+              @click="handleToggleStatus(row)"
+            >
+              禁用
+            </el-button>
+            <el-button
+              v-else
+              type="success"
+              link
+              size="small"
+              @click="handleToggleStatus(row)"
+            >
+              启用
             </el-button>
             <el-button type="primary" link size="small" @click="handleEdit(row)">
               编辑
@@ -205,6 +228,18 @@ async function handleSubmit() {
     // ignore
   } finally {
     submitLoading.value = false;
+  }
+}
+
+async function handleToggleStatus(row) {
+  const newStatus = row.status == 1 ? '0' : '1';
+  const action = newStatus == '1' ? '启用' : '禁用';
+  try {
+    await request.put(`/jobCategory/${row.categoryId}/status`, null, { params: { status: newStatus } });
+    row.status = newStatus;
+    ElMessage.success(`${action}成功`);
+  } catch {
+    // ignore
   }
 }
 
