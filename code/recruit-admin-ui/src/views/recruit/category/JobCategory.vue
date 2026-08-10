@@ -20,8 +20,8 @@
         <el-table-column prop="orderNum" label="排序" width="80" align="center" />
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-              {{ row.status === 1 ? '启用' : '禁用' }}
+            <el-tag :type="row.status == 1 ? 'success' : 'info'" size="small">
+              {{ row.status == 1 ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -177,7 +177,7 @@ function handleEdit(row) {
   form.categoryName = row.categoryName;
   form.categoryCode = row.categoryCode || '';
   form.orderNum = row.orderNum ?? 0;
-  form.status = row.status ?? 1;
+  form.status = Number(row.status) ?? 1;
   form.parentId = row.parentId || null;
   if (row.parentId) {
     parentName.value = findParentName(row.parentId);
