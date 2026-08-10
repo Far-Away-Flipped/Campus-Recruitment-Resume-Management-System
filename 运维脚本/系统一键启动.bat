@@ -9,5 +9,5 @@ if "%1"=="--open" set OPEN_FLAG=-OpenBrowser
 shift&goto parse_args
 :run
 cd /d "%~dp0"
-powershell -ExecutionPolicy Bypass -File ".\ç³»ç»Ÿä¸€é”®å¯åŠ¨.ps1" -Env %ENV% %OPEN_FLAG%
+powershell -ExecutionPolicy Bypass -File ".\ÏµÍ³Ò»¼üÆô¶¯.ps1" -Env %ENV% %OPEN_FLAG%
 exit /b %ERRORLEVEL%
