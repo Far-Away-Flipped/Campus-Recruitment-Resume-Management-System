@@ -2,36 +2,76 @@
   <div class="profile-page">
     <h1 class="page-title">个人中心</h1>
 
-    <!-- 顶部 Tab -->
-    <div class="tabs">
-      <router-link to="/profile" class="tab" :class="{ 'tab--active': activeTab === 'basic' }" @click="activeTab = 'basic'">
-        基本资料
-      </router-link>
-      <router-link to="/profile/education" class="tab" :class="{ 'tab--active': activeTab === 'education' }">
-        教育经历
-      </router-link>
-      <router-link to="/profile/resume" class="tab" :class="{ 'tab--active': activeTab === 'resume' }">
-        简历附件
-      </router-link>
-      <router-link to="/profile/internship" class="tab" :class="{ 'tab--active': activeTab === 'internship' }">
-        实习/项目
-      </router-link>
-      <router-link to="/profile/certificate" class="tab" :class="{ 'tab--active': activeTab === 'certificate' }">
-        技能证书
-      </router-link>
-      <router-link to="/profile/activity" class="tab" :class="{ 'tab--active': activeTab === 'activity' }">
-        社团经历
-      </router-link>
-      <router-link to="/profile" class="tab" :class="{ 'tab--active': activeTab === 'privacy' }" @click="activeTab = 'privacy'">
-        隐私设置
-      </router-link>
+    <!-- ===== 持久化 Tab 导航栏 ===== -->
+    <div class="tabs-scroll">
+      <div class="tabs" ref="tabsRef">
+        <a
+          class="tab"
+          :class="{ 'tab--active': isBasicOrPrivacyTab && !localPrivacyActive }"
+          data-tab="home"
+          @click.prevent="switchToBasic"
+          href="#"
+        >
+          基本资料
+        </a>
+        <router-link
+          to="/profile/education"
+          class="tab"
+          :class="{ 'tab--active': routeName === 'education' }"
+        >
+          教育经历
+        </router-link>
+        <router-link
+          to="/profile/resume"
+          class="tab"
+          :class="{ 'tab--active': routeName === 'resume' }"
+        >
+          简历附件
+        </router-link>
+        <router-link
+          to="/profile/internship"
+          class="tab"
+          :class="{ 'tab--active': routeName === 'internship' }"
+        >
+          实习/项目
+        </router-link>
+        <router-link
+          to="/profile/certificate"
+          class="tab"
+          :class="{ 'tab--active': routeName === 'certificate' }"
+        >
+          技能证书
+        </router-link>
+        <router-link
+          to="/profile/activity"
+          class="tab"
+          :class="{ 'tab--active': routeName === 'activity' }"
+        >
+          社团经历
+        </router-link>
+        <a
+          class="tab"
+          :class="{ 'tab--active': localPrivacyActive }"
+          data-tab="privacy"
+          @click.prevent="switchToPrivacy"
+          href="#"
+        >
+          隐私设置
+        </a>
+
+        <!-- Active 指示器 -->
+        <div
+          class="tab-indicator"
+          :style="{ left: indicatorLeft + 'px', width: indicatorWidth + 'px' }"
+        ></div>
+      </div>
     </div>
 
     <!-- 加载中 -->
     <LoadingSpinner :visible="loading" text="加载个人信息..." />
 
-    <!-- 基本资料 Tab -->
-    <template v-if="!loading && activeTab === 'basic'">
+    <!-- 基本资料（路由为 /profile 且未激活隐私设置） -->
+    <template v-if="!loading && showBasicInfo">
       <!-- Toast 提示 -->
       <div class="form-toast form-toast--success" v-if="success">{{ success }}</div>
       <div class="form-toast form-toast--error" v-if="error">{{ error }}</div>
@@ -120,8 +160,8 @@
       </div>
     </template>
 
-    <!-- 隐私设置 Tab -->
-    <template v-if="!loading && activeTab === 'privacy'">
+    <!-- 隐私设置（本地状态激活） -->
+    <template v-if="!loading && localPrivacyActive">
       <div class="profile-card">
         <h3 class="section-title">隐私设置</h3>
         <p class="section-desc">管理您的个人信息可见性和通知偏好。</p>
@@ -207,11 +247,18 @@
         </div>
       </div>
     </template>
+
+    <!-- ===== 子路由渲染 ===== -->
+    <router-view v-if="showChildRoute" v-slot="{ Component: ChildComp, route: childRoute }">
+      <transition name="fade" mode="out-in">
+        <component :is="ChildComp" :key="childRoute.path" />
+      </transition>
+    </router-view>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../utils/axios.js';
 import LoadingSpinner from '../components/LoadingSpinner.vue';
@@ -219,11 +266,97 @@ import LoadingSpinner from '../components/LoadingSpinner.vue';
 const route = useRoute();
 const router = useRouter();
 
-const activeTab = ref('basic');
+const tabsRef = ref(null);
 const loading = ref(true);
 const saving = ref(false);
 const error = ref('');
 const success = ref('');
+
+// 隐私设置本地状态（不改变 URL）
+const localPrivacyActive = ref(false);
+
+// 路由名称简写
+const routeName = computed(() => route.name);
+
+// 是否展示基本资料（路由为 /profile 且未激活隐私设置）
+const showBasicInfo = computed(() => {
+  return !localPrivacyActive.value &&
+    (!routeName.value || routeName.value === 'profile' || routeName.value === 'profile-home');
+});
+
+// 是否展示子路由
+const showChildRoute = computed(() => {
+  return !localPrivacyActive.value &&
+    routeName.value && routeName.value !== 'profile' && routeName.value !== 'profile-home';
+});
+
+// 基本资料/隐私设置 Tab 是否 active
+const isBasicOrPrivacyTab = computed(() => {
+  return routeName.value === 'profile' || routeName.value === 'profile-home' || !routeName.value;
+});
+
+// 指示器位置
+const indicatorLeft = ref(0);
+const indicatorWidth = ref(0);
+
+function switchToPrivacy() {
+  localPrivacyActive.value = true;
+  // 确保 URL 回到 /profile
+  if (route.path !== '/profile') {
+    router.replace('/profile');
+  }
+  nextTick(updateIndicator);
+}
+
+function switchToBasic() {
+  localPrivacyActive.value = false;
+  // 确保 URL 回到 /profile
+  if (route.path !== '/profile') {
+    router.replace('/profile');
+  }
+  nextTick(updateIndicator);
+}
+
+/** 更新指示器位置 + 自动滚动到可见 */
+function updateIndicator() {
+  if (!tabsRef.value) return;
+  const selector = localPrivacyActive.value
+    ? '[data-tab="privacy"]'
+    : routeName.value === 'profile' || routeName.value === 'profile-home' || !routeName.value
+      ? '[data-tab="home"]'
+      : `.tab--active`;
+  const activeEl = tabsRef.value.querySelector(selector);
+  if (!activeEl) return;
+
+  // offsetLeft 相对于 offsetParent，需补偿横向滚动偏移（移动端）
+  const scrollContainer = tabsRef.value.parentElement; // .tabs-scroll
+  const scrollOffset = scrollContainer ? scrollContainer.scrollLeft : 0;
+  indicatorLeft.value = activeEl.offsetLeft - scrollOffset;
+  indicatorWidth.value = activeEl.offsetWidth;
+
+  // 移动端自动滚动到视野中央
+  if (window.innerWidth <= 767) {
+    activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
+}
+
+// 路由变化 → 退出隐私模式 + 更新指示器 + 滚动到顶部 + 刷新数据
+watch(() => route.path, (newPath) => {
+  if (newPath !== '/profile') {
+    localPrivacyActive.value = false;
+  } else {
+    // 回到基本资料 Tab 时重新加载个人信息（可能在子 Tab 中修改了关联数据）
+    loadProfile();
+  }
+  // Tab 切换时滚动到页面顶部，避免停留在上一页的滚动位置
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  nextTick(updateIndicator);
+});
+
+// 监听隐私设置状态 → 更新指示器
+watch(localPrivacyActive, () => {
+  nextTick(updateIndicator);
+});
 
 const avatarInput = ref(null);
 const avatarPreview = ref('');
@@ -424,15 +557,8 @@ async function handleDeleteAccount() {
 }
 
 onMounted(() => {
-  // 根据路由判断当前 tab
-  if (route.path === '/profile/education') {
-    activeTab.value = 'education';
-  } else if (route.path === '/profile/resume') {
-    activeTab.value = 'resume';
-  } else {
-    activeTab.value = 'basic';
-  }
   loadProfile();
+  nextTick(updateIndicator);
 });
 </script>
 
@@ -449,30 +575,76 @@ onMounted(() => {
   color: var(--color-text);
 }
 
-/* Tab 导航 */
+/* ===== Tab 滚动容器（移动端适配） ===== */
+.tabs-scroll {
+  position: relative;
+  margin-bottom: 24px;
+  /* 移动端横向滚动 */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE/Edge */
+  /* 顶部 sticky 时需考虑刘海屏 */
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.tabs-scroll::-webkit-scrollbar {
+  display: none;                  /* Chrome/Safari */
+}
+
+/* ===== Tab 列表（flex 容器） ===== */
 .tabs {
   display: flex;
-  gap: 0;
-  margin-bottom: 24px;
+  position: relative;
   border-bottom: 1px solid var(--color-border);
-  overflow-x: auto;
+  /* no gap — 指示器宽度基于 offsetLeft+offsetWidth，gap 会导致计算偏差 */
 }
+
+/* ===== 单个 Tab ===== */
 .tab {
-  padding: 12px 24px;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;               /* iOS HIG 最小触摸目标 */
+  padding: 12px 18px;
   font-size: 14px;
+  font-weight: 400;
   color: var(--color-text-secondary);
   text-decoration: none;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s;
   white-space: nowrap;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s ease;
 }
 .tab:hover {
   color: var(--color-text);
 }
+.tab:active {
+  /* 触摸反馈 */
+  background: rgba(95, 184, 214, 0.08);
+  transition: background 0.05s;
+}
 .tab--active {
   color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ===== Active 指示器（独立元素，CSS transition 动画） ===== */
+.tab-indicator {
+  position: absolute;
+  bottom: -1px;                   /* 覆盖 .tabs 的 border-bottom */
+  left: 0;
+  height: 3px;
+  background: var(--color-primary);
+  border-radius: 2px 2px 0 0;
+  pointer-events: none;           /* 不阻挡 Tab 点击 */
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: left, width;       /* GPU 加速 */
 }
 
 /* Toast 提示 */
@@ -736,13 +908,6 @@ onMounted(() => {
   .form-row {
     grid-template-columns: 1fr;
   }
-  .tabs {
-    gap: 0;
-  }
-  .tab {
-    padding: 10px 16px;
-    font-size: 13px;
-  }
   .profile-card {
     padding: 20px;
   }
@@ -857,21 +1022,6 @@ onMounted(() => {
     gap: 12px;
   }
 
-  /* Tab导航横向滚动 */
-  .tabs {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .tab {
-    padding: 14px 16px;
-    font-size: 14px;
-    flex-shrink: 0;
-  }
 
   /* 性别 Radio 组间距加大 */
   .radio-group {

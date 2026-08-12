@@ -118,8 +118,6 @@
       </div>
     </div>
 
-    <!-- 返回按钮 -->
-    <router-link to="/profile" class="back-link">← 返回个人中心</router-link>
   </div>
 </template>
 
@@ -358,8 +356,6 @@ onMounted(loadItems);
 .btn-cancel { padding: 10px 20px; border: 1px solid var(--color-border); border-radius: 6px; background: transparent; color: var(--color-text-secondary); cursor: pointer; font-size: 14px; font-family: inherit; }
 .btn-save { padding: 10px 24px; background: var(--color-primary); border: none; border-radius: 6px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
 .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
-.back-link { display: inline-block; margin-top: 32px; color: var(--color-text-secondary); text-decoration: none; font-size: 14px; }
-.back-link:hover { color: var(--color-primary); }
 
 @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
 
