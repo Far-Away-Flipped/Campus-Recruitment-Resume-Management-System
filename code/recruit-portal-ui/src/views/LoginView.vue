@@ -234,7 +234,7 @@ async function handleLogin() {
     if (code === 20002) {
       error.value = '手机号或密码错误';
     } else {
-      error.value = e.response?.data?.message || '登录失败，请稍后重试';
+      error.value = e.response?.data?.msg || '登录失败，请稍后重试';
     }
   } finally {
     loading.value = false;
@@ -328,7 +328,7 @@ async function sendResetSmsCode() {
     }, 1000);
     success.value = '验证码已发送，请注意查收';
   } catch (e) {
-    const msg = e.response?.data?.message || '发送验证码失败，请重试';
+    const msg = e.response?.data?.msg || '发送验证码失败，请重试';
     error.value = msg;
     if (e.response?.data?.code === 20003) {
       refreshCaptcha();
@@ -390,7 +390,7 @@ async function handleReset() {
     });
     resetDone.value = true;
   } catch (e) {
-    error.value = e.response?.data?.message || '重置失败，请稍后重试';
+    error.value = e.response?.data?.msg || '重置失败，请稍后重试';
   } finally {
     resetting.value = false;
   }

@@ -223,7 +223,7 @@ async function fetchApplications() {
       total.value = 0;
     }
   } catch (e) {
-    errorMsg.value = e.response?.data?.message || '加载投递记录失败，请稍后重试';
+    errorMsg.value = e.response?.data?.msg || '加载投递记录失败，请稍后重试';
     applications.value = [];
   } finally {
     loading.value = false;
@@ -249,7 +249,7 @@ async function openDetail(app) {
       detailError.value = res.message || '加载详情失败';
     }
   } catch (e) {
-    detailError.value = e.response?.data?.message || '加载详情失败，请稍后重试';
+    detailError.value = e.response?.data?.msg || '加载详情失败，请稍后重试';
   } finally {
     detailLoading.value = false;
   }

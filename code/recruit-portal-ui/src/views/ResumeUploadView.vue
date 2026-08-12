@@ -261,7 +261,7 @@ async function doUpload(file) {
     // 上传成功后刷新列表
     await fetchFiles();
   } catch (e) {
-    errorMsg.value = e.response?.data?.message || '上传失败，请重试';
+    errorMsg.value = e.response?.data?.msg || '上传失败，请重试';
   } finally {
     uploading.value = false;
     uploadProgress.value = 0;
@@ -334,7 +334,7 @@ async function deleteFile(f) {
     await api.delete(`/files/${f.id}`);
     files.value = files.value.filter(item => item.id !== f.id);
   } catch (e) {
-    errorMsg.value = e.response?.data?.message || '删除失败，请重试';
+    errorMsg.value = e.response?.data?.msg || '删除失败，请重试';
   } finally {
     deleting.value = null;
   }

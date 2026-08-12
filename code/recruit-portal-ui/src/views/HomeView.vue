@@ -122,16 +122,12 @@
         </div>
       </div>
     </section>
-
-    <!-- ====== Section 6: 页脚 ====== -->
-    <PortalFooter />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/utils/axios'
-import PortalFooter from '@/components/PortalFooter.vue'
 
 const banners = ref([])
 const featuredJobs = ref([])

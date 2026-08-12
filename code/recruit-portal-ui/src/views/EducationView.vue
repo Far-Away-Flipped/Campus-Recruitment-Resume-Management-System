@@ -173,7 +173,7 @@ async function loadList() {
     // res.data 可能是数组或 { rows: [...] } — 兼容两种返回格式
     list.value = Array.isArray(res.data) ? res.data : (res.data?.rows || []);
   } catch (e) {
-    toast.error = e.response?.data?.message || '加载教育经历失败';
+    toast.error = e.response?.data?.msg || '加载教育经历失败';
   } finally {
     loading.value = false;
   }
@@ -261,7 +261,7 @@ async function handleSave() {
     await loadList();
     setTimeout(() => (toast.success = ''), 3000);
   } catch (e) {
-    dialogError.value = e.response?.data?.message || '保存失败，请稍后重试';
+    dialogError.value = e.response?.data?.msg || '保存失败，请稍后重试';
   } finally {
     saving.value = false;
   }
@@ -277,7 +277,7 @@ async function handleDelete(id) {
     await loadList();
     setTimeout(() => (toast.success = ''), 3000);
   } catch (e) {
-    toast.error = e.response?.data?.message || '删除失败，请稍后重试';
+    toast.error = e.response?.data?.msg || '删除失败，请稍后重试';
     setTimeout(() => (toast.error = ''), 3000);
   }
 }

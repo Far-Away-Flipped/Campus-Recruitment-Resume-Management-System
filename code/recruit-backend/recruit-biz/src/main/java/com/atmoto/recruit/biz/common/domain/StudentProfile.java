@@ -33,6 +33,7 @@ public class StudentProfile extends BaseEntity {
     @TableField("native_place")
     private String nativePlace;
 
+    @TableField("avatar_url")
     private String avatarUrl;
 
     /** 备注（仅前端使用，不存DB） */

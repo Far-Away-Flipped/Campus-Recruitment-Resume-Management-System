@@ -20,6 +20,7 @@ import com.atmoto.recruit.biz.portal.service.PortalProfileService;
 import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -76,17 +77,26 @@ public class PortalProfileServiceImpl implements PortalProfileService {
             throw new BizException(ErrorCode.RESOURCE_NOT_FOUND, "学生资料不存在");
         }
 
-        // 只更新允许修改的字段，保留 studentId 和 id 不变
-        profile.setId(existing.getId());
-        profile.setStudentId(studentId);
-
+        // 使用 LambdaUpdateWrapper 显式更新每个字段，避免 MyBatis-Plus 策略拦截
+        LambdaUpdateWrapper<StudentProfile> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(StudentProfile::getStudentId, studentId)
+                .set(StudentProfile::getName, profile.getName())
+                .set(StudentProfile::getGender, profile.getGender())
+                .set(StudentProfile::getBirthDate, profile.getBirthDate())
+                .set(StudentProfile::getEmail, profile.getEmail())
+                .set(StudentProfile::getCurrentCity, profile.getCurrentCity())
+                .set(StudentProfile::getNativePlace, profile.getNativePlace());
         // phone 使用已有数据，不允许通过此接口修改
-        if (profile.getPhone() == null) {
-            profile.setPhone(existing.getPhone());
+        if (profile.getPhone() != null && !profile.getPhone().isBlank()) {
+            updateWrapper.set(StudentProfile::getPhone, profile.getPhone());
+        }
+        // 头像 URL — 显式更新，即使为空字符串也写入（清空头像）
+        if (profile.getAvatarUrl() != null) {
+            updateWrapper.set(StudentProfile::getAvatarUrl, profile.getAvatarUrl());
         }
 
-        studentProfileMapper.updateById(profile);
-        log.info("学生资料更新成功：studentId={}", studentId);
+        studentProfileMapper.update(null, updateWrapper);
+        log.info("学生资料更新成功：studentId={}, avatarUrl={}", studentId, profile.getAvatarUrl());
     }
 
     // ────────── 教育经历 ──────────

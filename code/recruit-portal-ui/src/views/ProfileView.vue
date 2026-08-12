@@ -87,12 +87,12 @@
           </div>
           <div class="avatar-info">
             <p class="avatar-title">个人头像</p>
-            <p class="avatar-hint">支持 JPG、PNG 格式，大小不超过 2MB</p>
+            <p class="avatar-hint">支持 JPG、PNG、WebP 格式，大小不超过 2MB</p>
           </div>
           <input
             ref="avatarInput"
             type="file"
-            accept="image/jpeg,image/png"
+            accept="image/jpeg,image/png,image/webp"
             class="avatar-file-input"
             @change="handleAvatarChange"
           />
@@ -359,7 +359,7 @@ watch(localPrivacyActive, () => {
 });
 
 const avatarInput = ref(null);
-const avatarPreview = ref('');
+const avatarPreview = ref(null);
 const avatarFile = ref(null);
 
 // 隐私权利相关状态
@@ -392,12 +392,12 @@ async function loadProfile() {
       form.email = res.data.email || '';
       form.currentCity = res.data.currentCity || '';
       form.nativePlace = res.data.nativePlace || '';
-      if (res.data.avatar) {
-        avatarPreview.value = res.data.avatar;
+      if (res.data.avatarUrl) {
+        avatarPreview.value = res.data.avatarUrl;
       }
     }
   } catch (e) {
-    error.value = e.response?.data?.message || '加载个人信息失败';
+    error.value = e.response?.data?.msg || '加载个人信息失败';
   } finally {
     loading.value = false;
   }
@@ -438,31 +438,37 @@ async function handleSave() {
 
   try {
     // 如有头像先上传
+    let uploadedAvatarUrl = null;
     if (avatarFile.value) {
       const fd = new FormData();
       fd.append('file', avatarFile.value);
-      const uploadRes = await api.post('/profile/avatar', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const uploadRes = await api.post('/profile/avatar', fd);
       if (uploadRes.data?.url) {
-        avatarPreview.value = uploadRes.data.url;
+        uploadedAvatarUrl = uploadRes.data.url;
+        avatarPreview.value = uploadedAvatarUrl;
       }
     }
 
-    // 保存资料
-    await api.put('/profile', {
+    // 构建请求体（仅在有真实头像值时才包含 avatarUrl）
+    const body = {
       name: form.name,
       gender: form.gender,
       birthDate: form.birthDate,
       email: form.email,
       currentCity: form.currentCity,
       nativePlace: form.nativePlace,
-    });
+    };
+    const finalAvatarUrl = uploadedAvatarUrl || avatarPreview.value;
+    if (finalAvatarUrl) {
+      body.avatarUrl = finalAvatarUrl;
+    }
+
+    await api.put('/profile', body);
 
     success.value = '个人信息已保存';
     setTimeout(() => (success.value = ''), 3000);
   } catch (e) {
-    error.value = e.response?.data?.message || '保存失败，请稍后重试';
+    error.value = e.response?.data?.msg || '保存失败，请稍后重试';
   } finally {
     saving.value = false;
   }
@@ -491,7 +497,7 @@ async function handleExportData() {
     privacySuccess.value = '数据导出成功';
     setTimeout(() => (privacySuccess.value = ''), 3000);
   } catch (e) {
-    privacyError.value = e.response?.data?.message || '导出失败，请稍后重试';
+    privacyError.value = e.response?.data?.msg || '导出失败，请稍后重试';
   } finally {
     exporting.value = false;
   }
@@ -514,7 +520,7 @@ async function handleWithdrawConsent() {
     await api.post('/profile/withdraw-consent');
     privacySuccess.value = '同意已撤回。如需继续使用核心功能，可重新授权。';
   } catch (e) {
-    privacyError.value = e.response?.data?.message || '操作失败，请稍后重试';
+    privacyError.value = e.response?.data?.msg || '操作失败，请稍后重试';
   } finally {
     withdrawing.value = false;
   }
@@ -550,7 +556,7 @@ async function handleDeleteAccount() {
       router.push('/login');
     }, 1500);
   } catch (e) {
-    privacyError.value = e.response?.data?.message || '注销失败，请稍后重试';
+    privacyError.value = e.response?.data?.msg || '注销失败，请稍后重试';
   } finally {
     deletingAccount.value = false;
   }

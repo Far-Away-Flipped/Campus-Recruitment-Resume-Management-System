@@ -10,10 +10,15 @@ import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.framework.security.context.PortalUserHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
 /**
  * 学生端资料 Controller
@@ -29,6 +34,9 @@ import java.util.Map;
 public class PortalProfileController {
 
     private final PortalProfileService portalProfileService;
+
+    @Value("${file.upload-root}")
+    private String uploadRoot;
 
     /**
      * 获取本人基本资料
@@ -48,6 +56,84 @@ public class PortalProfileController {
         Long studentId = PortalUserHolder.get();
         portalProfileService.updateProfile(studentId, profile);
         return AjaxResult.success("资料更新成功");
+    }
+
+    /** 允许的头像 MIME 类型 */
+    private static final Set<String> AVATAR_ALLOWED_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
+
+    /**
+     * 上传个人头像
+     * <p>头像保存到 avatar/ 子目录，返回可访问的 URL</p>
+     */
+    @PostMapping("/avatar")
+    public AjaxResult uploadAvatar(@RequestParam("file") MultipartFile file) {
+        Long studentId = PortalUserHolder.get();
+        if (file.isEmpty()) {
+            return AjaxResult.error("请选择头像文件");
+        }
+        // 大小校验：最大 2MB
+        if (file.getSize() > 2 * 1024 * 1024) {
+            return AjaxResult.error("头像文件大小不能超过 2MB");
+        }
+        // MIME 校验
+        String contentType = file.getContentType();
+        if (contentType == null || !AVATAR_ALLOWED_TYPES.contains(contentType)) {
+            return AjaxResult.error("头像仅支持 JPG、PNG、WebP 格式");
+        }
+
+        String originalName = file.getOriginalFilename();
+        String ext = originalName != null && originalName.contains(".")
+                ? originalName.substring(originalName.lastIndexOf('.'))
+                : ".jpg";
+        String storedName = "avatar_" + studentId + "_" + UUID.randomUUID().toString().substring(0, 8) + ext;
+
+        Path dirPath = Paths.get(uploadRoot, "avatar");
+        try {
+            Files.createDirectories(dirPath);
+        } catch (IOException e) {
+            log.error("创建头像存储目录失败：{}", dirPath, e);
+            return AjaxResult.error("头像存储失败");
+        }
+
+        Path filePath = dirPath.resolve(storedName);
+        try {
+            file.transferTo(filePath.toFile());
+        } catch (IOException e) {
+            log.error("头像写入失败：{}", filePath, e);
+            return AjaxResult.error("头像保存失败");
+        }
+
+        String avatarUrl = "/api/portal/profile/avatar/" + storedName;
+        log.info("头像上传成功：studentId={}, fileName={}", studentId, storedName);
+        return AjaxResult.success("上传成功", Map.of("url", avatarUrl));
+    }
+
+    /**
+     * 获取头像文件
+     */
+    @GetMapping("/avatar/{fileName}")
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> getAvatar(
+            @PathVariable String fileName) {
+        Path filePath = Paths.get(uploadRoot, "avatar", fileName);
+        try {
+            org.springframework.core.io.Resource resource =
+                    new org.springframework.core.io.UrlResource(filePath.toUri());
+            if (resource.exists() && resource.isReadable()) {
+                // 根据扩展名确定 Content-Type
+                String ext = fileName.contains(".") ? fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase() : "";
+                org.springframework.http.MediaType mediaType = switch (ext) {
+                    case "png" -> org.springframework.http.MediaType.IMAGE_PNG;
+                    case "webp" -> org.springframework.http.MediaType.parseMediaType("image/webp");
+                    default -> org.springframework.http.MediaType.IMAGE_JPEG;
+                };
+                return org.springframework.http.ResponseEntity.ok()
+                        .contentType(mediaType)
+                        .body(resource);
+            }
+        } catch (Exception e) {
+            log.warn("头像读取失败：{}", fileName, e);
+        }
+        return org.springframework.http.ResponseEntity.notFound().build();
     }
 
     /**

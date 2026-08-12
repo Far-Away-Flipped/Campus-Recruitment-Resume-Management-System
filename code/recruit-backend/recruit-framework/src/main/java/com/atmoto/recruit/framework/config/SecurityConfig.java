@@ -54,7 +54,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // 学生端匿名可访问：注册、登录、Token刷新、验证码、短信码、重置密码、岗位浏览、品牌配置
+                // 学生端匿名可访问：注册、登录、Token刷新、验证码、短信码、重置密码、岗位浏览、品牌配置、头像文件
                 .requestMatchers(
                     "/api/portal/auth/login",
                     "/api/portal/auth/register",
@@ -63,7 +63,8 @@ public class SecurityConfig {
                     "/api/portal/auth/sms-code",
                     "/api/portal/auth/reset-password",
                     "/api/portal/jobs/**",
-                    "/api/portal/brand/**"
+                    "/api/portal/brand/**",
+                    "/api/portal/profile/avatar/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

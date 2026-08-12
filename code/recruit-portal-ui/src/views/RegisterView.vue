@@ -213,7 +213,7 @@ async function sendSmsCode() {
     }, 1000);
     success.value = '验证码已发送，请注意查收';
   } catch (e) {
-    const msg = e.response?.data?.message || '发送验证码失败，请重试';
+    const msg = e.response?.data?.msg || '发送验证码失败，请重试';
     error.value = msg;
     // 验证码错误时自动刷新
     if (e.response?.data?.code === 20003) {
@@ -295,7 +295,7 @@ async function handleRegister() {
     }
   } catch (e) {
     const code = e.response?.data?.code;
-    const msg = e.response?.data?.message;
+    const msg = e.response?.data?.msg;
     if (code === 20004) {
       error.value = '手机号已注册，请直接登录';
     } else {
