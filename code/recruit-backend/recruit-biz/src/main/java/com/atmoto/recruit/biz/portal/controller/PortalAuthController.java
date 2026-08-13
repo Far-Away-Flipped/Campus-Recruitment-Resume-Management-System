@@ -72,8 +72,8 @@ public class PortalAuthController {
      */
     @PostMapping("/sms-code")
     public AjaxResult sendSmsCode(@RequestBody SmsCodeRequest request) {
-        portalAuthService.sendSmsCode(request);
-        return AjaxResult.success(Map.of("message", "验证码已发送"));
+        String code = portalAuthService.sendSmsCode(request);
+        return AjaxResult.success(Map.of("message", "验证码已发送", "code", code));
     }
 
     /**
