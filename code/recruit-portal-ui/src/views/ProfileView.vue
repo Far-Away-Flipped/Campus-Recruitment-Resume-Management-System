@@ -58,6 +58,13 @@
         >
           隐私设置
         </a>
+        <router-link
+          to="/profile/security"
+          class="tab"
+          :class="{ 'tab--active': routeName === 'security' }"
+        >
+          账号安全
+        </router-link>
 
         <!-- Active 指示器 -->
         <div

@@ -121,19 +121,19 @@ INSERT INTO sys_menu (menu_id, menu_name, parent_id, order_num, path, component,
 -- ============================================================================
 
 INSERT INTO sys_role (role_id, role_name, role_key, role_sort, data_scope, status, create_by, create_time, remark) VALUES
-(1, '人力资源总监', 'hr_director',   1, '1', '0', 'admin', NOW(), '拥有全部管理权限（含数据导出）'),
-(2, '招聘专员',     'hr_recruiter',  2, '2', '0', 'admin', NOW(), '仅可查看所负责岗位的简历，不可导出');
+(1, '超级管理员', 'admin',   1, '1', '0', 'admin', NOW(), '超级管理员：拥有系统全部功能'),
+(2, 'HR用户',     'hr',      2, '2', '0', 'admin', NOW(), 'HR用户：仅工作台+招聘管理');
 
 -- ============================================================================
 -- 6. 角色-菜单关联表（sys_role_menu）
 -- ============================================================================
 
--- hr_director 拥有所有菜单权限
+-- admin 拥有所有菜单权限
 INSERT INTO sys_role_menu (role_id, menu_id) VALUES
 (1, 1), (1, 2), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14),
 (1, 20), (1, 21), (1, 22), (1, 23);
 
--- hr_recruiter 仅拥有业务管理下的岗位类别和Banner查看权限
+-- hr 仅拥有业务管理下的岗位类别和Banner查看权限
 INSERT INTO sys_role_menu (role_id, menu_id) VALUES
 (2, 2), (2, 21), (2, 22);
 
@@ -150,15 +150,15 @@ INSERT INTO sys_dept (dept_id, parent_id, ancestors, dept_name, order_num, leade
 
 -- ============================================================================
 -- 8. 初始 HR 账号（sys_user）
---    ⚠️ 密码为 BCrypt 加密，明文: admin123
+--    ⚠️ 密码为 BCrypt 加密，明文: at123456
 --    如需重置密码，请使用 BCryptPasswordEncoder 重新生成哈希值
 --    Spring Boot 可使用 org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 -- ============================================================================
 
 INSERT INTO sys_user (user_id, dept_id, user_name, nick_name, user_type, email, phonenumber, sex, password, status, create_by, create_time, remark) VALUES
-(1, 2, 'admin', '系统管理员', '00', 'admin@atmoto.com', '13800000000', '0',
- '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2',
- '0', 'admin', NOW(), '初始管理员账号');
+(1, 2, 'AT-admin', '超级管理员', '00', 'admin@atmoto.com', '13800000000', '0',
+ '$2a$10$8W.OqLtTLlwSepfrOl2w7eUyPydScGNhSZVV14sox9rR4fvzVNKci',
+ '0', 'admin', NOW(), '初始超级管理员账号');
 
 -- ============================================================================
 -- 9. 用户-角色关联表（sys_user_role）

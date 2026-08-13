@@ -18,14 +18,14 @@ import com.atmoto.recruit.biz.common.mapper.AppStatusHistoryMapper;
 import com.atmoto.recruit.biz.common.mapper.ApplicationMapper;
 import com.atmoto.recruit.biz.common.mapper.AuditResumeAccessMapper;
 import com.atmoto.recruit.biz.common.mapper.ResumeFileMapper;
+import com.atmoto.recruit.biz.notify.NotifyService;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.common.core.domain.TableDataInfo;
 import com.atmoto.recruit.common.core.page.PageQuery;
 import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
 import com.atmoto.recruit.framework.security.context.AdminUserHolder;
-import com.atmoto.recruit.system.domain.SysUser;
-import com.atmoto.recruit.system.service.ISysUserService;
+import com.atmoto.recruit.system.service.ISysRoleService;
 import com.github.benmanes.caffeine.cache.Cache;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -62,10 +62,11 @@ public class ResumeAdminController {
     private final AppHrNoteService appHrNoteService;
     private final ResumeExportService resumeExportService;
     private final ResumeFileMapper resumeFileMapper;
-    private final ISysUserService sysUserService;
+    private final ISysRoleService sysRoleService;
     private final ApplicationMapper applicationMapper;
     private final AppStatusHistoryMapper appStatusHistoryMapper;
     private final AuditResumeAccessMapper auditResumeAccessMapper;
+    private final NotifyService notifyService;
 
     /** 一次性预览ticket缓存（60秒过期，用后即焚） */
     private final Cache<String, Long> previewTicketCache;
@@ -75,20 +76,22 @@ public class ResumeAdminController {
                                   AppHrNoteService appHrNoteService,
                                   ResumeExportService resumeExportService,
                                   ResumeFileMapper resumeFileMapper,
-                                  ISysUserService sysUserService,
+                                  ISysRoleService sysRoleService,
                                   ApplicationMapper applicationMapper,
                                   AppStatusHistoryMapper appStatusHistoryMapper,
                                   AuditResumeAccessMapper auditResumeAccessMapper,
+                                  NotifyService notifyService,
                                   @Qualifier("previewTicketCache") Cache<String, Long> previewTicketCache) {
         this.resumeQueryService = resumeQueryService;
         this.resumeActionService = resumeActionService;
         this.appHrNoteService = appHrNoteService;
         this.resumeExportService = resumeExportService;
         this.resumeFileMapper = resumeFileMapper;
-        this.sysUserService = sysUserService;
+        this.sysRoleService = sysRoleService;
         this.applicationMapper = applicationMapper;
         this.appStatusHistoryMapper = appStatusHistoryMapper;
         this.auditResumeAccessMapper = auditResumeAccessMapper;
+        this.notifyService = notifyService;
         this.previewTicketCache = previewTicketCache;
     }
 
@@ -234,10 +237,11 @@ public class ResumeAdminController {
         Long currentUserId = getCurrentUserId();
         boolean hasAllDataScope = hasAllDataScope();
 
-        // 使用 MyBatis-Plus 内置 selectById（正确映射 @TableField("version_no") → version）
-        Application app = applicationMapper.selectById(applicationId);
+        // 数据范围校验：非全部数据权限的HR只能操作自己负责岗位下的投递（IDOR 修复）
+        Long ownerUserId = hasAllDataScope ? null : currentUserId;
+        Application app = applicationMapper.selectByIdWithScope(applicationId, ownerUserId);
         if (app == null) {
-            return AjaxResult.error("投递记录不存在");
+            return AjaxResult.error("投递记录不存在或无权限操作");
         }
 
         String currentStatus = app.getStatus();
@@ -286,6 +290,16 @@ public class ResumeAdminController {
 
         log.info("状态变更成功：applicationId={}, from={}, to={}, operator={}",
                 applicationId, currentStatus, newStatusCode, currentUserId);
+
+        // 同步发送状态变更站内信通知学生（尽力而为，失败不影响主业务）
+        try {
+            notifyService.sendStatusChangeNotice(app.getStudentId(), applicationId,
+                    app.getJobId(), targetStatus.getLabel(), history.getId());
+        } catch (Exception e) {
+            log.error("发送状态变更通知失败：applicationId={}, studentId={}, historyId={}",
+                    applicationId, app.getStudentId(), history.getId(), e);
+        }
+
         return AjaxResult.success("状态变更成功");
     }
 
@@ -504,8 +518,10 @@ public class ResumeAdminController {
     /**
      * 判断当前HR是否有全部数据权限
      * <p>
-     * 当前阶段简化实现：查询 sys_user 表，判断 user_type 是否为 "sys_admin"。
-     * 后续里程碑中接入 RuoYi 的 DataScope 注解体系。
+     * 查询 sys_user_role → sys_role.role_key，判断当前用户是否为「超级管理员」
+     * (admin) 角色。
+     * 【注意】不可照抄 "sys_admin".equals(userType) 的判断——init-data.sql 中 admin 账号
+     * user_type='00'，该逻辑在现有数据下恒为 false。
      * </p>
      */
     private boolean hasAllDataScope() {
@@ -514,12 +530,10 @@ public class ResumeAdminController {
             return false;
         }
         try {
-            SysUser sysUser = sysUserService.selectUserById(userId);
-            if (sysUser != null && "sys_admin".equals(sysUser.getUserType())) {
-                return true;
-            }
+            List<String> roleKeys = sysRoleService.selectRoleKeysByUserId(userId);
+            return roleKeys.contains("admin");
         } catch (Exception e) {
-            log.debug("查询用户类型失败，默认非全部权限：userId={}", userId);
+            log.debug("查询用户角色失败，默认非全部权限：userId={}", userId);
         }
         return false;
     }

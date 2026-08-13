@@ -7,8 +7,7 @@ import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
 import com.atmoto.recruit.framework.security.context.AdminUserHolder;
-import com.atmoto.recruit.system.domain.SysUser;
-import com.atmoto.recruit.system.service.ISysUserService;
+import com.atmoto.recruit.system.service.ISysRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -31,7 +30,7 @@ import java.util.List;
 public class ReportController {
 
     private final ReportService reportService;
-    private final ISysUserService sysUserService;
+    private final ISysRoleService sysRoleService;
 
     /**
      * 投递总量趋势
@@ -116,7 +115,8 @@ public class ReportController {
 
     /**
      * 判断当前用户是否拥有全部数据权限
-     * <p>sys_admin 类型用户拥有全部数据权限，可查看所有岗位的投递数据</p>
+     * <p>查询 sys_user_role → sys_role.role_key，判断是否为「超级管理员」(admin) 角色，
+     * 超级管理员拥有全部数据权限，可查看所有岗位的投递数据</p>
      */
     private boolean hasAllDataScope() {
         Long userId = AdminUserHolder.getUserId();
@@ -124,12 +124,10 @@ public class ReportController {
             return false;
         }
         try {
-            SysUser sysUser = sysUserService.selectUserById(userId);
-            if (sysUser != null && "sys_admin".equals(sysUser.getUserType())) {
-                return true;
-            }
+            List<String> roleKeys = sysRoleService.selectRoleKeysByUserId(userId);
+            return roleKeys.contains("admin");
         } catch (Exception e) {
-            log.warn("查询用户数据权限失败：userId={}", userId, e);
+            log.warn("查询用户角色失败，默认非全部权限：userId={}", userId, e);
         }
         return false;
     }

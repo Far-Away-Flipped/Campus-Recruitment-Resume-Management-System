@@ -22,7 +22,10 @@
       <nav class="nav-links">
         <router-link to="/jobs">岗位浏览</router-link>
         <router-link to="/my-applications" v-if="auth.isLoggedIn">我的投递</router-link>
-        <router-link to="/messages" v-if="auth.isLoggedIn">消息</router-link>
+        <router-link to="/messages" v-if="auth.isLoggedIn" class="msg-link">
+          消息
+          <span class="unread-badge" v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+        </router-link>
         <router-link to="/privacy">隐私政策</router-link>
       </nav>
 
@@ -56,7 +59,10 @@
           <nav class="drawer__nav">
             <router-link to="/jobs" @click="closeDrawer">岗位浏览</router-link>
             <router-link to="/my-applications" v-if="auth.isLoggedIn" @click="closeDrawer">我的投递</router-link>
-            <router-link to="/messages" v-if="auth.isLoggedIn" @click="closeDrawer">消息</router-link>
+            <router-link to="/messages" v-if="auth.isLoggedIn" @click="closeDrawer" class="drawer-msg-link">
+              消息
+              <span class="unread-badge" v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+            </router-link>
             <router-link to="/privacy" @click="closeDrawer">隐私政策</router-link>
           </nav>
 
@@ -87,7 +93,10 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/auth.js';
+import api from '../utils/axios.js';
 const auth = useAuthStore();
+
+const unreadCount = ref(0);
 
 const isMobile = ref(false);
 const drawerOpen = ref(false);
@@ -119,6 +128,13 @@ function onKeydown(e) {
   }
 }
 
+async function loadUnreadCount() {
+  try {
+    const res = await api.get('/messages/unread-count');
+    unreadCount.value = res.data?.count || 0;
+  } catch { /* 未登录或接口失败时静默忽略 */ }
+}
+
 // 初始化
 checkMobile();
 
@@ -127,6 +143,7 @@ mediaQuery.addEventListener('change', checkMobile);
 
 onMounted(() => {
   document.addEventListener('keydown', onKeydown);
+  if (auth.isLoggedIn) loadUnreadCount();
 });
 
 onUnmounted(() => {
@@ -185,6 +202,28 @@ onUnmounted(() => {
 .nav-links a:hover,
 .nav-links a.router-link-exact-active {
   color: var(--color-primary);
+}
+
+/* 消息未读红点 */
+.msg-link,
+.drawer-msg-link {
+  position: relative;
+}
+.unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: var(--color-danger, #e05252);
+  border-radius: 8px;
+  vertical-align: middle;
 }
 .header-actions {
   display: flex;

@@ -1,5 +1,6 @@
 package com.atmoto.recruit.admin.controller.system;
 
+import com.atmoto.recruit.biz.common.security.AdminRoleGuard;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.common.core.domain.TableDataInfo;
 import com.atmoto.recruit.common.core.page.PageQuery;
@@ -25,12 +26,14 @@ import java.util.List;
 public class SysRoleController {
 
     private final ISysRoleService roleService;
+    private final AdminRoleGuard adminRoleGuard;
 
     /**
      * 查询角色列表（MyBatis-Plus 分页）
      */
     @GetMapping("/list")
     public AjaxResult list(SysRole role, PageQuery pageQuery) {
+        adminRoleGuard.requireDirector();
         IPage<SysRole> page = roleService.selectRolePage(role, pageQuery);
         return AjaxResult.page(TableDataInfo.of(page.getTotal(), page.getRecords()));
     }
@@ -40,6 +43,7 @@ public class SysRoleController {
      */
     @GetMapping("/all")
     public AjaxResult all() {
+        adminRoleGuard.requireDirector();
         List<SysRole> list = roleService.selectRoleAll();
         return AjaxResult.success(list);
     }
@@ -49,6 +53,7 @@ public class SysRoleController {
      */
     @GetMapping("/{roleId}")
     public AjaxResult getInfo(@PathVariable Long roleId) {
+        adminRoleGuard.requireDirector();
         SysRole role = roleService.selectRoleById(roleId);
         return AjaxResult.success(role);
     }
@@ -58,6 +63,11 @@ public class SysRoleController {
      */
     @PostMapping
     public AjaxResult add(@RequestBody SysRole role) {
+        adminRoleGuard.requireDirector();
+        // 权限字符白名单：仅允许 admin / hr 两种合法值
+        if (!"admin".equals(role.getRoleKey()) && !"hr".equals(role.getRoleKey())) {
+            return AjaxResult.error("权限字符只能是 admin 或 hr");
+        }
         if (!roleService.checkRoleNameUnique(role)) {
             return AjaxResult.error("角色名称已存在");
         }
@@ -73,6 +83,11 @@ public class SysRoleController {
      */
     @PutMapping
     public AjaxResult edit(@RequestBody SysRole role) {
+        adminRoleGuard.requireDirector();
+        // 权限字符白名单：仅允许 admin / hr 两种合法值
+        if (!"admin".equals(role.getRoleKey()) && !"hr".equals(role.getRoleKey())) {
+            return AjaxResult.error("权限字符只能是 admin 或 hr");
+        }
         if (!roleService.checkRoleNameUnique(role)) {
             return AjaxResult.error("角色名称已存在");
         }
@@ -88,6 +103,7 @@ public class SysRoleController {
      */
     @DeleteMapping("/{roleIds}")
     public AjaxResult remove(@PathVariable Long[] roleIds) {
+        adminRoleGuard.requireDirector();
         int rows = roleService.deleteRoleByIds(roleIds);
         return rows > 0 ? AjaxResult.success("删除角色成功") : AjaxResult.error("删除角色失败");
     }

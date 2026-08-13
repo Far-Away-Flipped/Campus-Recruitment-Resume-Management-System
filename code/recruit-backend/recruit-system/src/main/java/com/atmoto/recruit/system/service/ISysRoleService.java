@@ -94,4 +94,20 @@ public interface ISysRoleService {
      * @return role_key集合，用户无角色或角色均已停用时返回空列表（不返回null）
      */
     List<String> selectRoleKeysByUserId(Long userId);
+
+    /**
+     * 批量查询多个用户关联的角色（user_id/role_id/role_name）
+     *
+     * @param userIds 用户ID列表
+     * @return 角色关联行，每行含 user_id/role_id/role_name
+     */
+    java.util.List<java.util.Map<String, Object>> selectRolesByUserIds(java.util.List<Long> userIds);
+
+    /**
+     * 按 role_key 查询角色ID
+     *
+     * @param roleKey 角色权限字符
+     * @return 角色ID，未找到返回 null
+     */
+    Long selectRoleIdByRoleKey(String roleKey);
 }

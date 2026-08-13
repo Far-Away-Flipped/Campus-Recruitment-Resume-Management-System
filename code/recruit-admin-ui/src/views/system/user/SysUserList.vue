@@ -51,20 +51,25 @@
             <el-tag
               :type="row.status === '0' ? 'success' : 'info'"
               size="small"
-              style="cursor: pointer;"
-              @click="handleToggleStatus(row)"
+              :style="row.userName === 'AT-admin' ? 'cursor: default;' : 'cursor: pointer;'"
+              @click="row.userName !== 'AT-admin' && handleToggleStatus(row)"
             >
               {{ row.status === '0' ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="角色" min-width="120">
+          <template #default="{ row }">
+            <el-tag size="small" type="info">{{ (row.roleNames || []).join(' / ') || '未分配' }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" />
         <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-if="row.userName !== 'AT-admin'" type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button type="warning" link size="small" @click="handleResetPwd(row)">重置密码</el-button>
             <el-button
-              v-if="row.status === '0'"
+              v-if="row.userName !== 'AT-admin' && row.status === '0'"
               type="danger"
               link
               size="small"
@@ -73,7 +78,7 @@
               禁用
             </el-button>
             <el-button
-              v-else
+              v-if="row.userName !== 'AT-admin' && row.status !== '0'"
               type="success"
               link
               size="small"
@@ -81,7 +86,7 @@
             >
               启用
             </el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button v-if="row.userName !== 'AT-admin'" type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

@@ -33,6 +33,10 @@ public class NotMessage {
     @TableField("message_type")
     private String messageType;
 
+    /** 幂等键（DB列名 dedup_key）：APPLICATION_STATUS_CHANGED:{app_status_history.id}，唯一防重 */
+    @TableField("dedup_key")
+    private String dedupKey;
+
     /** 消息标题 */
     private String title;
 

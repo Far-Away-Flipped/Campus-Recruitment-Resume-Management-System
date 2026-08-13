@@ -1,6 +1,9 @@
 <template>
   <div class="messages-page">
-    <h1 class="page-title">消息中心</h1>
+    <h1 class="page-title">
+      消息中心
+      <span class="unread-badge" v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+    </h1>
 
     <LoadingSpinner :visible="loading" text="加载消息..." />
 
@@ -42,7 +45,14 @@
         <h3>{{ detailMsg.title }}</h3>
         <p class="modal-time">{{ formatTime(detailMsg.createTime) }}</p>
         <div class="modal-body">{{ detailMsg.content }}</div>
-        <button class="btn-close" @click="showDetail = false">关闭</button>
+        <div class="modal-actions">
+          <button
+            v-if="detailMsg.messageType === 'APPLICATION_STATUS_CHANGED' && detailMsg.refId"
+            class="btn-progress"
+            @click="goToApplication"
+          >查看投递进度</button>
+          <button class="btn-close" @click="showDetail = false">关闭</button>
+        </div>
       </div>
     </div>
   </div>
@@ -50,8 +60,11 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '../utils/axios.js';
 import LoadingSpinner from '../components/LoadingSpinner.vue';
+
+const router = useRouter();
 
 const loading = ref(true);
 const error = ref('');
@@ -61,6 +74,7 @@ const pageSize = 10;
 const total = ref(0);
 const showDetail = ref(false);
 const detailMsg = ref({});
+const unreadCount = ref(0);
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)));
 
@@ -79,6 +93,20 @@ async function loadMessages() {
   }
 }
 
+async function loadUnreadCount() {
+  try {
+    const res = await api.get('/messages/unread-count');
+    unreadCount.value = res.data?.count || 0;
+  } catch { /* 未读角标拉取失败不影响消息列表 */ }
+}
+
+function goToApplication() {
+  if (detailMsg.value.refId) {
+    router.push(`/my-applications?applicationId=${detailMsg.value.refId}`);
+    showDetail.value = false;
+  }
+}
+
 async function openDetail(msg) {
   detailMsg.value = msg;
   showDetail.value = true;
@@ -86,6 +114,7 @@ async function openDetail(msg) {
     try {
       await api.put(`/messages/${msg.id}/read`);
       msg.isRead = '1';
+      loadUnreadCount(); // 标记已读后刷新未读角标
     } catch { /* ignore */ }
   }
 }
@@ -95,7 +124,10 @@ function formatTime(t) {
   return new Date(t).toLocaleString('zh-CN');
 }
 
-onMounted(loadMessages);
+onMounted(() => {
+  loadMessages();
+  loadUnreadCount();
+});
 </script>
 
 <style scoped>
@@ -125,6 +157,12 @@ onMounted(loadMessages);
 .modal-time { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 16px; }
 .modal-body { font-size: 14px; color: var(--color-text); line-height: 1.7; white-space: pre-wrap; margin-bottom: 20px; }
 .btn-close { padding: 10px 24px; background: var(--color-primary); border: none; border-radius: 6px; color: #fff; font-size: 14px; cursor: pointer; font-family: inherit; }
+
+.unread-badge { display: inline-block; margin-left: 8px; padding: 2px 9px; min-width: 22px; text-align: center; font-size: 12px; font-weight: 600; line-height: 1.5; color: #fff; background: var(--color-danger, #e05252); border-radius: 11px; vertical-align: middle; }
+
+.modal-actions { display: flex; gap: 12px; }
+.btn-progress { padding: 10px 24px; background: none; border: 1px solid var(--color-primary); border-radius: 6px; color: var(--color-primary); font-size: 14px; cursor: pointer; font-family: inherit; }
+.btn-progress:hover { background: rgba(95, 184, 214, 0.1); }
 
 /* ===== 移动端触摸优化 ===== */
 @media (max-width: 767px) {
@@ -162,6 +200,16 @@ onMounted(loadMessages);
 
   /* 关闭按钮全宽 */
   .btn-close {
+    width: 100%;
+    min-height: var(--touch-min);
+    text-align: center;
+  }
+
+  /* 操作按钮移动端纵向排列 + 触摸优化 */
+  .modal-actions {
+    flex-direction: column;
+  }
+  .btn-progress {
     width: 100%;
     min-height: var(--touch-min);
     text-align: center;

@@ -42,8 +42,8 @@ npm run dev
 
 ### 登录凭证（开发环境）
 
-- HR管理后台：`admin` / `admin123`
-- 学生门户：`18810121378` / `123456`（可能已被测试脚本修改，备用 `13822222222/Student@123`）
+- HR管理后台：`AT-admin` / `at123456`（超级管理员，唯一内置账号，不可删除）
+- 学生门户：`13812341234` / `123456789`（可能已被测试脚本修改，备用 `13822222222/Student@123`）
 - 登录需要图形验证码：`GET /api/admin/auth/captcha?key=<随机串>`，验证码明文打印在DEBUG日志
 
 ### curl测试（Windows）
@@ -88,9 +88,17 @@ recruit-common → recruit-system → recruit-framework → recruit-biz → recr
 
 ### 权限模型
 
-项目当前**零处使用`@PreAuthorize`**，`sys_menu.perms`字段（如`system:user:list`）只是元数据，未被任何Controller消费。`Sidebar.vue`和`router/index.js`是纯静态硬编码。方法级鉴权使用Controller内私有方法比照`hasAllDataScope()`模式手动查询`sys_user_role`→`sys_role.role_key`判断角色。
+项目当前**零处使用`@PreAuthorize`**，`sys_menu.perms`字段（如`system:user:list`）只是元数据，未被任何Controller消费。`Sidebar.vue`和`router/index.js`是纯静态硬编码（Sidebar 用 `isSuperAdmin` 布尔控制「系统管理」菜单显隐）。
 
-**已知bug**：`ResumeAdminController.hasAllDataScope()`的判断逻辑 `"sys_admin".equals(sysUser.getUserType())` 在实际数据下恒为false（初始化admin账号`user_type='00'`），新增权限检查方法时严禁照抄这个错误模式。
+**两级角色**（`sys_role.role_key` 固定两个取值）：
+- `admin`（超级管理员）：拥有全部功能，含系统管理、数据报表、网络管理
+- `hr`（HR用户）：仅「工作台」+「招聘管理」，无系统管理权限
+
+**鉴权组件**：`recruit-biz/common/security/AdminRoleGuard.java` 的 `requireDirector()` 统一校验当前用户是否 `admin` 角色（`sysRoleService.selectRoleKeysByUserId(userId).contains("admin")`）。系统管理侧 9 个 Controller（SysUser/SysRole/SysDept/SysDictType/SysDictData/SysNetworkConfig/BrandConfig/AuditLog/NotifyTemplate）均调用它兜底拦截。
+
+**数据范围**：`hasAllDataScope()` 判断是否 `admin` 角色（全部数据）还是 `hr`（仅本人负责岗位）。**历史 bug 已修复**：原 `"sys_admin".equals(sysUser.getUserType())` 恒为 false 的判断已改为 `role_key` 判断，严禁照抄旧模式。
+
+**受保护账号**：`AT-admin` 是唯一内置超级管理员，不可删除/禁用/移除 admin 角色（前端隐藏按钮 + 后端 remove/changeStatus/edit 三处拦截）。
 
 ### ErrorCode枚举
 

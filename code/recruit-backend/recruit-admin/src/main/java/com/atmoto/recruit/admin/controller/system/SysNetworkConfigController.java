@@ -1,6 +1,7 @@
 package com.atmoto.recruit.admin.controller.system;
 
 import com.atmoto.recruit.admin.controller.system.vo.NetworkDiagnosticsVO;
+import com.atmoto.recruit.biz.common.security.AdminRoleGuard;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.common.core.domain.TableDataInfo;
 import com.atmoto.recruit.common.enums.ErrorCode;
@@ -51,6 +52,7 @@ public class SysNetworkConfigController {
     private final SysNetworkConfigMapper sysNetworkConfigMapper;
     private final NetworkConfigLogMapper networkConfigLogMapper;
     private final ISysRoleService sysRoleService;
+    private final AdminRoleGuard adminRoleGuard;
     private final ServerProperties serverProperties;
     private final HttpServletRequest request;
 
@@ -61,12 +63,13 @@ public class SysNetworkConfigController {
      */
     @GetMapping("/cors-origins")
     public AjaxResult listCorsOrigins() {
+        adminRoleGuard.requireDirector();
         List<CorsWhitelistRule> list = corsWhitelistService.list();
         return AjaxResult.success(list);
     }
 
     /**
-     * 新增CORS白名单规则（仅 hr_director）
+     * 新增CORS白名单规则（仅超级管理员 admin）
      */
     @PostMapping("/cors-origins")
     public AjaxResult addCorsOrigin(@RequestBody CorsWhitelistRule rule) {
@@ -76,7 +79,7 @@ public class SysNetworkConfigController {
     }
 
     /**
-     * 编辑CORS白名单规则（仅 hr_director）
+     * 编辑CORS白名单规则（仅超级管理员 admin）
      */
     @PutMapping("/cors-origins/{id}")
     public AjaxResult editCorsOrigin(@PathVariable Long id, @RequestBody CorsWhitelistRule rule) {
@@ -87,7 +90,7 @@ public class SysNetworkConfigController {
     }
 
     /**
-     * 删除CORS白名单规则（仅 hr_director，is_builtin=1 拒绝）
+     * 删除CORS白名单规则（仅超级管理员 admin，is_builtin=1 拒绝）
      */
     @DeleteMapping("/cors-origins/{id}")
     public AjaxResult deleteCorsOrigin(@PathVariable Long id) {
@@ -97,7 +100,7 @@ public class SysNetworkConfigController {
     }
 
     /**
-     * 启停用CORS白名单规则（仅 hr_director）
+     * 启停用CORS白名单规则（仅超级管理员 admin）
      * <p>请求体：{"isActive": "1"} 或 {"isActive": "0"}</p>
      */
     @PutMapping("/cors-origins/{id}/status")
@@ -119,6 +122,7 @@ public class SysNetworkConfigController {
      */
     @GetMapping("/lan-access")
     public AjaxResult getLanAccess() {
+        adminRoleGuard.requireDirector();
         SysNetworkConfig config = sysNetworkConfigMapper.selectOne(
                 new LambdaQueryWrapper<SysNetworkConfig>()
                         .eq(SysNetworkConfig::getConfigKey, LAN_ACCESS_KEY)
@@ -128,7 +132,7 @@ public class SysNetworkConfigController {
     }
 
     /**
-     * 更新局域网访问开关（仅 hr_director）
+     * 更新局域网访问开关（仅超级管理员 admin）
      * <p>请求体：{"lanAccessEnabled": true}</p>
      * <p>写入成功后落一条 audit_network_config 审计记录（config_table=NETWORK_CONFIG，
      * operation_type=TOGGLE），详见方案 4.2.3 节。</p>
@@ -183,6 +187,7 @@ public class SysNetworkConfigController {
      */
     @GetMapping("/diagnostics")
     public AjaxResult diagnostics() {
+        adminRoleGuard.requireDirector();
         String forwardedFor = blankToNull(request.getHeader("X-Forwarded-For"));
         String forwardedProto = blankToNull(request.getHeader("X-Forwarded-Proto"));
 
@@ -225,6 +230,7 @@ public class SysNetworkConfigController {
             @RequestParam(required = false) String operationType,
             @RequestParam(required = false) String operatorName) {
 
+        adminRoleGuard.requireDirector();
         LambdaQueryWrapper<NetworkConfigLog> wrapper = new LambdaQueryWrapper<>();
         if (configType != null && !configType.isEmpty()) {
             wrapper.eq(NetworkConfigLog::getConfigTable, configType);
@@ -246,8 +252,8 @@ public class SysNetworkConfigController {
     // ──────────────── 权限检查 ────────────────
 
     /**
-     * 校验当前HR是否具备网络管理"总监级"权限
-     * <p>过渡方案：查询 sys_user_role → sys_role.role_key 判断是否为 hr_director。
+     * 校验当前HR是否具备网络管理"超级管理员"权限
+     * <p>过渡方案：查询 sys_user_role → sys_role.role_key 判断是否为 admin。
      * 【重要】不可照抄 ResumeAdminController.hasAllDataScope() 的判断逻辑——
      * 该方法用 "sys_admin".equals(sysUser.getUserType()) 判断，但实测 init-data.sql
      * 中初始化的 admin 账号 user_type='00'，不是"sys_admin"，该逻辑在实际数据下恒为false，
@@ -260,7 +266,7 @@ public class SysNetworkConfigController {
             throw new BizException(ErrorCode.UNAUTHORIZED);
         }
         List<String> roleKeys = sysRoleService.selectRoleKeysByUserId(userId);
-        if (!roleKeys.contains("hr_director")) {
+        if (!roleKeys.contains("admin")) {
             throw new BizException(ErrorCode.NETWORK_ADMIN_ROLE_REQUIRED);
         }
     }

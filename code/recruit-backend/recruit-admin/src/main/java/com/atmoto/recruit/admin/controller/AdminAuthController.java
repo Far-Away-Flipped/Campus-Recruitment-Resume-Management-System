@@ -7,14 +7,18 @@ import com.atmoto.recruit.framework.security.context.AdminUserHolder;
 import com.atmoto.recruit.framework.web.service.AdminTokenService;
 import com.atmoto.recruit.system.domain.SysUser;
 import com.atmoto.recruit.system.mapper.SysUserMapper;
+import com.atmoto.recruit.system.service.ISysRoleService;
+import com.atmoto.recruit.system.service.ISysUserService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 import java.util.UUID;
@@ -29,6 +33,8 @@ import java.util.UUID;
 public class AdminAuthController {
 
     private final SysUserMapper sysUserMapper;
+    private final ISysRoleService sysRoleService;
+    private final ISysUserService sysUserService;
     private final PasswordEncoder passwordEncoder;
     private final AdminTokenService adminTokenService;
 
@@ -152,6 +158,113 @@ public class AdminAuthController {
         if (userId == null) {
             return AjaxResult.error(ErrorCode.UNAUTHORIZED.getCode(), ErrorCode.UNAUTHORIZED.getMsg());
         }
-        return AjaxResult.success(Map.of("userId", userId, "userName", username));
+        SysUser user = sysUserMapper.selectById(userId);
+        java.util.List<String> roleKeys = sysRoleService.selectRoleKeysByUserId(userId);
+        boolean isSuperAdmin = roleKeys.contains("admin");
+        java.util.Map<String, Object> data = new java.util.LinkedHashMap<>();
+        data.put("userId", userId);
+        data.put("userName", username);
+        data.put("nickName", user != null ? user.getNickName() : null);
+        data.put("email", user != null ? user.getEmail() : null);
+        data.put("phonenumber", user != null ? user.getPhonenumber() : null);
+        data.put("sex", user != null ? user.getSex() : null);
+        data.put("roleKeys", roleKeys);
+        data.put("isSuperAdmin", isSuperAdmin);
+        return AjaxResult.success(data);
+    }
+
+    /** 更新本人信息（白名单字段：nickName/email/phonenumber/sex） */
+    @PutMapping("/profile")
+    public AjaxResult updateProfile(@RequestBody Map<String, String> body) {
+        Long userId = AdminUserHolder.getUserId();
+        if (userId == null) {
+            throw new BizException(ErrorCode.UNAUTHORIZED);
+        }
+
+        String nickName = body.get("nickName");
+        String email = body.get("email");
+        String phonenumber = body.get("phonenumber");
+        String sex = body.get("sex");
+
+        // 唯一性校验（编辑时排除自身）
+        SysUser checkUser = new SysUser();
+        checkUser.setUserId(userId);
+        if (StringUtils.hasText(email)) {
+            checkUser.setEmail(email);
+            if (!sysUserService.checkEmailUnique(checkUser)) {
+                throw new BizException(ErrorCode.PARAM_INVALID, "邮箱已存在");
+            }
+        }
+        if (StringUtils.hasText(phonenumber)) {
+            checkUser.setPhonenumber(phonenumber);
+            if (!sysUserService.checkPhoneUnique(checkUser)) {
+                throw new BizException(ErrorCode.PARAM_INVALID, "手机号码已存在");
+            }
+        }
+
+        // 仅更新白名单字段（userId 定位记录，其余字段按非空更新策略，null 不覆盖）
+        SysUser update = new SysUser();
+        update.setUserId(userId);
+        update.setNickName(nickName);
+        update.setEmail(email);
+        update.setPhonenumber(phonenumber);
+        update.setSex(sex);
+        sysUserService.updateUser(update);
+
+        return AjaxResult.success("个人信息更新成功");
+    }
+
+    /** 修改本人密码（校验旧密码 + 新密码强度，成功后吊销当前 token） */
+    @PutMapping("/password")
+    public AjaxResult updatePassword(@RequestBody Map<String, String> body,
+                                     HttpServletRequest request) {
+        Long userId = AdminUserHolder.getUserId();
+        if (userId == null) {
+            throw new BizException(ErrorCode.UNAUTHORIZED);
+        }
+
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        if (!StringUtils.hasText(oldPassword) || !StringUtils.hasText(newPassword)) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "原密码和新密码不能为空");
+        }
+
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new BizException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // 校验旧密码
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BizException(ErrorCode.OLD_PASSWORD_INCORRECT);
+        }
+
+        // 新密码强度：至少8位，且同时包含字母和数字
+        if (newPassword.length() < 8 || !newPassword.matches(".*[a-zA-Z].*") || !newPassword.matches(".*\\d.*")) {
+            throw new BizException(ErrorCode.PASSWORD_TOO_WEAK);
+        }
+
+        // 仅更新 password 字段（复用 resetPwd 的精确更新逻辑）
+        SysUser update = new SysUser();
+        update.setUserId(userId);
+        update.setPassword(passwordEncoder.encode(newPassword));
+        sysUserService.resetPwd(update);
+
+        // 改密码后吊销当前 token（复用 AdminTokenService.revokeToken）
+        String token = extractToken(request);
+        if (StringUtils.hasText(token)) {
+            adminTokenService.revokeToken(token);
+        }
+
+        return AjaxResult.success("密码修改成功");
+    }
+
+    /** 从 Authorization 头提取 Bearer Token（与 AdminTokenFilter 保持一致） */
+    private String extractToken(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
+            return header.substring(7);
+        }
+        return null;
     }
 }

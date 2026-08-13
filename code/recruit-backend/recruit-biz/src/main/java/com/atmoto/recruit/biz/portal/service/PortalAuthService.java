@@ -55,4 +55,13 @@ public interface PortalAuthService {
      * @param request 重置密码请求（手机号 + 验证码 + 新密码）
      */
     void resetPassword(ResetPasswordRequest request);
+
+    /**
+     * 修改密码（登录后）
+     * <p>校验旧密码 + 新密码强度，成功后吊销该学生所有 RefreshToken</p>
+     *
+     * @param request   修改密码请求（旧密码 + 新密码）
+     * @param studentId 学生ID（从登录态获取，绝不来自请求参数）
+     */
+    void changePassword(ChangePasswordRequest request, Long studentId);
 }

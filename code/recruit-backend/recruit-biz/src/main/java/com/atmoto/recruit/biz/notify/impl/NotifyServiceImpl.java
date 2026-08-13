@@ -66,4 +66,34 @@ public class NotifyServiceImpl implements NotifyService {
         log.info("【站内信-HR】接收人ownerUserId={}, 岗位jobId={}, 标题={}, 消息ID={}",
                 ownerUserId, jobId, title, msg.getId());
     }
+
+    /**
+     * 发送简历状态变更站内信（同步，不加 @Async）
+     * <p>调用点在事务上下文内，必须同步执行避免读到未提交状态；用 dedup_key 唯一索引防重。</p>
+     */
+    @Override
+    public void sendStatusChangeNotice(Long receiverStudentId, Long applicationId,
+                                       Long jobId, String statusLabel, Long historyId) {
+        // 查询岗位名，为空时回退「该岗位」
+        String jobTitle = "该岗位";
+        if (jobId != null) {
+            JobPosition job = jobPositionMapper.selectById(jobId);
+            if (job != null && job.getTitle() != null && !job.getTitle().isBlank()) {
+                jobTitle = job.getTitle();
+            }
+        }
+        NotMessage msg = new NotMessage();
+        msg.setRecipientId(receiverStudentId);
+        msg.setRecipientType("STUDENT");
+        msg.setMessageType("APPLICATION_STATUS_CHANGED");
+        msg.setTitle("投递进度更新");
+        msg.setContent("您投递的【" + jobTitle + "】岗位简历状态已更新为：「" + statusLabel + "」");
+        msg.setRefId(applicationId);
+        msg.setDedupKey("APPLICATION_STATUS_CHANGED:" + historyId);
+        msg.setIsRead("0");
+        msg.setCreateTime(LocalDateTime.now());
+        notMessageMapper.insert(msg);
+        log.info("【站内信-状态变更】接收人studentId={}, applicationId={}, historyId={}, 消息ID={}",
+                receiverStudentId, applicationId, historyId, msg.getId());
+    }
 }

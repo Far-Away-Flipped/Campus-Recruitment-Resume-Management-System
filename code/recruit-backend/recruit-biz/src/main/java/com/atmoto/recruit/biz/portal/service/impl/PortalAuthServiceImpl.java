@@ -313,6 +313,49 @@ public class PortalAuthServiceImpl implements PortalAuthService {
                 student.getStudentId(), phone, tokens.size());
     }
 
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordRequest request, Long studentId) {
+        // 学生ID必须来自登录态，绝不由请求参数传入
+        if (studentId == null) {
+            throw new BizException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // 1. 查询学生账号
+        Student student = studentMapper.selectById(studentId);
+        if (student == null) {
+            throw new BizException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // 2. 校验旧密码
+        if (!passwordEncoder.matches(request.getOldPassword(), student.getPasswordHash())) {
+            throw new BizException(ErrorCode.OLD_PASSWORD_INCORRECT);
+        }
+
+        // 3. 新密码强度：至少8位，且同时包含字母和数字
+        String newPassword = request.getNewPassword();
+        if (newPassword == null || newPassword.length() < 8
+                || !newPassword.matches(".*[a-zA-Z].*") || !newPassword.matches(".*\\d.*")) {
+            throw new BizException(ErrorCode.PASSWORD_TOO_WEAK);
+        }
+
+        // 4. BCrypt 加密新密码并更新
+        student.setPasswordHash(passwordEncoder.encode(newPassword));
+        studentMapper.updateById(student);
+
+        // 5. 改密码后吊销所有 RefreshToken（复用 resetPassword 的吊销逻辑）
+        var tokens = refreshTokenMapper.selectList(
+                new LambdaQueryWrapper<StudentRefreshToken>()
+                        .eq(StudentRefreshToken::getStudentId, studentId)
+                        .eq(StudentRefreshToken::getStatus, "ACTIVE"));
+        for (StudentRefreshToken token : tokens) {
+            token.setStatus("REVOKED");
+            refreshTokenMapper.updateById(token);
+        }
+
+        log.info("学生修改密码成功：studentId={}, 已吊销 {} 个Token", studentId, tokens.size());
+    }
+
     // ────────────────── 内部辅助方法 ──────────────────
 
     /**

@@ -110,4 +110,19 @@ public interface ISysUserService {
      * @return true=唯一
      */
     boolean checkEmailUnique(SysUser user);
+
+    /**
+     * 给用户批量绑定角色（幂等，ON DUPLICATE KEY）
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     */
+    void insertUserRole(Long userId, java.util.List<Long> roleIds);
+
+    /**
+     * 删除用户的全部角色绑定（角色同步前的清理）
+     *
+     * @param userId 用户ID
+     */
+    void deleteUserRoles(Long userId);
 }

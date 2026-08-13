@@ -2,6 +2,7 @@ package com.atmoto.recruit.biz.admin.controller;
 
 import com.atmoto.recruit.biz.admin.service.NotifyTemplateService;
 import com.atmoto.recruit.biz.common.domain.NotifyTemplate;
+import com.atmoto.recruit.biz.common.security.AdminRoleGuard;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,12 +23,14 @@ import java.util.List;
 public class NotifyTemplateController {
 
     private final NotifyTemplateService templateService;
+    private final AdminRoleGuard adminRoleGuard;
 
     /**
      * 查询模板列表
      */
     @GetMapping("/list")
     public AjaxResult list(NotifyTemplate template) {
+        adminRoleGuard.requireDirector();
         List<NotifyTemplate> list = templateService.selectTemplateList(template);
         return AjaxResult.success(list);
     }
@@ -37,6 +40,7 @@ public class NotifyTemplateController {
      */
     @GetMapping("/{id}")
     public AjaxResult getInfo(@PathVariable Long id) {
+        adminRoleGuard.requireDirector();
         NotifyTemplate template = templateService.selectTemplateById(id);
         return AjaxResult.success(template);
     }
@@ -46,6 +50,7 @@ public class NotifyTemplateController {
      */
     @GetMapping("/code/{templateCode}")
     public AjaxResult getByCode(@PathVariable String templateCode) {
+        adminRoleGuard.requireDirector();
         NotifyTemplate template = templateService.selectTemplateByCode(templateCode);
         return template != null ? AjaxResult.success(template) : AjaxResult.error("模板不存在");
     }
@@ -55,6 +60,7 @@ public class NotifyTemplateController {
      */
     @PostMapping
     public AjaxResult add(@RequestBody NotifyTemplate template) {
+        adminRoleGuard.requireDirector();
         if (!templateService.checkTemplateCodeUnique(template)) {
             return AjaxResult.error("模板编码已存在");
         }
@@ -67,6 +73,7 @@ public class NotifyTemplateController {
      */
     @PutMapping
     public AjaxResult edit(@RequestBody NotifyTemplate template) {
+        adminRoleGuard.requireDirector();
         if (!templateService.checkTemplateCodeUnique(template)) {
             return AjaxResult.error("模板编码已存在");
         }
@@ -79,6 +86,7 @@ public class NotifyTemplateController {
      */
     @DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids) {
+        adminRoleGuard.requireDirector();
         int rows = templateService.deleteTemplateByIds(ids);
         return rows > 0 ? AjaxResult.success("删除模板成功") : AjaxResult.error("删除模板失败");
     }

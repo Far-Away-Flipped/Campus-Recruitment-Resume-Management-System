@@ -1,5 +1,6 @@
 package com.atmoto.recruit.admin.controller.system;
 
+import com.atmoto.recruit.biz.common.security.AdminRoleGuard;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.common.core.domain.TableDataInfo;
 import com.atmoto.recruit.common.core.page.PageQuery;
@@ -24,12 +25,14 @@ import java.util.List;
 public class SysDictDataController {
 
     private final ISysDictDataService dictDataService;
+    private final AdminRoleGuard adminRoleGuard;
 
     /**
      * 分页查询字典数据
      */
     @GetMapping("/list")
     public AjaxResult list(SysDictData dictData, PageQuery pageQuery) {
+        adminRoleGuard.requireDirector();
         List<SysDictData> list = dictDataService.selectDictDataList(dictData);
         int total = list.size();
         int from = (pageQuery.getPageNum() - 1) * pageQuery.getPageSize();
@@ -43,6 +46,7 @@ public class SysDictDataController {
      */
     @GetMapping("/type/{dictType}")
     public AjaxResult dictType(@PathVariable String dictType) {
+        adminRoleGuard.requireDirector();
         List<SysDictData> list = dictDataService.selectDictDataByType(dictType);
         return AjaxResult.success(list);
     }
@@ -52,6 +56,7 @@ public class SysDictDataController {
      */
     @GetMapping("/{dictCode}")
     public AjaxResult getInfo(@PathVariable Long dictCode) {
+        adminRoleGuard.requireDirector();
         SysDictData dictData = dictDataService.selectDictDataById(dictCode);
         return AjaxResult.success(dictData);
     }
@@ -61,6 +66,7 @@ public class SysDictDataController {
      */
     @PostMapping
     public AjaxResult add(@RequestBody SysDictData dictData) {
+        adminRoleGuard.requireDirector();
         int rows = dictDataService.insertDictData(dictData);
         return rows > 0 ? AjaxResult.success("新增字典数据成功") : AjaxResult.error("新增字典数据失败");
     }
@@ -70,6 +76,7 @@ public class SysDictDataController {
      */
     @PutMapping
     public AjaxResult edit(@RequestBody SysDictData dictData) {
+        adminRoleGuard.requireDirector();
         int rows = dictDataService.updateDictData(dictData);
         return rows > 0 ? AjaxResult.success("修改字典数据成功") : AjaxResult.error("修改字典数据失败");
     }
@@ -79,6 +86,7 @@ public class SysDictDataController {
      */
     @DeleteMapping("/{dictCodes}")
     public AjaxResult remove(@PathVariable Long[] dictCodes) {
+        adminRoleGuard.requireDirector();
         int rows = dictDataService.deleteDictDataByIds(dictCodes);
         return rows > 0 ? AjaxResult.success("删除字典数据成功") : AjaxResult.error("删除字典数据失败");
     }

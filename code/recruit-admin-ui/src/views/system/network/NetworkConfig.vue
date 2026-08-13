@@ -12,7 +12,7 @@
           <el-button type="primary" :disabled="!isDirector" @click="handleAddRule">
             <el-icon><Plus /></el-icon> 新增白名单
           </el-button>
-          <span v-if="!isDirector" class="perm-tip">当前账号仅可查看，修改需「人力资源总监」角色</span>
+          <span v-if="!isDirector" class="perm-tip">当前账号仅可查看，修改需「超级管理员」角色</span>
         </div>
 
         <el-card shadow="never">
@@ -121,7 +121,7 @@
             <el-button type="primary" :disabled="!isDirector" :loading="lanSaveLoading" @click="handleSaveLanAccess">
               保存
             </el-button>
-            <span v-if="!isDirector" class="perm-tip">当前账号仅可查看，修改需「人力资源总监」角色</span>
+            <span v-if="!isDirector" class="perm-tip">当前账号仅可查看，修改需「超级管理员」角色</span>
           </div>
         </el-card>
       </el-tab-pane>
@@ -243,7 +243,7 @@ import systemRequest from '@/utils/systemRequest';
 
 const activeTab = ref('cors');
 
-// 当前账号是否为「人力资源总监」——通过尝试解析登录态角色获取
+// 当前账号是否为「超级管理员」——通过尝试解析登录态角色获取
 // 项目现有前端架构无角色下发机制（router.beforeEach仅检查token是否存在，见router/index.js），
 // 此处保守默认true（展示层按钮不禁用），真正的权限边界由后端 requireNetworkAdminRole() 承担；
 // 一旦写操作被拒绝（NETWORK_ADMIN_ROLE_REQUIRED），立即降级为false并提示，避免用户反复点击写操作被拒
@@ -360,7 +360,7 @@ async function handleSubmitRule() {
     fetchCorsList();
   } catch (e) {
     // NETWORK_ADMIN_ROLE_REQUIRED 等权限错误：降级按钮禁用状态，避免用户反复点击被拒
-    if (e?.message?.includes('总监')) {
+    if (e?.message?.includes('超级管理员')) {
       isDirector.value = false;
     }
   } finally {
@@ -385,7 +385,7 @@ async function handleToggleStatus(row) {
     ElMessage.success(`${actionText}成功`);
     fetchCorsList();
   } catch (e) {
-    if (e?.message?.includes('总监')) {
+    if (e?.message?.includes('超级管理员')) {
       isDirector.value = false;
     }
   }
@@ -406,7 +406,7 @@ async function handleDeleteRule(row) {
     ElMessage.success('删除成功');
     fetchCorsList();
   } catch (e) {
-    if (e?.message?.includes('总监')) {
+    if (e?.message?.includes('超级管理员')) {
       isDirector.value = false;
     }
   }
@@ -445,7 +445,7 @@ async function handleSaveLanAccess() {
     await systemRequest.put('/network/lan-access', { lanAccessEnabled: lanForm.lanAccessEnabled });
     ElMessage.success('保存成功');
   } catch (e) {
-    if (e?.message?.includes('总监')) {
+    if (e?.message?.includes('超级管理员')) {
       isDirector.value = false;
     }
   } finally {

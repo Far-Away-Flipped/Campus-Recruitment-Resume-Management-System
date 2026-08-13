@@ -118,4 +118,17 @@ public class SysRoleServiceImpl implements ISysRoleService {
         }
         return roleMapper.selectRoleKeysByUserId(userId);
     }
+
+    @Override
+    public java.util.List<java.util.Map<String, Object>> selectRolesByUserIds(java.util.List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return roleMapper.selectRolesByUserIds(userIds);
+    }
+
+    @Override
+    public Long selectRoleIdByRoleKey(String roleKey) {
+        return roleMapper.selectRoleIdByRoleKey(roleKey);
+    }
 }

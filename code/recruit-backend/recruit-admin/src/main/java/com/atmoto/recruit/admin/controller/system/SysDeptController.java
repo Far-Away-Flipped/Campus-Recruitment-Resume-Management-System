@@ -1,5 +1,6 @@
 package com.atmoto.recruit.admin.controller.system;
 
+import com.atmoto.recruit.biz.common.security.AdminRoleGuard;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.system.domain.SysDept;
 import com.atmoto.recruit.system.service.ISysDeptService;
@@ -22,12 +23,14 @@ import java.util.List;
 public class SysDeptController {
 
     private final ISysDeptService deptService;
+    private final AdminRoleGuard adminRoleGuard;
 
     /**
      * 查询部门列表
      */
     @GetMapping("/list")
     public AjaxResult list(SysDept dept) {
+        adminRoleGuard.requireDirector();
         List<SysDept> list = deptService.selectDeptList(dept);
         return AjaxResult.success(list);
     }
@@ -37,6 +40,7 @@ public class SysDeptController {
      */
     @GetMapping("/{deptId}")
     public AjaxResult getInfo(@PathVariable Long deptId) {
+        adminRoleGuard.requireDirector();
         SysDept dept = deptService.selectDeptById(deptId);
         return AjaxResult.success(dept);
     }
@@ -46,6 +50,7 @@ public class SysDeptController {
      */
     @PostMapping
     public AjaxResult add(@RequestBody SysDept dept) {
+        adminRoleGuard.requireDirector();
         // 校验部门名称唯一性
         if (!deptService.checkDeptNameUnique(dept)) {
             return AjaxResult.error("部门名称已存在");
@@ -59,6 +64,7 @@ public class SysDeptController {
      */
     @PutMapping
     public AjaxResult edit(@RequestBody SysDept dept) {
+        adminRoleGuard.requireDirector();
         // 校验部门名称唯一性
         if (!deptService.checkDeptNameUnique(dept)) {
             return AjaxResult.error("部门名称已存在");
@@ -73,6 +79,7 @@ public class SysDeptController {
      */
     @DeleteMapping("/{deptId}")
     public AjaxResult remove(@PathVariable Long deptId) {
+        adminRoleGuard.requireDirector();
         if (deptService.hasChildByDeptId(deptId)) {
             return AjaxResult.error("该部门下存在子部门，无法删除");
         }

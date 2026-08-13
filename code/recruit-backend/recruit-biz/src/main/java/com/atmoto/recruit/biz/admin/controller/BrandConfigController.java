@@ -2,6 +2,7 @@ package com.atmoto.recruit.biz.admin.controller;
 
 import com.atmoto.recruit.biz.admin.service.BrandConfigService;
 import com.atmoto.recruit.biz.common.domain.BrandConfig;
+import com.atmoto.recruit.biz.common.security.AdminRoleGuard;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,12 +22,14 @@ import org.springframework.web.util.HtmlUtils;
 public class BrandConfigController {
 
     private final BrandConfigService brandConfigService;
+    private final AdminRoleGuard adminRoleGuard;
 
     /**
      * 获取品牌配置
      */
     @GetMapping("/config")
     public AjaxResult getConfig() {
+        adminRoleGuard.requireDirector();
         BrandConfig config = brandConfigService.getConfig();
         return AjaxResult.success(config);
     }
@@ -36,6 +39,7 @@ public class BrandConfigController {
      */
     @PostMapping("/config")
     public AjaxResult saveConfig(@RequestBody BrandConfig config) {
+        adminRoleGuard.requireDirector();
         if (config.getConfigValue() != null) {
             config.setConfigValue(HtmlUtils.htmlEscape(config.getConfigValue()));
         }

@@ -84,7 +84,14 @@
           <el-input v-model="form.roleName" placeholder="请输入角色名称" maxlength="30" />
         </el-form-item>
         <el-form-item label="权限字符" prop="roleKey">
-          <el-input v-model="form.roleKey" placeholder="如：admin、hr" maxlength="50" />
+          <el-select v-model="form.roleKey" placeholder="请选择权限字符" style="width: 100%;">
+            <el-option label="admin / 超级管理员" :value="'admin'" />
+            <el-option label="hr / HR用户" :value="'hr'" />
+          </el-select>
+          <div style="color: #909399; font-size: 12px; line-height: 1.7; margin-top: 6px;">
+            超级管理员（admin）：可访问全部功能，含系统管理、数据报表、网络管理。<br/>
+            HR用户（hr）：仅可访问工作台与招聘管理（岗位/简历/学生/报表查看），无系统管理权限。
+          </div>
         </el-form-item>
         <el-form-item label="排序" prop="roleSort">
           <el-input-number v-model="form.roleSort" :min="0" :max="999" style="width: 140px;" />

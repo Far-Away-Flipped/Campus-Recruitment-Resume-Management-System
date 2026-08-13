@@ -28,10 +28,9 @@
         <el-menu-item index="/recruit/students">学生管理</el-menu-item>
         <el-menu-item index="/recruit/resumes">简历管理</el-menu-item>
         <el-menu-item index="/recruit/reports">数据报表</el-menu-item>
-        <el-menu-item index="/recruit/brand">品牌配置</el-menu-item>
         <el-menu-item index="/recruit/categories">岗位类别</el-menu-item>
       </el-sub-menu>
-      <el-sub-menu index="/system">
+      <el-sub-menu index="/system" v-if="isSuperAdmin">
         <template #title>
           <el-icon><Setting /></el-icon>
           <span>系统管理</span>
@@ -43,13 +42,20 @@
         <el-menu-item index="/system/templates">通知模板</el-menu-item>
         <el-menu-item index="/system/audit">操作审计</el-menu-item>
         <el-menu-item index="/system/network">网络管理</el-menu-item>
+        <el-menu-item index="/recruit/brand">品牌配置</el-menu-item>
 </el-sub-menu>
     </el-menu>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+
 defineProps({ isCollapse: { type: Boolean, default: false } });
+
+const authStore = useAuthStore();
+const isSuperAdmin = computed(() => authStore.isSuperAdmin);
 </script>
 
 <style scoped>

@@ -28,4 +28,17 @@ public interface NotifyService {
      * @param content 消息内容
      */
     void sendHrNotification(Long jobId, String title, String content);
+
+    /**
+     * 发送简历状态变更站内信（同步）
+     * <p>HR 更新投递状态后，向学生推送「投递进度更新」通知。同步发送 + dedup_key 幂等防重。</p>
+     *
+     * @param receiverStudentId 接收学生ID
+     * @param applicationId     投递记录ID（ref_id）
+     * @param jobId             岗位ID（用于查询岗位名）
+     * @param statusLabel       目标状态中文标签
+     * @param historyId         状态变更历史ID（用于 dedup_key 幂等）
+     */
+    void sendStatusChangeNotice(Long receiverStudentId, Long applicationId,
+                                Long jobId, String statusLabel, Long historyId);
 }

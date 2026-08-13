@@ -7,6 +7,7 @@ import com.atmoto.recruit.biz.common.domain.Application;
 import com.atmoto.recruit.biz.common.enums.ApplicationStatus;
 import com.atmoto.recruit.biz.common.mapper.AppStatusHistoryMapper;
 import com.atmoto.recruit.biz.common.mapper.ApplicationMapper;
+import com.atmoto.recruit.biz.notify.NotifyService;
 import com.atmoto.recruit.common.constant.BizConstants;
 import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
@@ -33,6 +34,7 @@ public class ResumeActionServiceImpl implements ResumeActionService {
 
     private final ApplicationMapper applicationMapper;
     private final AppStatusHistoryMapper appStatusHistoryMapper;
+    private final NotifyService notifyService;
 
     /** 状态变更操作类型常量 */
     private static final String OPERATOR_TYPE_HR = "HR";
@@ -160,7 +162,13 @@ public class ResumeActionServiceImpl implements ResumeActionService {
         log.info("简历筛选操作成功：applicationId={}, from={}, to={}, operator={}",
                 applicationId, fromStatus.getCode(), toStatus.getCode(), operatorUserId);
 
-        // 5. TODO: 异步发站内信通知学生
-        // 后续里程碑接入消息队列/异步通知模块
+        // 5. 同步发送状态变更站内信通知学生（尽力而为，失败不影响主业务）
+        try {
+            notifyService.sendStatusChangeNotice(app.getStudentId(), applicationId,
+                    app.getJobId(), toStatus.getLabel(), history.getId());
+        } catch (Exception e) {
+            log.error("发送状态变更通知失败：applicationId={}, studentId={}, historyId={}",
+                    applicationId, app.getStudentId(), history.getId(), e);
+        }
     }
 }

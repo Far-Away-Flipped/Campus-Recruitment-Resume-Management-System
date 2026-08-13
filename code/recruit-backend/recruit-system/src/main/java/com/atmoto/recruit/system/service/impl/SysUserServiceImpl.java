@@ -2,6 +2,7 @@ package com.atmoto.recruit.system.service.impl;
 
 import com.atmoto.recruit.common.core.page.PageQuery;
 import com.atmoto.recruit.system.domain.SysUser;
+import com.atmoto.recruit.system.mapper.SysRoleMapper;
 import com.atmoto.recruit.system.mapper.SysUserMapper;
 import com.atmoto.recruit.system.service.ISysUserService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -26,6 +27,7 @@ import java.util.List;
 public class SysUserServiceImpl implements ISysUserService {
 
     private final SysUserMapper userMapper;
+    private final SysRoleMapper roleMapper;
 
     @Override
     public SysUser selectUserById(Long userId) {
@@ -149,5 +151,18 @@ public class SysUserServiceImpl implements ISysUserService {
                         .last("LIMIT 1")
         );
         return exist == null || exist.getUserId().equals(userId);
+    }
+
+    @Override
+    public void insertUserRole(Long userId, java.util.List<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            return;
+        }
+        roleMapper.insertUserRole(userId, roleIds);
+    }
+
+    @Override
+    public void deleteUserRoles(Long userId) {
+        roleMapper.deleteUserRolesByUserId(userId);
     }
 }

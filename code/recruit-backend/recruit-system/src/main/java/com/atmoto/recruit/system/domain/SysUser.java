@@ -36,4 +36,12 @@ public class SysUser extends BaseEntity {
     private LocalDateTime loginDate;
     /** 备注 */
     private String remark;
+
+    /** 用户关联的角色ID列表（非表字段，仅用于角色回填/持久化） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private java.util.List<Long> roleIds;
+
+    /** 用户关联的角色名称列表（非表字段，仅用于角色回填展示） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private java.util.List<String> roleNames;
 }

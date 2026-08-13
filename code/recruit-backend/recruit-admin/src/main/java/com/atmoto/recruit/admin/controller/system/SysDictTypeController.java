@@ -1,5 +1,6 @@
 package com.atmoto.recruit.admin.controller.system;
 
+import com.atmoto.recruit.biz.common.security.AdminRoleGuard;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.system.domain.SysDictType;
 import com.atmoto.recruit.system.service.ISysDictTypeService;
@@ -19,30 +20,36 @@ import java.util.List;
 public class SysDictTypeController {
 
     private final ISysDictTypeService dictTypeService;
+    private final AdminRoleGuard adminRoleGuard;
 
     @GetMapping("/list")
     public AjaxResult list(SysDictType dictType) {
+        adminRoleGuard.requireDirector();
         List<SysDictType> list = dictTypeService.selectDictTypeList(dictType);
         return AjaxResult.success(list);
     }
 
     @GetMapping("/{dictId}")
     public AjaxResult getInfo(@PathVariable Long dictId) {
+        adminRoleGuard.requireDirector();
         return AjaxResult.success(dictTypeService.selectDictTypeById(dictId));
     }
 
     @PostMapping
     public AjaxResult add(@RequestBody SysDictType dictType) {
+        adminRoleGuard.requireDirector();
         return AjaxResult.success(dictTypeService.insertDictType(dictType));
     }
 
     @PutMapping
     public AjaxResult edit(@RequestBody SysDictType dictType) {
+        adminRoleGuard.requireDirector();
         return AjaxResult.success(dictTypeService.updateDictType(dictType));
     }
 
     @DeleteMapping("/{dictIds}")
     public AjaxResult remove(@PathVariable Long[] dictIds) {
+        adminRoleGuard.requireDirector();
         return AjaxResult.success(dictTypeService.deleteDictTypeByIds(dictIds));
     }
 }

@@ -126,4 +126,15 @@ public class PortalAuthController {
         portalAuthService.resetPassword(request);
         return AjaxResult.success("密码重置成功");
     }
+
+    /**
+     * 修改密码（登录后）
+     * <p>校验旧密码 + 新密码强度 → 更新密码并吊销所有 RefreshToken</p>
+     */
+    @PostMapping("/change-password")
+    public AjaxResult changePassword(@RequestBody ChangePasswordRequest request) {
+        Long studentId = PortalUserHolder.get();
+        portalAuthService.changePassword(request, studentId);
+        return AjaxResult.success("密码修改成功");
+    }
 }

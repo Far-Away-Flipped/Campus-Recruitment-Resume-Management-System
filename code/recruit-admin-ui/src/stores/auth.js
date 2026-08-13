@@ -1,16 +1,18 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import request from '@/utils/request';
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('admin_token') || '');
   const userInfo = ref(null);
+  const isSuperAdmin = computed(() => !!userInfo.value?.isSuperAdmin);
 
   async function login(username, password, captchaCode, captchaKey) {
     const res = await request.post('/auth/login', { username, password, captchaCode, captchaKey });
     const data = res.data;
     token.value = data.token;
     localStorage.setItem('admin_token', data.token);
+    await getUserInfo();
     return data;
   }
 
@@ -26,5 +28,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('admin_token');
   }
 
-  return { token, userInfo, login, getUserInfo, logout };
+  return { token, userInfo, isSuperAdmin, login, getUserInfo, logout };
 });

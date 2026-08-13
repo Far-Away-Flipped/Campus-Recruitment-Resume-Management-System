@@ -49,6 +49,12 @@ const routes = [
         component: () => import('../views/ProfileExtraView.vue'),
         props: { type: 'activity' },
       },
+      {
+        path: 'security',
+        name: 'security',
+        meta: { requiresAuth: true },
+        component: () => import('../views/SecurityView.vue'),
+      },
     ],
   },
   { path: '/messages', name: 'messages', meta: { requiresAuth: true }, component: () => import('../views/MessagesView.vue') },

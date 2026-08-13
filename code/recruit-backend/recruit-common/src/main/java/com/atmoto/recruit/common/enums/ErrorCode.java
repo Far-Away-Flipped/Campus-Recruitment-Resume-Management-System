@@ -29,6 +29,9 @@ public enum ErrorCode {
     TOKEN_INVALID(20006, "Token无效或已过期"),
     TOKEN_REUSE_DETECTED(20007, "Token已被使用，请重新登录"),
     USER_DISABLED(20008, "账号已被停用，请联系管理员"),
+    OLD_PASSWORD_INCORRECT(20009, "原密码不正确"),
+    PASSWORD_TOO_WEAK(20010, "新密码强度不足（至少8位）"),
+    HR_DIRECTOR_ROLE_REQUIRED(20011, "该操作仅限超级管理员执行"),
 
     // ────────── 3xxxx 学生 ──────────
     STUDENT_PHONE_EXISTS(30001, "手机号已注册"),
@@ -64,7 +67,7 @@ public enum ErrorCode {
     NETWORK_CIDR_FORMAT_INVALID(70005, "IP/网段格式不正确"),
     NETWORK_CIDR_RANGE_FORBIDDEN(70006, "网段范围不合法：仅允许RFC1918私有地址段（10.0.0.0/8、172.16.0.0/12、192.168.0.0/16），且前缀不得短于/16"),
     NETWORK_CIDR_DUPLICATE(70007, "该网段已存在于白名单中"),
-    NETWORK_ADMIN_ROLE_REQUIRED(70008, "该操作仅限「人力资源总监」角色执行，当前账号无修改权限"),
+    NETWORK_ADMIN_ROLE_REQUIRED(70008, "该操作仅限超级管理员执行，当前账号无修改权限"),
     NETWORK_BUILTIN_RULE_PROTECTED(70009, "内置规则不可删除，可禁用");
 
     private final int code;

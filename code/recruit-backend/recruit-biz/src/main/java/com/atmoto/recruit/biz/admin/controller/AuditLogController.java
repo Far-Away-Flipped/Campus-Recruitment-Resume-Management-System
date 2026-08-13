@@ -2,6 +2,7 @@ package com.atmoto.recruit.biz.admin.controller;
 
 import com.atmoto.recruit.biz.common.domain.AuditResumeAccess;
 import com.atmoto.recruit.biz.common.mapper.AuditResumeAccessMapper;
+import com.atmoto.recruit.biz.common.security.AdminRoleGuard;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.common.core.domain.TableDataInfo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuditLogController {
 
     private final AuditResumeAccessMapper auditResumeAccessMapper;
+    private final AdminRoleGuard adminRoleGuard;
 
     /** 分页查询审计日志 */
     @GetMapping("/list")
@@ -27,6 +29,7 @@ public class AuditLogController {
             @RequestParam(required = false) String operationType,
             @RequestParam(required = false) String operatorName) {
 
+        adminRoleGuard.requireDirector();
         LambdaQueryWrapper<AuditResumeAccess> wrapper = new LambdaQueryWrapper<>();
         if (operationType != null && !operationType.isEmpty()) {
             wrapper.eq(AuditResumeAccess::getOperationType, operationType);
@@ -46,6 +49,7 @@ public class AuditLogController {
     /** 审计日志操作类型列表 */
     @GetMapping("/types")
     public AjaxResult types() {
+        adminRoleGuard.requireDirector();
         return AjaxResult.success(new String[]{
             "VIEW_RESUME", "DOWNLOAD_ATTACHMENT", "EXPORT_RESUME",
             "SCREEN_PASS", "SCREEN_ELIMINATE", "BATCH_SCREEN",

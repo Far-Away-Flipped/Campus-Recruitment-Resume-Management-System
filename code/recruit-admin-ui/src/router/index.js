@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import Layout from '@/layout/Layout.vue';
 
 const routes = [
@@ -23,6 +24,7 @@ const routes = [
     { path: 'system/templates', name: 'templates', component: () => import('@/views/system/template/NotifyTemplate.vue'), meta: { title: '通知模板', icon: 'ChatDotRound' } },
     { path: 'system/audit', name: 'audit', component: () => import('@/views/system/audit/AuditLog.vue'), meta: { title: '操作审计', icon: 'List' } },
     { path: 'system/network', name: 'network', component: () => import('@/views/system/network/NetworkConfig.vue'), meta: { title: '网络管理', icon: 'Connection' } },
+    { path: 'profile', name: 'profile', component: () => import('@/views/profile/ProfileView.vue'), meta: { title: '个人中心' } },
   ]},
   { path: '/:pathMatch(.*)*', name: '404', component: () => import('@/views/error/404.vue'), meta: { title: '404', noAuth: true } }
 ];
@@ -35,6 +37,13 @@ router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('admin_token');
   if (to.path !== '/login' && !token) { next('/login'); return; }
   if (to.path === '/login' && token) { next('/dashboard'); return; }
+  if (to.path.startsWith('/system')) {
+    const authStore = useAuthStore();
+    if (authStore.userInfo && !authStore.isSuperAdmin) {
+      next('/dashboard');
+      return;
+    }
+  }
   next();
 });
 

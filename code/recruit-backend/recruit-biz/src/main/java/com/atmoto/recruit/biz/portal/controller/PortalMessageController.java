@@ -3,15 +3,19 @@ package com.atmoto.recruit.biz.portal.controller;
 import com.atmoto.recruit.biz.common.domain.NotMessage;
 import com.atmoto.recruit.biz.common.mapper.NotMessageMapper;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
+import com.atmoto.recruit.common.core.domain.TableDataInfo;
+import com.atmoto.recruit.common.core.page.PageQuery;
 import com.atmoto.recruit.framework.security.context.PortalUserHolder;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Map;
 
 /**
  * 学生端站内消息 Controller（S-015 P1）
@@ -29,18 +33,34 @@ public class PortalMessageController {
     private final NotMessageMapper notMessageMapper;
 
     /**
-     * 获取当前学生的消息列表
-     * <p>按发送时间降序排列，仅返回站内信。</p>
+     * 获取当前学生的消息列表（分页）
+     * <p>按发送时间降序排列，仅返回站内信。返回 {rows, total} 分页契约。</p>
      */
     @GetMapping
-    public AjaxResult getMessages() {
+    public AjaxResult getMessages(PageQuery pageQuery) {
         Long studentId = PortalUserHolder.get();
-        List<NotMessage> msgs = notMessageMapper.selectList(
+        Page<NotMessage> page = new Page<>(pageQuery.getPageNum(), pageQuery.getPageSize());
+        IPage<NotMessage> result = notMessageMapper.selectPage(page,
                 new LambdaQueryWrapper<NotMessage>()
                         .eq(NotMessage::getRecipientId, studentId)
                         .eq(NotMessage::getRecipientType, "STUDENT")
                         .orderByDesc(NotMessage::getCreateTime));
-        return AjaxResult.success(msgs);
+        return AjaxResult.page(TableDataInfo.of(result.getTotal(), result.getRecords()));
+    }
+
+    /**
+     * 获取当前学生未读消息数
+     * <p>返回 {count}，用于前端未读角标。</p>
+     */
+    @GetMapping("/unread-count")
+    public AjaxResult unreadCount() {
+        Long studentId = PortalUserHolder.get();
+        Long count = notMessageMapper.selectCount(
+                new LambdaQueryWrapper<NotMessage>()
+                        .eq(NotMessage::getRecipientId, studentId)
+                        .eq(NotMessage::getRecipientType, "STUDENT")
+                        .eq(NotMessage::getIsRead, "0"));
+        return AjaxResult.success(Map.of("count", count));
     }
 
     /**

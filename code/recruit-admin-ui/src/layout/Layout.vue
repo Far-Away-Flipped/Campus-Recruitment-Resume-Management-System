@@ -11,11 +11,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from '@/stores/auth';
 import Sidebar from './Sidebar.vue';
 import Navbar from './Navbar.vue';
 import AppMain from './AppMain.vue';
 const isCollapse = ref(false);
+
+const authStore = useAuthStore();
+onMounted(() => {
+  if (localStorage.getItem('admin_token')) {
+    authStore.getUserInfo().catch(() => {});
+  }
+});
 </script>
 
 <style scoped>
