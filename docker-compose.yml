@@ -1,0 +1,128 @@
+# ============================================================
+# 遨天科技 校园招聘简历管理系统 - Docker Compose 部署编排
+#
+# 服务组成：
+#   mysql   MySQL 8.0（首次启动自动执行 init-schema.sql / init-data.sql）
+#   backend Spring Boot 3.4 / Java 17（prod profile，容器内监听 0.0.0.0:8080）
+#   portal  学生门户前端（nginx 托管 + 反代 /api/portal，公网/内网可访问）
+#   admin   HR 管理后台前端（nginx 托管 + 反代 /api/*，仅内网访问）
+#
+# 快速开始（首次构建需要网络拉取基础镜像与依赖，见 deploy/README.md）：
+#   cp .env.example .env        # 修改数据库密码与 JWT 密钥
+#   docker compose up -d --build
+#
+# 访问地址：
+#   学生门户 : http://<host>:${PORTAL_PORT:-80}
+#   HR后台   : http://<host>:${ADMIN_PORT:-8081}
+# ============================================================
+name: atmoto-recruit
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: atmoto-mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-atmoto@ChangeMe2026}
+      MYSQL_DATABASE: atmoto_recruit
+      MYSQL_INITDB_SKIP_TZINFO: "1"
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # 仅在数据卷为空（首次初始化）时执行；之后修改 SQL 文件不会自动应用到已建库，
+      # 需手动执行对应 DDL/DML（与现有运维约定一致，见 CLAUDE.md「数据库」节）。
+      - ./code/recruit-backend/recruit-admin/src/main/resources/sql/init-schema.sql:/docker-entrypoint-initdb.d/01-init-schema.sql:ro
+      - ./code/recruit-backend/recruit-admin/src/main/resources/sql/init-data.sql:/docker-entrypoint-initdb.d/02-init-data.sql:ro
+    healthcheck:
+      # CMD-SHELL 让 $MYSQL_ROOT_PASSWORD 经 sh 展开（exec-form 会把 $ 字面传给 mysqladmin，
+      # 只能得到 Access denied 的“伪健康”）。--silent 关闭错误输出，真实认证成功才返回 0。
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks: [atmoto]
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/backend/Dockerfile
+      args:
+        WITH_LIBREOFFICE: ${WITH_LIBREOFFICE:-true}
+    image: atmoto/recruit-backend:latest
+    container_name: atmoto-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # 生产 yml 默认 127.0.0.1（直连部署安全基线）；容器内必须监听所有网卡供 nginx 反代。
+      SERVER_ADDRESS: 0.0.0.0
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/atmoto_recruit?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-atmoto@ChangeMe2026}
+      # 生产环境必须覆盖开发默认 JWT 密钥（application.yml 中注释明确要求）
+      JWT_ADMIN_SECRET: ${JWT_ADMIN_SECRET:-CHANGE_ME_admin_jwt_secret}
+      JWT_PORTAL_SECRET: ${JWT_PORTAL_SECRET:-CHANGE_ME_portal_jwt_secret}
+      FILE_UPLOAD_ROOT: /data
+      LIBREOFFICE_PATH: /usr/bin/soffice
+      TZ: Asia/Shanghai
+    volumes:
+      # 简历/头像/文档转换产物持久化（bind mount，便于人工备份）
+      - ./deploy/data:/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      # /api/health 为 permitAll；/actuator/** 需鉴权，不能用于容器健康检查
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    networks: [atmoto]
+    restart: unless-stopped
+    # 生产环境不将 8080 直接暴露给宿主，仅经容器内 nginx 反代；
+    # 需要直连调试时取消注释：
+    # ports:
+    #   - "8080:8080"
+
+  portal:
+    build:
+      context: .
+      dockerfile: deploy/portal/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    image: atmoto/recruit-portal:latest
+    container_name: atmoto-portal
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${PORTAL_PORT:-80}:80"
+    networks: [atmoto]
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: .
+      dockerfile: deploy/admin/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    image: atmoto/recruit-admin:latest
+    container_name: atmoto-admin
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${ADMIN_PORT:-8081}:80"
+    networks: [atmoto]
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  atmoto:
+    driver: bridge

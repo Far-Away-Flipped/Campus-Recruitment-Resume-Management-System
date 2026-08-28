@@ -1,0 +1,37 @@
+# ============================================================
+# Docker 构建上下文忽略规则（三个 Dockerfile 均以仓库根为上下文）
+# 仅用于控制发送给 docker daemon 的上下文体积，不影响 git。
+# ============================================================
+
+# ---- 版本控制 / IDE ----
+.git
+.gitignore
+.dockerignore
+.vscode
+.idea
+
+# ---- 构建产物与依赖 ----
+node_modules
+**/node_modules
+target
+**/target
+dist
+**/dist
+
+# ---- 本地环境变量 / 密钥 / 运行数据 ----
+.env
+.env.local
+.env.*.local
+logs
+deploy/data
+deploy/mysql-data
+
+# ---- 文档与资料目录（不进入任何镜像） ----
+设计
+需求
+使用说明
+运维脚本
+官网
+工具脚本
+测试
+下载

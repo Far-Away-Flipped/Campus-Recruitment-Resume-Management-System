@@ -9,7 +9,7 @@
 -- 1. 学生账号表
 -- ============================================
 CREATE TABLE `stu_user` (
-    `id`              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '学生ID',
+    `student_id`      BIGINT        NOT NULL AUTO_INCREMENT COMMENT '学生ID',
     `phone`           VARCHAR(20)   NOT NULL COMMENT '手机号（登录账号，唯一）',
     `password_hash`   VARCHAR(128)  NOT NULL COMMENT '密码哈希（BCrypt）',
     `real_name`       VARCHAR(64)   DEFAULT NULL COMMENT '真实姓名',
@@ -28,7 +28,7 @@ CREATE TABLE `stu_user` (
     `update_by`       VARCHAR(64)   DEFAULT NULL COMMENT '更新者',
     `update_time`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `del_flag`        CHAR(1)       NOT NULL DEFAULT '0' COMMENT '逻辑删除标记',
-    PRIMARY KEY (`id`),
+    PRIMARY KEY (`student_id`),
     UNIQUE KEY `uk_phone` (`phone`),
     KEY `idx_status` (`status`),
     KEY `idx_cleanup_date` (`auto_cleanup_date`),
@@ -41,7 +41,7 @@ CREATE TABLE `stu_user` (
 CREATE TABLE `stu_profile` (
     `id`                BIGINT       NOT NULL AUTO_INCREMENT COMMENT '资料ID',
     `student_id`        BIGINT       NOT NULL COMMENT '关联学生账号ID',
-    `real_name`         VARCHAR(64)  NOT NULL COMMENT '真实姓名',
+    `real_name`         VARCHAR(64)  DEFAULT NULL COMMENT '真实姓名（注册时建空资料，可为空）',
     `gender`            CHAR(1)      DEFAULT NULL COMMENT '性别：M-男, F-女, O-其他',
     `birth_date`        DATE         DEFAULT NULL COMMENT '出生日期',
     `phone`             VARCHAR(20)  NOT NULL COMMENT '手机号',
@@ -261,14 +261,15 @@ CREATE TABLE `job_template` (
 -- 11. 投递记录表 S-013（核心表）
 -- ============================================
 CREATE TABLE `app_application` (
-    `id`                   BIGINT       NOT NULL AUTO_INCREMENT COMMENT '投递ID',
+    `application_id`       BIGINT       NOT NULL AUTO_INCREMENT COMMENT '投递ID',
     `student_id`           BIGINT       NOT NULL COMMENT '学生ID',
     `job_id`               BIGINT       NOT NULL COMMENT '岗位ID',
     `status`               VARCHAR(32)  NOT NULL DEFAULT 'PENDING_SCREEN' COMMENT '投递状态',
     `source`               VARCHAR(32)  DEFAULT NULL COMMENT '渠道来源',
     `source_detail`        VARCHAR(256) DEFAULT NULL COMMENT '渠道详情',
+    `current_snapshot_id`  BIGINT       DEFAULT NULL COMMENT '当前快照ID指针（对应app_snapshot.snapshot_id）',
     `apply_time`           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '投递时间',
-    `version_no`           INT          NOT NULL DEFAULT 1 COMMENT '投递版本号',
+    `version_no`           INT          NOT NULL DEFAULT 1 COMMENT '投递版本号（乐观锁）',
     `snapshot_profile`     JSON         DEFAULT NULL COMMENT '基本资料快照',
     `snapshot_educations`  JSON         DEFAULT NULL COMMENT '教育经历快照',
     `snapshot_internships` JSON         DEFAULT NULL COMMENT '实习/项目经历快照',
@@ -277,12 +278,17 @@ CREATE TABLE `app_application` (
     `snapshot_resume_file` JSON         DEFAULT NULL COMMENT '简历附件快照',
     `data_retention_days`  INT          NOT NULL DEFAULT 730 COMMENT '数据保留天数',
     `auto_cleanup_date`    DATE         DEFAULT NULL COMMENT '自动清理日期',
+    `snapshot_school`      VARCHAR(128) DEFAULT NULL COMMENT '筛选冗余-毕业院校（C-06裁决，与实体对齐）',
+    `snapshot_major`       VARCHAR(128) DEFAULT NULL COMMENT '筛选冗余-专业',
+    `snapshot_degree`      VARCHAR(64)  DEFAULT NULL COMMENT '筛选冗余-学历',
+    `snapshot_name`        VARCHAR(64)  DEFAULT NULL COMMENT '筛选冗余-姓名',
+    `allow_resubmit`       CHAR(1)      DEFAULT '0' COMMENT '允许撤回重投：0-否 1-是',
     `create_by`            VARCHAR(64)  DEFAULT NULL COMMENT '创建者',
     `create_time`          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_by`            VARCHAR(64)  DEFAULT NULL COMMENT '更新者',
     `update_time`          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `del_flag`             CHAR(1)      NOT NULL DEFAULT '0' COMMENT '逻辑删除标记',
-    PRIMARY KEY (`id`),
+    PRIMARY KEY (`application_id`),
     UNIQUE KEY `uk_student_job` (`student_id`, `job_id`),
     KEY `idx_job_status` (`job_id`, `status`),
     KEY `idx_status_time` (`status`, `apply_time`),
@@ -532,10 +538,176 @@ CREATE TABLE `sms_send_log` (
     KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='短信发送日志表';
 
+-- ============================================
+-- [Docker/全新部署修复] RuoYi 体系基础表
+-- 说明：init-data.sql 依赖以下表（种子数据插入），但原 DDL 一直未包含它们——
+--       历史上是 RuoYi-Vue 脚手架建出的，本文件"全部自建表"的注释因此过时。
+--       列为对齐 recrrut-system 实体 SysUser/SysDept/SysRole/SysMenu/
+--       SysDictType/SysDictData 的字段（含逻辑删除 del_flag），
+--       仅用于全新库初始化；已存在的库不受影响（本文件不会对其重跑）。
+-- ============================================
+
+-- R1. 系统用户表（HR 与管理员）
+CREATE TABLE IF NOT EXISTS `sys_user` (
+    `user_id`      BIGINT       NOT NULL AUTO_INCREMENT COMMENT '用户ID',
+    `dept_id`      BIGINT       DEFAULT NULL COMMENT '部门ID',
+    `user_name`    VARCHAR(30)  NOT NULL COMMENT '登录账号',
+    `nick_name`    VARCHAR(30)  NOT NULL COMMENT '用户昵称',
+    `user_type`    VARCHAR(2)   DEFAULT '00' COMMENT '用户类型：00-系统用户',
+    `email`        VARCHAR(50)  DEFAULT '' COMMENT '邮箱',
+    `phonenumber`  VARCHAR(11)  DEFAULT '' COMMENT '手机号',
+    `sex`          CHAR(1)      DEFAULT '0' COMMENT '性别：0-男 1-女 2-未知',
+    `avatar`       VARCHAR(100) DEFAULT '' COMMENT '头像路径',
+    `password`     VARCHAR(100) DEFAULT '' COMMENT '密码（BCrypt）',
+    `status`       CHAR(1)      DEFAULT '0' COMMENT '状态：0-正常 1-停用',
+    `login_ip`     VARCHAR(128) DEFAULT '' COMMENT '最后登录IP',
+    `login_date`   DATETIME     DEFAULT NULL COMMENT '最后登录时间',
+    `create_by`    VARCHAR(64)  DEFAULT '' COMMENT '创建者',
+    `create_time`  DATETIME     DEFAULT NULL COMMENT '创建时间',
+    `update_by`    VARCHAR(64)  DEFAULT '' COMMENT '更新者',
+    `update_time`  DATETIME     DEFAULT NULL COMMENT '更新时间',
+    `remark`       VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    `del_flag`     CHAR(1)      DEFAULT '0' COMMENT '删除标志：0-存在 2-删除',
+    PRIMARY KEY (`user_id`),
+    UNIQUE KEY `uk_user_name` (`user_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统用户表（HR 与管理员）';
+
+-- R2. 部门表
+CREATE TABLE IF NOT EXISTS `sys_dept` (
+    `dept_id`     BIGINT      NOT NULL AUTO_INCREMENT COMMENT '部门ID',
+    `parent_id`   BIGINT      DEFAULT 0 COMMENT '父部门ID',
+    `ancestors`   VARCHAR(50) DEFAULT '' COMMENT '祖级列表',
+    `dept_name`   VARCHAR(30) NOT NULL COMMENT '部门名称',
+    `order_num`   INT         DEFAULT 0 COMMENT '显示顺序',
+    `leader`      VARCHAR(20) DEFAULT NULL COMMENT '负责人',
+    `phone`       VARCHAR(11) DEFAULT NULL COMMENT '联系电话',
+    `email`       VARCHAR(50) DEFAULT NULL COMMENT '邮箱',
+    `status`      CHAR(1)     DEFAULT '0' COMMENT '状态：0-正常 1-停用',
+    `create_by`   VARCHAR(64) DEFAULT '' COMMENT '创建者',
+    `create_time` DATETIME    DEFAULT NULL COMMENT '创建时间',
+    `update_by`   VARCHAR(64) DEFAULT '' COMMENT '更新者',
+    `update_time` DATETIME    DEFAULT NULL COMMENT '更新时间',
+    `del_flag`    CHAR(1)     DEFAULT '0' COMMENT '删除标志：0-存在 2-删除',
+    PRIMARY KEY (`dept_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='部门表';
+
+-- R3. 角色表（含菜单/部门树严格模式列，实体 SysRole 显式映射）
+CREATE TABLE IF NOT EXISTS `sys_role` (
+    `role_id`             BIGINT       NOT NULL AUTO_INCREMENT COMMENT '角色ID',
+    `role_name`           VARCHAR(30)  NOT NULL COMMENT '角色名称',
+    `role_key`            VARCHAR(100) NOT NULL DEFAULT '' COMMENT '角色权限字符串',
+    `role_sort`           INT          NOT NULL DEFAULT 0 COMMENT '显示顺序',
+    `data_scope`          CHAR(1)      DEFAULT '1' COMMENT '数据范围：1-全部 2-自定义 3-本部门 4-本部门及以下 5-仅本人',
+    `menu_check_strictly` TINYINT(1)   DEFAULT 1 COMMENT '菜单树选择项是否关联显示',
+    `dept_check_strictly` TINYINT(1)   DEFAULT 1 COMMENT '部门树选择项是否关联显示',
+    `status`              CHAR(1)      NOT NULL DEFAULT '0' COMMENT '状态：0-正常 1-停用',
+    `create_by`           VARCHAR(64)  DEFAULT '' COMMENT '创建者',
+    `create_time`         DATETIME     DEFAULT NULL COMMENT '创建时间',
+    `update_by`           VARCHAR(64)  DEFAULT '' COMMENT '更新者',
+    `update_time`         DATETIME     DEFAULT NULL COMMENT '更新时间',
+    `remark`              VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    `del_flag`            CHAR(1)      DEFAULT '0' COMMENT '删除标志：0-存在 2-删除',
+    PRIMARY KEY (`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统角色表';
+
+-- R4. 菜单表
+CREATE TABLE IF NOT EXISTS `sys_menu` (
+    `menu_id`     BIGINT       NOT NULL AUTO_INCREMENT COMMENT '菜单ID',
+    `menu_name`   VARCHAR(50)  NOT NULL COMMENT '菜单名称',
+    `parent_id`   BIGINT       DEFAULT 0 COMMENT '父菜单ID',
+    `order_num`   INT          DEFAULT 0 COMMENT '显示顺序',
+    `path`        VARCHAR(200) DEFAULT '' COMMENT '路由地址',
+    `component`   VARCHAR(255) DEFAULT NULL COMMENT '组件路径',
+    `query`       VARCHAR(255) DEFAULT NULL COMMENT '路由参数',
+    `route_name`  VARCHAR(200) DEFAULT '' COMMENT '路由名称',
+    `is_frame`    CHAR(1)      DEFAULT '1' COMMENT '是否外链：0-是 1-否',
+    `is_cache`    CHAR(1)      DEFAULT '0' COMMENT '是否缓存：0-缓存 1-不缓存',
+    `menu_type`   CHAR(1)      DEFAULT '' COMMENT '菜单类型：M-目录 C-菜单 F-按钮',
+    `visible`     CHAR(1)      DEFAULT '0' COMMENT '显示状态：0-显示 1-隐藏',
+    `status`      CHAR(1)      DEFAULT '0' COMMENT '菜单状态：0-正常 1-停用',
+    `perms`       VARCHAR(100) DEFAULT NULL COMMENT '权限标识',
+    `icon`        VARCHAR(100) DEFAULT '#' COMMENT '菜单图标',
+    `create_by`   VARCHAR(64)  DEFAULT '' COMMENT '创建者',
+    `create_time` DATETIME     DEFAULT NULL COMMENT '创建时间',
+    `update_by`   VARCHAR(64)  DEFAULT '' COMMENT '更新者',
+    `update_time` DATETIME     DEFAULT NULL COMMENT '更新时间',
+    `remark`      VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    `del_flag`    CHAR(1)      DEFAULT '0' COMMENT '删除标志：0-存在 2-删除',
+    PRIMARY KEY (`menu_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统菜单表';
+
+-- R5. 用户-角色关联表
+CREATE TABLE IF NOT EXISTS `sys_user_role` (
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `role_id` BIGINT NOT NULL COMMENT '角色ID',
+    PRIMARY KEY (`user_id`, `role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户和角色关联表';
+
+-- R6. 角色-菜单关联表
+CREATE TABLE IF NOT EXISTS `sys_role_menu` (
+    `role_id` BIGINT NOT NULL COMMENT '角色ID',
+    `menu_id` BIGINT NOT NULL COMMENT '菜单ID',
+    PRIMARY KEY (`role_id`, `menu_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色和菜单关联表';
+
+-- R7. 字典类型表
+CREATE TABLE IF NOT EXISTS `sys_dict_type` (
+    `dict_id`     BIGINT       NOT NULL AUTO_INCREMENT COMMENT '字典主键',
+    `dict_name`   VARCHAR(100) DEFAULT '' COMMENT '字典名称',
+    `dict_type`   VARCHAR(100) DEFAULT '' COMMENT '字典类型',
+    `status`      CHAR(1)      DEFAULT '0' COMMENT '状态：0-正常 1-停用',
+    `create_by`   VARCHAR(64)  DEFAULT '' COMMENT '创建者',
+    `create_time` DATETIME     DEFAULT NULL COMMENT '创建时间',
+    `update_by`   VARCHAR(64)  DEFAULT '' COMMENT '更新者',
+    `update_time` DATETIME     DEFAULT NULL COMMENT '更新时间',
+    `remark`      VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    PRIMARY KEY (`dict_id`),
+    UNIQUE KEY `uk_dict_type` (`dict_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典类型表';
+
+-- R8. 字典数据表
+CREATE TABLE IF NOT EXISTS `sys_dict_data` (
+    `dict_code`   BIGINT       NOT NULL AUTO_INCREMENT COMMENT '字典编码',
+    `dict_sort`   INT          DEFAULT 0 COMMENT '字典排序',
+    `dict_label`  VARCHAR(100) DEFAULT '' COMMENT '字典标签',
+    `dict_value`  VARCHAR(100) DEFAULT '' COMMENT '字典键值',
+    `dict_type`   VARCHAR(100) DEFAULT '' COMMENT '字典类型',
+    `css_class`   VARCHAR(100) DEFAULT NULL COMMENT '样式属性（其他样式扩展）',
+    `list_class`  VARCHAR(100) DEFAULT NULL COMMENT '表格回显样式',
+    `is_default`  CHAR(1)      DEFAULT 'N' COMMENT '是否默认：Y-是 N-否',
+    `status`      CHAR(1)      DEFAULT '0' COMMENT '状态：0-正常 1-停用',
+    `create_by`   VARCHAR(64)  DEFAULT '' COMMENT '创建者',
+    `create_time` DATETIME     DEFAULT NULL COMMENT '创建时间',
+    `update_by`   VARCHAR(64)  DEFAULT '' COMMENT '更新者',
+    `update_time` DATETIME     DEFAULT NULL COMMENT '更新时间',
+    `remark`      VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    PRIMARY KEY (`dict_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典数据表';
+
+-- R9. 通知模板表（原文件仅在末尾"维护 SQL"段之后创建，导致维护 ALTER 在全新库上先于建表执行而报错；移至主建表区）
+CREATE TABLE IF NOT EXISTS `notify_template` (
+    `id`            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '模板ID',
+    `template_code` VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '模板编码',
+    `template_name` VARCHAR(128) NOT NULL DEFAULT '' COMMENT '模板名称',
+    `channel`       VARCHAR(20)  NOT NULL DEFAULT 'IN_APP' COMMENT '通知渠道：IN_APP/SMS/EMAIL',
+    `content`       TEXT         DEFAULT NULL COMMENT '模板内容',
+    `status`        CHAR(1)      DEFAULT '0' COMMENT '状态：0-正常 1-停用',
+    `remark`        VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    `create_by`     VARCHAR(64)  DEFAULT NULL COMMENT '创建者',
+    `create_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_by`     VARCHAR(64)  DEFAULT NULL COMMENT '更新者',
+    `update_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `del_flag`      CHAR(1)      DEFAULT '0' COMMENT '删除标志：0-存在 2-删除',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通知模板表';
+
 -- ============================================================================
 -- 维护 SQL：对已存在数据库补加字段默认值（幂等，可反复执行）
 -- 日期：2026-08-07
 -- ============================================================================
+
+-- BUG-0: stu_profile.real_name 注册时建空资料不填姓名，须允许为空
+ALTER TABLE stu_profile MODIFY COLUMN real_name VARCHAR(64) DEFAULT NULL COMMENT '真实姓名';
 
 -- BUG-1: job_category.category_code 新增时未提供默认值
 ALTER TABLE job_category MODIFY COLUMN category_code VARCHAR(32) NOT NULL DEFAULT '';
@@ -564,38 +736,22 @@ ALTER TABLE job_position MODIFY COLUMN category_id BIGINT NOT NULL DEFAULT 0;
 -- ALTER TABLE job_position MODIFY COLUMN owner_user_id BIGINT DEFAULT NULL;
 
 -- ---[新增表]--------------------------------------------------------
--- notify_template 通知模板表（若数据库尚不存在则创建）
--- 对应实体: com.atmoto.recruit.biz.common.domain.NotifyTemplate
-CREATE TABLE IF NOT EXISTS notify_template (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    template_code VARCHAR(64) NOT NULL DEFAULT '',
-    template_name VARCHAR(128) NOT NULL DEFAULT '',
-    channel VARCHAR(20) NOT NULL DEFAULT 'IN_APP',
-    content TEXT,
-    status CHAR(1) DEFAULT '0',
-    remark VARCHAR(500) DEFAULT NULL,
-    create_by VARCHAR(64) DEFAULT NULL,
-    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    update_by VARCHAR(64) DEFAULT NULL,
-    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    del_flag CHAR(1) DEFAULT '0',
-    PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- notify_template 已上移至主建表区（R9），此处不再重复创建。
+-- 历史原因：此表原在"维护 SQL"段之后创建，导致全新库上维护 ALTER 先于建表执行而报错。
 
 -- ============================================================================
 -- 补充: 新建环境须知
 -- ============================================================================
--- 本DDL文件与实际数据库存在以下差异（经C-01/C-06架构裁决后产生）:
+-- 以下历史差异已在主建表区修正，全新库无需再手动执行：
 --
--- 1. stu_user 主键: DDL定义 id, 但MyBatis-Plus实体(Student.java)使用 @TableId student_id。
---    在实际部署中，JPA/Hibernate自动生成了 student_id 列。
---    新环境需执行: ALTER TABLE stu_user CHANGE id student_id BIGINT NOT NULL AUTO_INCREMENT;
+-- 1. ✅ stu_user 主键 —— 原 DDL 定义 id，实体(Student.java)使用 @TableId student_id。
+--    已在 CREATE TABLE 中直接使用 student_id。
 --
--- 2. app_application 主键: DDL定义 id, 但实体(Application.java)使用 @TableId application_id。
---    新环境需执行: ALTER TABLE app_application CHANGE id application_id BIGINT NOT NULL AUTO_INCREMENT;
+-- 2. ✅ app_application 主键 —— 原 DDL 定义 id，实体(Application.java)使用 @TableId application_id。
+--    已在 CREATE TABLE 中直接使用 application_id，并补齐实体新增列
+--    （current_snapshot_id、snapshot_school/major/degree/name、allow_resubmit）。
 --
--- 3. app_snapshot 表 —— 本DDL中此表缺失（C-01裁决:快照外移为独立版本表）。
---    以下为完整的建表语句:
+-- 3. ✅ app_snapshot 表 —— 已在下方以 CREATE TABLE IF NOT EXISTS 建出（C-01裁决:快照外移为独立版本表）。
 -- ============================================================================
 
 -- ============================================
