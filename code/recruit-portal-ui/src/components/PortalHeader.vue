@@ -15,12 +15,11 @@
 
       <router-link to="/" class="logo">
         <img class="logo-img" src="/logo.png" alt="遨天科技" />
-        <span class="logo-sub">校园招聘</span>
       </router-link>
 
       <!-- 桌面端导航 -->
       <nav class="nav-links">
-        <router-link to="/jobs">岗位浏览</router-link>
+        <router-link to="/">招聘岗位</router-link>
         <router-link to="/my-applications" v-if="auth.isLoggedIn">我的投递</router-link>
         <router-link to="/messages" v-if="auth.isLoggedIn" class="msg-link">
           消息
@@ -57,7 +56,7 @@
           </div>
 
           <nav class="drawer__nav">
-            <router-link to="/jobs" @click="closeDrawer">岗位浏览</router-link>
+            <router-link to="/" @click="closeDrawer">招聘岗位</router-link>
             <router-link to="/my-applications" v-if="auth.isLoggedIn" @click="closeDrawer">我的投递</router-link>
             <router-link to="/messages" v-if="auth.isLoggedIn" @click="closeDrawer" class="drawer-msg-link">
               消息
@@ -182,11 +181,6 @@ onUnmounted(() => {
 .logo-img {
   height: 32px;
   width: auto;
-}
-.logo-sub {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
 }
 .nav-links {
   display: flex;
@@ -459,9 +453,6 @@ onUnmounted(() => {
   }
   .logo-img {
     height: 26px;
-  }
-  .logo-sub {
-    font-size: 11px;
   }
 }
 

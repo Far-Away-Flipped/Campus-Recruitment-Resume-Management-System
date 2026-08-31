@@ -8,7 +8,7 @@
       </div>
       <div class="footer-links">
         <h4>快速链接</h4>
-        <router-link to="/jobs">浏览岗位</router-link>
+        <router-link to="/">招聘岗位</router-link>
         <a href="http://www.at-moto.com/home" target="_blank">公司官网</a>
         <router-link to="/privacy">隐私政策</router-link>
       </div>

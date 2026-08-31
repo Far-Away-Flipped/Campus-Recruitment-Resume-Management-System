@@ -1,11 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '../views/HomeView.vue';
 
 const routes = [
-  { path: '/', name: 'home', component: HomeView },
+  // 首页 = 招聘岗位列表（岗位浏览作为首页）
+  { path: '/', name: 'jobs', component: () => import('../views/JobListView.vue') },
+  // 兼容旧入口 /jobs，统一重定向到首页
+  { path: '/jobs', redirect: '/' },
   { path: '/login', name: 'login', component: () => import('../views/LoginView.vue') },
   { path: '/register', name: 'register', component: () => import('../views/RegisterView.vue') },
-  { path: '/jobs', name: 'jobs', component: () => import('../views/JobListView.vue') },
   { path: '/jobs/:id', name: 'job-detail', component: () => import('../views/JobDetailView.vue') },
   {
     path: '/profile',
