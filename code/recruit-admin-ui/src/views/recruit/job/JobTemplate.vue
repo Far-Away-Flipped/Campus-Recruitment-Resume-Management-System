@@ -16,8 +16,12 @@
       >
         <el-table-column prop="templateName" label="模板名称" min-width="150" show-overflow-tooltip />
         <el-table-column prop="title" label="岗位名称" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="location" label="工作地点" width="120" show-overflow-tooltip />
-        <el-table-column prop="degreeRequirement" label="学历要求" width="100" />
+        <el-table-column prop="location" label="工作地点" width="160" show-overflow-tooltip>
+          <template #default="{ row }">{{ formatLoc(row.location) }}</template>
+        </el-table-column>
+        <el-table-column prop="degreeRequirement" label="学历要求" width="100">
+          <template #default="{ row }">{{ formatDegree(row.degreeRequirement) }}</template>
+        </el-table-column>
         <el-table-column prop="headcount" label="招聘人数" width="90" align="center" />
         <el-table-column prop="createTime" label="创建时间" width="170" />
         <el-table-column label="操作" width="260" fixed="right">
@@ -71,15 +75,23 @@
           </el-select>
         </el-form-item>
         <el-form-item label="工作地点">
-          <el-input v-model="form.location" placeholder="如：北京、上海" maxlength="50" />
+          <el-select v-model="form.location" multiple placeholder="请选择（可多选）" clearable style="width: 100%;">
+            <el-option
+              v-for="loc in locationOptions"
+              :key="loc.value"
+              :label="loc.label"
+              :value="loc.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="学历要求">
           <el-select v-model="form.degreeRequirement" placeholder="请选择学历要求" clearable style="width: 100%;">
-            <el-option label="大专" value="大专" />
-            <el-option label="本科" value="本科" />
-            <el-option label="硕士" value="硕士" />
-            <el-option label="博士" value="博士" />
-            <el-option label="不限" value="不限" />
+            <el-option
+              v-for="deg in degreeOptions"
+              :key="deg.value"
+              :label="deg.label"
+              :value="deg.value"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="招聘人数">
@@ -106,7 +118,7 @@
           />
         </el-form-item>
         <el-form-item label="标签">
-          <el-input v-model="form.tags" placeholder="如：急招/实习/校招（多个标签用逗号分隔）" maxlength="200" />
+          <el-input-tag v-model="form.tags" placeholder="输入标签后回车添加，如：急招、实习" max="10" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -123,6 +135,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import request from '@/utils/request';
 import systemRequest from '@/utils/systemRequest';
+import { parseLoc, parseTags, formatLoc, formatDegree } from '@/utils/location';
 
 const router = useRouter();
 
@@ -139,18 +152,22 @@ const editId = ref(null);
 const deptList = ref([]);
 /** 岗位类别列表（用于下拉选择） */
 const categoryList = ref([]);
+/** 工作地点字典选项（{label, value}） */
+const locationOptions = ref([]);
+/** 学历字典选项（{label, value}） */
+const degreeOptions = ref([]);
 
 const form = reactive({
   templateName: '',
   title: '',
   deptId: null,
   categoryId: null,
-  location: '',
+  location: [],
   degreeRequirement: '',
   headcount: 1,
   description: '',
   requirement: '',
-  tags: '',
+  tags: [],
 });
 
 const rules = {
@@ -187,17 +204,35 @@ async function fetchCategoryList() {
   }
 }
 
+async function fetchLocationOptions() {
+  try {
+    const res = await request.get('/dict/data/work_location');
+    locationOptions.value = res.data || [];
+  } catch {
+    // ignore
+  }
+}
+
+async function fetchDegreeOptions() {
+  try {
+    const res = await request.get('/dict/data/education_degree');
+    degreeOptions.value = res.data || [];
+  } catch {
+    // ignore
+  }
+}
+
 function resetForm() {
   form.templateName = '';
   form.title = '';
   form.deptId = null;
   form.categoryId = null;
-  form.location = '';
+  form.location = [];
   form.degreeRequirement = '';
   form.headcount = 1;
   form.description = '';
   form.requirement = '';
-  form.tags = '';
+  form.tags = [];
   isEdit.value = false;
   editId.value = null;
   formRef.value?.resetFields();
@@ -217,12 +252,12 @@ function handleEdit(row) {
   form.title = row.title || '';
   form.deptId = row.deptId || null;
   form.categoryId = row.categoryId || null;
-  form.location = row.location || '';
+  form.location = parseLoc(row.location || '');
   form.degreeRequirement = row.degreeRequirement || '';
   form.headcount = row.headcount ?? 1;
   form.description = row.description || '';
   form.requirement = row.requirement || '';
-  form.tags = row.tags || '';
+  form.tags = parseTags(row.tags);
   dialogTitle.value = '编辑模板';
   dialogVisible.value = true;
 }
@@ -243,11 +278,17 @@ async function handleSubmit() {
 
   submitLoading.value = true;
   try {
+    // location/tags 多选数组 → JSON 数组文本（JobTemplate 实体是 String，直接绑定）
+    const payload = {
+      ...form,
+      location: JSON.stringify(form.location),
+      tags: JSON.stringify(parseTags(form.tags)),
+    };
     if (isEdit.value) {
-      await request.put('/job-templates', { id: editId.value, ...form });
+      await request.put('/job-templates', { id: editId.value, ...payload });
       ElMessage.success('编辑成功');
     } else {
-      await request.post('/job-templates', { ...form });
+      await request.post('/job-templates', payload);
       ElMessage.success('新增成功');
     }
     dialogVisible.value = false;
@@ -282,6 +323,8 @@ onMounted(() => {
   fetchList();
   fetchDeptList();
   fetchCategoryList();
+  fetchLocationOptions();
+  fetchDegreeOptions();
 });
 </script>
 

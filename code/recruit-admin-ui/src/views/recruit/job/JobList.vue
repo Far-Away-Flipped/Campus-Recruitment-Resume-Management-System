@@ -47,7 +47,9 @@
         <el-table-column prop="categoryName" label="岗位分类" min-width="120" sortable="custom" />
         <el-table-column prop="title" label="岗位名称" min-width="160" show-overflow-tooltip sortable="custom" />
         <el-table-column prop="deptName" label="部门" min-width="120" sortable="custom" />
-        <el-table-column prop="location" label="工作地点" width="110" sortable="custom" />
+        <el-table-column prop="location" label="工作地点" width="160" sortable="custom">
+          <template #default="{ row }">{{ formatLoc(row.location) }}</template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="100" sortable="custom">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" size="small">
@@ -63,7 +65,7 @@
               编辑
             </el-button>
             <el-button
-              v-if="row.status === 'DRAFT'"
+              v-if="row.status === 'DRAFT' || row.status === 'CLOSED'"
               type="success"
               link
               size="small"
@@ -105,6 +107,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import request from '@/utils/request';
+import { formatLoc } from '@/utils/location';
 
 const loading = ref(false);
 const list = ref([]);
@@ -121,8 +124,8 @@ const query = reactive({
   sortDir: '',
 });
 
-const statusMap = { DRAFT: '草稿', PUBLISHED: '已发布', CLOSED: '已下架' };
-const statusTagMap = { DRAFT: 'info', PUBLISHED: 'success', CLOSED: 'warning' };
+const statusMap = { DRAFT: '草稿', PUBLISHED: '已发布', CLOSED: '已下架', EXPIRED: '已到期' };
+const statusTagMap = { DRAFT: 'info', PUBLISHED: 'success', CLOSED: 'warning', EXPIRED: 'danger' };
 
 function statusLabel(s) {
   return statusMap[s] || s;

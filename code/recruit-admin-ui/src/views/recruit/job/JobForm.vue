@@ -45,26 +45,25 @@
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="工作地点" prop="location">
-              <el-select v-model="form.location" placeholder="请选择" style="width: 100%;">
-                <el-option label="北京" value="北京" />
-                <el-option label="上海" value="上海" />
-                <el-option label="深圳" value="深圳" />
-                <el-option label="广州" value="广州" />
-                <el-option label="杭州" value="杭州" />
-                <el-option label="成都" value="成都" />
-                <el-option label="西安" value="西安" />
-                <el-option label="武汉" value="武汉" />
-                <el-option label="南京" value="南京" />
+              <el-select v-model="form.location" multiple placeholder="请选择（可多选）" style="width: 100%;">
+                <el-option
+                  v-for="loc in locationOptions"
+                  :key="loc.value"
+                  :label="loc.label"
+                  :value="loc.value"
+                />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="学历要求" prop="degreeRequirement">
               <el-select v-model="form.degreeRequirement" placeholder="请选择" style="width: 100%;">
-                <el-option label="本科" value="本科" />
-                <el-option label="硕士" value="硕士" />
-                <el-option label="博士" value="博士" />
-                <el-option label="不限" value="不限" />
+                <el-option
+                  v-for="deg in degreeOptions"
+                  :key="deg.value"
+                  :label="deg.label"
+                  :value="deg.value"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -82,7 +81,7 @@
         </el-form-item>
 
         <el-form-item label="标签">
-          <el-input v-model="form.tags" placeholder="多个标签用逗号分隔，如：Java, 应届生, 急招" maxlength="200" />
+          <el-input-tag v-model="form.tags" placeholder="输入标签后回车添加，如：急聘、Java" max="10" />
         </el-form-item>
 
         <el-form-item label="岗位描述" prop="description">
@@ -126,6 +125,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import request from '@/utils/request';
+import { parseLoc, parseTags } from '@/utils/location';
 
 const route = useRoute();
 const router = useRouter();
@@ -133,6 +133,8 @@ const formRef = ref(null);
 const submitting = ref(false);
 const deptTree = ref([]);
 const categoryOptions = ref([]);
+const locationOptions = ref([]);
+const degreeOptions = ref([]);
 
 const isEdit = computed(() => !!route.params.id);
 
@@ -140,10 +142,10 @@ const form = reactive({
   title: '',
   deptId: null,
   categoryId: null,
-  location: '',
+  location: [],
   degreeRequirement: '',
   deadline: '',
-  tags: '',
+  tags: [],
   description: '',
   requirement: '',
 });
@@ -173,6 +175,20 @@ async function fetchCategoryOptions() {
   } catch { /* ignore */ }
 }
 
+async function fetchLocationOptions() {
+  try {
+    const res = await request.get('/dict/data/work_location');
+    locationOptions.value = res.data || [];
+  } catch { /* ignore */ }
+}
+
+async function fetchDegreeOptions() {
+  try {
+    const res = await request.get('/dict/data/education_degree');
+    degreeOptions.value = res.data || [];
+  } catch { /* ignore */ }
+}
+
 async function fetchDetail() {
   if (!isEdit.value) return;
   try {
@@ -181,9 +197,15 @@ async function fetchDetail() {
     Object.keys(form).forEach(key => {
       if (d[key] !== undefined) form[key] = d[key];
     });
-    // tags 可能是数组，转逗号分隔
-    if (Array.isArray(d.tags)) {
-      form.tags = d.tags.join(', ');
+    // tags 存 JSON 数组文本（或旧坏数据），解析成数组给 el-input-tag
+    if (d.tags) {
+      form.tags = parseTags(d.tags);
+    } else {
+      form.tags = [];
+    }
+    // location 存 JSON 数组文本，转码值数组给多选
+    if (d.location) {
+      form.location = parseLoc(d.location);
     }
     // categoryId 可能是数组，取最后一个
     if (Array.isArray(d.categoryId)) {
@@ -202,10 +224,8 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     const payload = { ...form };
-    // tags 转数组
-    if (typeof payload.tags === 'string') {
-      payload.tags = payload.tags.split(',').map(t => t.trim()).filter(Boolean);
-    }
+    // tags 已是数组（el-input-tag），归一化去空；兜底兼容旧字符串
+    payload.tags = parseTags(payload.tags);
     // categoryId 可能是级联选择器路径数组，取末级值
     if (Array.isArray(payload.categoryId)) {
       payload.categoryId = payload.categoryId[payload.categoryId.length - 1];
@@ -241,9 +261,8 @@ async function handleSaveDraft() {
   submitting.value = true;
   try {
     const payload = { ...form, status: 'DRAFT' };
-    if (typeof payload.tags === 'string') {
-      payload.tags = payload.tags.split(',').map(t => t.trim()).filter(Boolean);
-    }
+    // tags 已是数组（el-input-tag），归一化去空；兜底兼容旧字符串
+    payload.tags = parseTags(payload.tags);
     // categoryId 可能是级联选择器路径数组，取末级值
     if (Array.isArray(payload.categoryId)) {
       payload.categoryId = payload.categoryId[payload.categoryId.length - 1];
@@ -272,6 +291,8 @@ async function handleSaveDraft() {
 onMounted(() => {
   fetchDeptTree();
   fetchCategoryOptions();
+  fetchLocationOptions();
+  fetchDegreeOptions();
   fetchDetail();
   applyTemplate();
 });
@@ -287,12 +308,12 @@ async function applyTemplate() {
       if (t.title) form.title = t.title;
       if (t.deptId) form.deptId = Number(t.deptId);
       if (t.categoryId) form.categoryId = Number(t.categoryId);
-      if (t.location) form.location = t.location;
+      if (t.location) form.location = parseLoc(t.location);
       if (t.degreeRequirement) form.degreeRequirement = t.degreeRequirement;
       if (t.headcount) form.headcount = Number(t.headcount);
       if (t.description) form.description = t.description;
       if (t.requirement) form.requirement = t.requirement;
-      if (t.tags) form.tags = t.tags;
+      if (t.tags) form.tags = parseTags(t.tags);
       ElMessage.success('模板数据已加载，请补充截止日期后发布');
     } else {
       ElMessage.warning('模板数据加载失败，请手动填写');

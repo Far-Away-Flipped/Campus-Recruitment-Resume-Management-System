@@ -85,12 +85,17 @@ deploy/
 - `FILE_UPLOAD_ROOT=/data`：上传根目录，bind mount 到 `deploy/data`。
 - `LIBREOFFICE_PATH=/usr/bin/soffice`：Word→PDF 简历预览。
 
-### 5.2 数据库初始化
+### 5.2 数据库初始化与增量迁移
 
 - `mysql` 服务挂载 `init-schema.sql` / `init-data.sql` 到
-  `/docker-entrypoint-initdb.d/`，**仅在数据卷为空（首次）** 时执行。
-- 之后对 SQL 文件的修改**不会自动应用**到已有库，需手动执行对应
-  DDL/DML（与既有运维约定一致）。
+  `/docker-entrypoint-initdb.d/`，**仅在数据卷为空（首次建库）** 时执行。
+- **增量迁移由后端启动时自动执行**：后端首次启动会创建 `schema_version`
+  版本表，读取 classpath `db/migration/V{n}__*.sql` 中尚未应用的迁移文件
+  并逐条执行（已应用版本跳过）。因此 `git pull` 后直接 `docker compose up -d --build`
+  即可自动完成数据库升级，无需手动执行 DDL/DML。
+- 约定：**初始建库 = 基线 V0**，迁移从 V1 起；**禁止编辑已应用的版本文件**，
+  后续 schema/数据变更一律新增 `V{n+1}__描述.sql` 到
+  `code/recruit-backend/recruit-admin/src/main/resources/db/migration/`。
 
 ### 5.3 健康检查
 
@@ -120,6 +125,7 @@ docker compose exec -T mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" atmoto
 ```bash
 git pull
 docker compose up -d --build      # 重建镜像并滚动重启
+# 数据库增量迁移由后端启动时自动执行（见 5.2），无需手动操作
 ```
 
 ## 8. 安全注意事项

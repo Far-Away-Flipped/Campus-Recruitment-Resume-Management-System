@@ -87,9 +87,14 @@ public class SysDeptServiceImpl implements ISysDeptService {
 
     @Override
     public boolean hasChildByDeptId(Long deptId) {
+        // 检查是否存在以 deptId 为祖先的活跃部门（含直接子节点与更深层后代）。
+        // 不能只查 parent_id = deptId：若直接子节点已被逻辑删除（del_flag=2）但孙级后代仍活跃，
+        // 只查直接子节点会漏判，删除该部门后孙级后代将成为孤儿（parent 指向已删部门）。
+        // ancestors 格式为 "0,父id,祖id..."，用 CONCAT(',',ancestors,',') 包裹后做精确子串匹配，
+        // 避免 deptId 与祖先数字串的误匹配（如 deptId=1 不会误命中 "0,11"）。
         Long count = deptMapper.selectCount(
                 new LambdaQueryWrapper<SysDept>()
-                        .eq(SysDept::getParentId, deptId)
+                        .apply("CONCAT(',', ancestors, ',') LIKE CONCAT('%,', {0}, ',%')", deptId)
         );
         return count > 0;
     }

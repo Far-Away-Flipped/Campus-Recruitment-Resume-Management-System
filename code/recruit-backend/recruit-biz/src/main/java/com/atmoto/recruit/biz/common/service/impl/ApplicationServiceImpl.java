@@ -62,7 +62,10 @@ public class ApplicationServiceImpl implements ApplicationService {
         if (job == null) {
             throw new BizException(ErrorCode.JOB_NOT_FOUND);
         }
-        if (!JobStatus.PUBLISHED.getCode().equals(job.getStatus())) {
+        // EXPIRED 为实时派生态（V6 后不持久化），允许通过；真过期由下方 deadline 检查兜底
+        boolean publishable = JobStatus.PUBLISHED.getCode().equals(job.getStatus())
+                || JobStatus.EXPIRED.getCode().equals(job.getStatus());
+        if (!publishable) {
             throw new BizException(ErrorCode.JOB_NOT_PUBLISHED);
         }
         if (job.getDeadline() != null && job.getDeadline().isBefore(LocalDateTime.now())) {

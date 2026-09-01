@@ -30,11 +30,11 @@
           </div>
           <div class="job-meta__item">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
-            {{ job.location || '--' }}
+            {{ formatLoc(job.location) || '--' }}
           </div>
           <div class="job-meta__item">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/></svg>
-            {{ job.degreeRequirement || '--' }}
+            {{ formatDegree(job.degreeRequirement) || '--' }}
           </div>
           <div class="job-meta__item job-meta__item--deadline">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -187,6 +187,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/utils/axios';
+import { formatLoc, formatDegree } from '@/utils/location';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 
 const route = useRoute();

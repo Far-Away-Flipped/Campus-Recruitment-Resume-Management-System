@@ -25,9 +25,10 @@ public class JobExpireTask {
     private final JobPositionMapper jobPositionMapper;
 
     /**
-     * 每 5 分钟执行一次：自动将过期的已发布岗位设为 EXPIRED（区分手动下架的 CLOSED）
+     * 定时任务已停用：岗位过期状态改为实时派生（JobStatusResolver），不再持久化 EXPIRED。
+     * 若后续需要定时清理/统计，可在此恢复调度。
      */
-    @Scheduled(cron = "0 */5 * * * ?")
+    // @Scheduled(cron = "0 */5 * * * ?")
     public void autoOfflineExpiredJobs() {
         // 批量 UPDATE status='EXPIRED' WHERE status='PUBLISHED' AND deadline < NOW()
         LambdaUpdateWrapper<JobPosition> updateWrapper = new LambdaUpdateWrapper<>();

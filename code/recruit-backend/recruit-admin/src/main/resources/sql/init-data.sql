@@ -13,7 +13,6 @@ SET NAMES utf8mb4;
 INSERT INTO sys_dict_type (dict_name, dict_type, status, create_by, create_time, remark) VALUES
 ('学历',          'education_degree',       '0', 'admin', NOW(), '候选人学历字典'),
 ('候选人状态',    'candidate_status',       '0', 'admin', NOW(), '候选人投递状态（一期仅启用部分）'),
-('岗位类别',      'job_category_type', '0', 'admin', NOW(), '岗位分类三大序列'),
 ('工作地点',      'work_location',    '0', 'admin', NOW(), '办公城市列表'),
 ('通知渠道',      'notify_channel',   '0', 'admin', NOW(), '通知发送渠道：短信/邮件/系统消息');
 
@@ -27,7 +26,8 @@ INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, css_cla
 (2, '本科',   'BACHELOR',  'education_degree', '', 'N', '0', 'admin', NOW()),
 (3, '硕士',   'MASTER',    'education_degree', '', 'N', '0', 'admin', NOW()),
 (4, '博士',   'DOCTOR',    'education_degree', '', 'N', '0', 'admin', NOW()),
-(5, '其他',   'OTHER',     'education_degree', '', 'N', '0', 'admin', NOW());
+(5, '其他',   'OTHER',     'education_degree', '', 'N', '0', 'admin', NOW()),
+(6, '不限',   'NONE',      'education_degree', '', 'N', '0', 'admin', NOW());
 
 -- 2.2 候选人状态字典（12个状态，标注 p0_active）
 INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, css_class, is_default, status, create_by, create_time, remark) VALUES
@@ -56,13 +56,7 @@ INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, css_cla
 (8, '南京', 'NANJING',   'work_location', '', 'N', '0', 'admin', NOW()),
 (9, '合肥', 'HEFEI',     'work_location', '', 'N', '0', 'admin', NOW());
 
--- 2.4 岗位类别字典（三大序列）
-INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, css_class, is_default, status, create_by, create_time) VALUES
-(1, '硬件研发', 'HARDWARE_RD', 'job_category_type', '', 'N', '0', 'admin', NOW()),
-(2, '软件研发', 'SOFTWARE_RD', 'job_category_type', '', 'N', '0', 'admin', NOW()),
-(3, '职能',     'FUNCTION',    'job_category_type', '', 'N', '0', 'admin', NOW());
-
--- 2.5 通知渠道
+-- 2.4 通知渠道
 INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, css_class, is_default, status, create_by, create_time) VALUES
 (1, '短信',     'SMS',     'notify_channel', '', 'N', '0', 'admin', NOW()),
 (2, '邮件',     'EMAIL',   'notify_channel', '', 'N', '0', 'admin', NOW()),

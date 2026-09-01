@@ -66,12 +66,12 @@
           <h3 class="jobs__card-name">{{ job.title }}</h3>
           <div class="jobs__card-tags">
             <span v-if="job.deptName" class="jobs__card-tag">{{ job.deptName }}</span>
-            <span v-if="job.location" class="jobs__card-tag">{{ job.location }}</span>
-            <span v-if="job.degreeRequirement" class="jobs__card-tag">{{ job.degreeRequirement }}</span>
+            <span v-if="job.location" class="jobs__card-tag">{{ formatLoc(job.location) }}</span>
+            <span v-if="job.degreeRequirement" class="jobs__card-tag">{{ formatDegree(job.degreeRequirement) }}</span>
             <span
               v-if="job.deadline"
               class="jobs__card-tag"
-              :class="{ 'jobs__card-tag--expired': isExpired(job.deadline) }"
+              :class="{ 'jobs__card-tag--expired': isExpired(job) }"
             >{{ formatDeadline(job.deadline) }}</span>
           </div>
         </router-link>
@@ -128,6 +128,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/utils/axios'
+import { formatLoc, formatDegree } from '@/utils/location'
 
 const banners = ref([])
 const featuredJobs = ref([])
@@ -161,13 +162,11 @@ function truncateText(text, len) {
 }
 
 /**
- * 判断截止日期是否已过期
+ * 判断岗位是否已到期/下架：由后端返回的 status 判断，不使用前端本地时间
  */
-function isExpired(deadline) {
-  if (!deadline) return false
-  const d = new Date(deadline)
-  if (isNaN(d.getTime())) return false
-  return d < new Date()
+function isExpired(job) {
+  if (!job) return false
+  return job.status === 'EXPIRED' || job.status === 'CLOSED'
 }
 
 onMounted(async () => {

@@ -39,6 +39,7 @@ npm run dev
 - 建表脚本：`code/recruit-backend/recruit-admin/src/main/resources/sql/init-schema.sql`
 - 种子数据：`code/recruit-backend/recruit-admin/src/main/resources/sql/init-data.sql`
 - **注意**：数据库是持久化运行的，对SQL文件的追加修改不会自动应用到已有实例，需要手动执行对应INSERT/ALTER语句
+- **增量迁移**：后端启动时自动执行 `recruit-admin/src/main/resources/db/migration/V{n}__*.sql` 中未应用的版本（`schema_version` 表去重，initdb基线=V0）。后续 schema/数据变更请新增 `V{n+1}__描述.sql`，**禁止编辑已应用版本文件**（会触发 checksum 告警）
 
 ### 登录凭证（开发环境）
 

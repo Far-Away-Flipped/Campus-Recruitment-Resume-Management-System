@@ -4,6 +4,7 @@ import com.atmoto.recruit.biz.admin.service.JobPositionService;
 import com.atmoto.recruit.biz.common.domain.JobPosition;
 import com.atmoto.recruit.biz.common.enums.JobStatus;
 import com.atmoto.recruit.biz.common.mapper.JobPositionMapper;
+import com.atmoto.recruit.biz.common.util.JobStatusResolver;
 import com.atmoto.recruit.common.core.page.PageQuery;
 import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -66,9 +68,9 @@ public class JobPositionServiceImpl implements JobPositionService {
         if (jobPosition.getCategoryId() != null) {
             wrapper.eq(JobPosition::getCategoryId, jobPosition.getCategoryId());
         }
-        // 按工作地点筛选
+        // 按工作地点筛选（location 存 JSON 数组文本，用 LIKE 子串匹配）
         if (jobPosition.getLocation() != null && !jobPosition.getLocation().isBlank()) {
-            wrapper.eq(JobPosition::getLocation, jobPosition.getLocation());
+            wrapper.like(JobPosition::getLocation, jobPosition.getLocation());
         }
         // 按学历要求筛选
         if (jobPosition.getDegreeRequirement() != null && !jobPosition.getDegreeRequirement().isBlank()) {
@@ -87,7 +89,14 @@ public class JobPositionServiceImpl implements JobPositionService {
         // 默认按创建时间降序（无动态排序时作为主排序，有时作为次级排序）
         wrapper.orderByDesc(JobPosition::getCreateTime);
 
-        return jobPositionMapper.selectPage(page, wrapper);
+        jobPositionMapper.selectPage(page, wrapper);
+        // 输出层实时计算过期状态（PUBLISHED 且 deadline 已过 → EXPIRED，仅展示，不持久化）
+        if (page.getRecords() != null) {
+            LocalDateTime now = LocalDateTime.now();
+            page.getRecords().forEach(j ->
+                    j.setStatus(JobStatusResolver.resolveDisplayStatus(j.getStatus(), j.getDeadline(), now)));
+        }
+        return page;
     }
 
     @Override
@@ -96,6 +105,8 @@ public class JobPositionServiceImpl implements JobPositionService {
         if (job == null) {
             throw new BizException(ErrorCode.JOB_NOT_FOUND);
         }
+        // 输出层实时计算过期状态
+        job.setStatus(JobStatusResolver.resolveDisplayStatus(job.getStatus(), job.getDeadline(), LocalDateTime.now()));
         return job;
     }
 

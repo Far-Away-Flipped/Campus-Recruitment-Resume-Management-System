@@ -661,6 +661,7 @@ CREATE TABLE IF NOT EXISTS `sys_dict_type` (
     `update_by`   VARCHAR(64)  DEFAULT '' COMMENT '更新者',
     `update_time` DATETIME     DEFAULT NULL COMMENT '更新时间',
     `remark`      VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    `del_flag`    CHAR(1)      DEFAULT '0' COMMENT '删除标志：0-存在 2-删除',
     PRIMARY KEY (`dict_id`),
     UNIQUE KEY `uk_dict_type` (`dict_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典类型表';
@@ -681,6 +682,7 @@ CREATE TABLE IF NOT EXISTS `sys_dict_data` (
     `update_by`   VARCHAR(64)  DEFAULT '' COMMENT '更新者',
     `update_time` DATETIME     DEFAULT NULL COMMENT '更新时间',
     `remark`      VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    `del_flag`    CHAR(1)      DEFAULT '0' COMMENT '删除标志：0-存在 2-删除',
     PRIMARY KEY (`dict_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典数据表';
 

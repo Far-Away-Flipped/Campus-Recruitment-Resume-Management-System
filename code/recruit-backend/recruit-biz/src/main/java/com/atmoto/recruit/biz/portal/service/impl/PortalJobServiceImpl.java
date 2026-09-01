@@ -7,6 +7,7 @@ import com.atmoto.recruit.biz.common.enums.JobStatus;
 import com.atmoto.recruit.biz.common.mapper.ApplicationMapper;
 import com.atmoto.recruit.biz.common.mapper.JobCategoryMapper;
 import com.atmoto.recruit.biz.common.mapper.JobPositionMapper;
+import com.atmoto.recruit.biz.common.util.JobStatusResolver;
 import com.atmoto.recruit.biz.portal.service.PortalJobService;
 import com.atmoto.recruit.biz.portal.vo.PortalJobVo;
 import com.atmoto.recruit.common.core.page.PageQuery;
@@ -14,7 +15,9 @@ import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
 import com.atmoto.recruit.framework.security.context.PortalUserHolder;
 import com.atmoto.recruit.system.domain.SysDept;
+import com.atmoto.recruit.system.domain.SysDictData;
 import com.atmoto.recruit.system.mapper.SysDeptMapper;
+import com.atmoto.recruit.system.service.ISysDictDataService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -42,6 +45,7 @@ public class PortalJobServiceImpl implements PortalJobService {
     private final SysDeptMapper sysDeptMapper;
     private final JobCategoryMapper jobCategoryMapper;
     private final ApplicationMapper applicationMapper;
+    private final ISysDictDataService dictDataService;
 
     @Override
     public IPage<JobPosition> selectPublishedJobList(JobPosition jobPosition, PageQuery pageQuery) {
@@ -66,13 +70,18 @@ public class PortalJobServiceImpl implements PortalJobService {
         if (jobPosition.getDeptId() != null) {
             wrapper.eq("department_id", jobPosition.getDeptId());
         }
-        // 按岗位类别筛选
+        // 按岗位类别筛选：选择父类别时，需包含其全部子类别的岗位
         if (jobPosition.getCategoryId() != null) {
-            wrapper.eq("category_id", jobPosition.getCategoryId());
+            List<Long> categoryIds = collectCategoryAndDescendants(jobPosition.getCategoryId());
+            if (categoryIds.isEmpty()) {
+                // 类别不存在或已停用 → 查不到任何岗位
+                return page;
+            }
+            wrapper.in("category_id", categoryIds);
         }
-        // 按工作地点筛选
+        // 按工作地点筛选（location 存 JSON 数组文本，如 ["BEIJING","SHANGHAI"]，用 LIKE 子串匹配）
         if (jobPosition.getLocation() != null && !jobPosition.getLocation().isEmpty()) {
-            wrapper.eq("location", jobPosition.getLocation());
+            wrapper.like("location", jobPosition.getLocation());
         }
         // 按学历要求筛选
         if (jobPosition.getDegreeRequirement() != null && !jobPosition.getDegreeRequirement().isEmpty()) {
@@ -82,7 +91,56 @@ public class PortalJobServiceImpl implements PortalJobService {
         // 按创建时间降序排列
         wrapper.orderByDesc("create_time");
 
-        return jobPositionMapper.selectPage(page, wrapper);
+        jobPositionMapper.selectPage(page, wrapper);
+
+        // 批量填充部门名称与岗位类别名称（@TableField(exist=false) 非持久字段，需手动填充）
+        if (page.getRecords() != null && !page.getRecords().isEmpty()) {
+            Set<Long> deptIds = page.getRecords().stream()
+                    .map(JobPosition::getDeptId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            if (!deptIds.isEmpty()) {
+                Map<Long, String> deptNameMap = sysDeptMapper.selectBatchIds(deptIds).stream()
+                        .collect(Collectors.toMap(SysDept::getDeptId, SysDept::getDeptName, (a, b) -> a));
+                page.getRecords().forEach(j -> j.setDeptName(deptNameMap.getOrDefault(j.getDeptId(), "")));
+            }
+            Set<Long> categoryIds = page.getRecords().stream()
+                    .map(JobPosition::getCategoryId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            if (!categoryIds.isEmpty()) {
+                Map<Long, String> catNameMap = jobCategoryMapper.selectBatchIds(categoryIds).stream()
+                        .collect(Collectors.toMap(JobCategory::getCategoryId, JobCategory::getCategoryName, (a, b) -> a));
+                page.getRecords().forEach(j -> j.setCategoryName(catNameMap.getOrDefault(j.getCategoryId(), "")));
+            }
+        }
+
+        return page;
+    }
+
+    /**
+     * 收集目标类别自身及其全部后代类别的 ID
+     * <p>用于类别筛选时选择父节点能查出该父节点下全部子节点的岗位。
+     * job_category 的 ancestors 存祖先链（如 "0,1"），用 CONCAT 包裹做精确子串匹配，
+     * 避免 categoryId 与祖先数字串误匹配（如 1 不误命中 "0,11"）。</p>
+     */
+    private List<Long> collectCategoryAndDescendants(Long categoryId) {
+        List<JobCategory> all = jobCategoryMapper.selectList(
+                new LambdaQueryWrapper<JobCategory>()
+                        .eq(JobCategory::getStatus, "1")
+        );
+        List<Long> result = new ArrayList<>();
+        for (JobCategory cat : all) {
+            if (cat.getCategoryId().equals(categoryId)) {
+                result.add(cat.getCategoryId());
+                continue;
+            }
+            String ancestors = cat.getAncestors();
+            if (ancestors != null && ("," + ancestors + ",").contains("," + categoryId + ",")) {
+                result.add(cat.getCategoryId());
+            }
+        }
+        return result;
     }
 
     @Override
@@ -93,10 +151,14 @@ public class PortalJobServiceImpl implements PortalJobService {
             throw new BizException(ErrorCode.JOB_NOT_FOUND);
         }
 
-        // 2. 校验岗位状态：仅已发布且未过期的岗位可被查看
-        if (!JobStatus.PUBLISHED.getCode().equals(job.getStatus())) {
+        // 2. 校验岗位状态：仅已发布（或存量 EXPIRED 派生态）岗位可被查看；
+        //    CLOSED/DRAFT/未知状态一律视为不存在
+        boolean viewable = JobStatus.PUBLISHED.getCode().equals(job.getStatus())
+                || JobStatus.EXPIRED.getCode().equals(job.getStatus());
+        if (!viewable) {
             throw new BizException(ErrorCode.JOB_NOT_FOUND);
         }
+        // 3. 实时判断是否已过截止日期（后端服务时间）
         if (job.getDeadline() != null && job.getDeadline().isBefore(java.time.LocalDateTime.now())) {
             throw new BizException(ErrorCode.JOB_DEADLINE_EXPIRED);
         }
@@ -116,6 +178,9 @@ public class PortalJobServiceImpl implements PortalJobService {
         // 4. 组装 VO
         PortalJobVo vo = new PortalJobVo();
         BeanUtils.copyProperties(job, vo);
+        // 输出层实时归一化展示状态（EXPIRED 为派生态，不持久化）
+        vo.setStatus(JobStatusResolver.resolveDisplayStatus(
+                job.getStatus(), job.getDeadline(), java.time.LocalDateTime.now()));
 
         // 5. 查询部门名称
         if (job.getDeptId() != null) {
@@ -189,25 +254,25 @@ public class PortalJobServiceImpl implements PortalJobService {
         }
         options.put("categories", categoryTree);
 
-        // 3. 工作地点列表（从已发布岗位中提取 DISTINCT）
-        QueryWrapper<JobPosition> locWrapper = new QueryWrapper<>();
-        locWrapper.select("DISTINCT location")
-                .eq("status", JobStatus.PUBLISHED.getCode())
-                .apply("deadline > NOW()")
-                .isNotNull("location")
-                .orderByAsc("location");
-        List<Object> locations = jobPositionMapper.selectObjs(locWrapper);
-        options.put("locations", locations);
+        // 3. 工作地点列表（来自 work_location 字典，含 label 中文名 + value 码值）
+        List<SysDictData> dictLocations = dictDataService.selectDictDataByType("work_location");
+        List<Map<String, Object>> locationList = dictLocations.stream().map(d -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("label", d.getDictLabel());
+            m.put("value", d.getDictValue());
+            return m;
+        }).collect(Collectors.toList());
+        options.put("locations", locationList);
 
-        // 4. 学历要求列表（从已发布岗位中提取 DISTINCT）
-        QueryWrapper<JobPosition> degreeWrapper = new QueryWrapper<>();
-        degreeWrapper.select("DISTINCT degree_requirement")
-                .eq("status", JobStatus.PUBLISHED.getCode())
-                .apply("deadline > NOW()")
-                .isNotNull("degree_requirement")
-                .orderByAsc("degree_requirement");
-        List<Object> degrees = jobPositionMapper.selectObjs(degreeWrapper);
-        options.put("degreeRequirements", degrees);
+        // 4. 学历要求列表（来自 education_degree 字典，含 label 中文名 + value 码值）
+        List<SysDictData> dictDegrees = dictDataService.selectDictDataByType("education_degree");
+        List<Map<String, Object>> degreeList = dictDegrees.stream().map(d -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("label", d.getDictLabel());
+            m.put("value", d.getDictValue());
+            return m;
+        }).collect(Collectors.toList());
+        options.put("degreeRequirements", degreeList);
 
         return options;
     }

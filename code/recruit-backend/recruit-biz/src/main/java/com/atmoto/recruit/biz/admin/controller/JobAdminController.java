@@ -3,20 +3,26 @@ package com.atmoto.recruit.biz.admin.controller;
 import com.atmoto.recruit.biz.admin.service.JobPositionService;
 import com.atmoto.recruit.biz.common.domain.JobCategory;
 import com.atmoto.recruit.biz.common.domain.JobPosition;
+import com.atmoto.recruit.biz.common.enums.JobStatus;
 import com.atmoto.recruit.biz.common.mapper.JobCategoryMapper;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.common.core.domain.TableDataInfo;
 import com.atmoto.recruit.common.core.page.PageQuery;
 import com.atmoto.recruit.system.domain.SysDept;
+import com.atmoto.recruit.system.domain.SysDictData;
 import com.atmoto.recruit.system.mapper.SysDeptMapper;
+import com.atmoto.recruit.system.service.ISysDictDataService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.web.bind.annotation.*;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,6 +51,8 @@ public class JobAdminController {
     private final JobPositionService jobPositionService;
     private final SysDeptMapper deptMapper;
     private final JobCategoryMapper jobCategoryMapper;
+    private final ObjectMapper objectMapper;
+    private final ISysDictDataService dictDataService;
 
     @GetMapping("/list")
     public AjaxResult list(JobPosition jobPosition, PageQuery pageQuery,
@@ -102,11 +110,11 @@ public class JobAdminController {
         String title = str(body, "title");
         Long deptId = lng(body, "deptId");
         Long categoryId = lng(body, "categoryId");
-        String location = str(body, "location");
+        String location = loc(body, "location");
         String degreeRequirement = str(body, "degreeRequirement");
         String description = str(body, "description");
         String requirement = str(body, "requirement");
-        String tags = str(body, "tags");
+        String tags = tags(body);
 
         if (title == null || title.isBlank()) return AjaxResult.error("岗位名称不能为空");
         title = Jsoup.clean(title, Safelist.none());
@@ -115,6 +123,7 @@ public class JobAdminController {
         if (deptId == null) return AjaxResult.error("请选择所属部门");
         if (categoryId == null) return AjaxResult.error("请选择岗位类别");
         if (location == null || location.isBlank()) return AjaxResult.error("请选择工作地点");
+        if (degreeRequirement == null || !isValidDegree(degreeRequirement)) return AjaxResult.error("学历要求不合法");
 
         String deadlineStr = str(body, "deadline");
         LocalDateTime deadline = null;
@@ -157,11 +166,11 @@ public class JobAdminController {
         String title = str(body, "title");
         Long deptId = lng(body, "deptId");
         Long categoryId = lng(body, "categoryId");
-        String location = str(body, "location");
+        String location = loc(body, "location");
         String degreeRequirement = str(body, "degreeRequirement");
         String description = str(body, "description");
         String requirement = str(body, "requirement");
-        String tags = str(body, "tags");
+        String tags = tags(body);
         String status = str(body, "status");
 
         if (jobId == null) return AjaxResult.error("岗位ID不能为空");
@@ -169,6 +178,7 @@ public class JobAdminController {
         title = Jsoup.clean(title, Safelist.none());
         description = description != null ? Jsoup.clean(description, SAFE_HTML) : null;
         requirement = requirement != null ? Jsoup.clean(requirement, SAFE_HTML) : null;
+        if (degreeRequirement != null && !isValidDegree(degreeRequirement)) return AjaxResult.error("学历要求不合法");
 
         String deadlineStr = str(body, "deadline");
         LocalDateTime deadline = null;
@@ -191,7 +201,8 @@ public class JobAdminController {
         if (description != null) update.setDescription(description);
         if (requirement != null) update.setRequirement(requirement);
         if (tags != null) update.setTags(tags);
-        if (status != null) update.setStatus(status);
+        // EXPIRED 为实时派生态（不持久化），编辑不接受写回 EXPIRED（保存草稿传 DRAFT 仍生效）
+        if (status != null && !JobStatus.EXPIRED.getCode().equals(status)) update.setStatus(status);
         if (deadline != null) update.setDeadline(deadline);
 
         int rows = jobPositionService.updateJob(update);
@@ -220,6 +231,84 @@ public class JobAdminController {
     private String str(Map<String, Object> body, String key) {
         Object v = body.get(key);
         return v != null ? v.toString() : null;
+    }
+    /**
+     * 工作地点接参：兼容三种形态 → 统一输出 JSON 数组文本（如 ["BEIJING","SHANGHAI"]）
+     * 1. 前端多选提交的 JSON 数组（List）
+     * 2. 旧前端/直接调用提交的单值字符串（北京 或 BEIJING）
+     * 3. 字符串形式的 JSON 数组文本（"[\"BEIJING\"]"）
+     */
+    private String loc(Map<String, Object> body, String key) {
+        Object v = body.get(key);
+        if (v == null) return null;
+        List<String> codes = new ArrayList<>();
+        if (v instanceof List<?> list) {
+            list.forEach(item -> { if (item != null) codes.add(String.valueOf(item)); });
+        } else {
+            String s = v.toString().trim();
+            if (s.startsWith("[")) {
+                try {
+                    codes.addAll(objectMapper.readValue(s, new TypeReference<List<String>>() {}));
+                } catch (Exception e) {
+                    return null;
+                }
+            } else if (!s.isEmpty()) {
+                codes.add(s);
+            }
+        }
+        if (codes.isEmpty()) return "";
+        try {
+            return objectMapper.writeValueAsString(codes);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    /**
+     * 标签接参：兼容三种形态 → 统一输出合法 JSON 数组文本（如 ["急聘","Java"]）
+     * 1. 前端 el-input-tag 提交的 JSON 数组（List）
+     * 2. 旧前端/直接调用提交的逗号分隔字符串（"Java,应届生"）
+     * 3. 字符串形式的 JSON 数组文本（"[\"Java\"]"）
+     * <p>避免 str() 对 List.toString() 产生 "[Java, 应届生]" 伪 JSON，导致每次编辑嵌套一层方括号。</p>
+     */
+    private String tags(Map<String, Object> body) {
+        Object v = body.get("tags");
+        if (v == null) return null;
+        List<String> list = new ArrayList<>();
+        if (v instanceof List<?> arr) {
+            arr.forEach(item -> { if (item != null) list.add(String.valueOf(item)); });
+        } else {
+            String s = v.toString().trim();
+            if (s.startsWith("[")) {
+                try {
+                    list.addAll(objectMapper.readValue(s, new TypeReference<List<String>>() {}));
+                } catch (Exception e) {
+                    return null;
+                }
+            } else if (!s.isEmpty()) {
+                // 兼容逗号分隔字符串
+                java.util.Arrays.stream(s.split(","))
+                        .map(String::trim)
+                        .filter(t -> !t.isEmpty())
+                        .forEach(list::add);
+            }
+        }
+        if (list.isEmpty()) return "";
+        try {
+            return objectMapper.writeValueAsString(list);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    /**
+     * 校验学历要求是否为 education_degree 字典中的码值（白名单）
+     * <p>防止前端误发中文 label（如"本科"）入库，导致学生端按码值等值筛选时
+     * 岗位从学历筛选结果中静默消失。</p>
+     */
+    private boolean isValidDegree(String degree) {
+        if (degree == null || degree.isBlank()) return false;
+        return dictDataService.selectDictDataByType("education_degree").stream()
+                .map(SysDictData::getDictValue)
+                .anyMatch(degree::equals);
     }
     private Long lng(Map<String, Object> body, String key) {
         Object v = body.get(key);

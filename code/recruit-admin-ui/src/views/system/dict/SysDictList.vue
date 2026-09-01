@@ -15,9 +15,9 @@
           <div v-loading="typeLoading" class="type-list">
             <div
               v-for="item in typeList"
-              :key="item.id"
+              :key="item.dictId"
               class="type-item"
-              :class="{ active: selectedTypeId === item.id }"
+              :class="{ active: selectedTypeId === item.dictId }"
               @click="selectType(item)"
             >
               <div class="type-item-info">
@@ -74,7 +74,7 @@
             >
               <el-table-column prop="dictLabel" label="字典标签" min-width="120" />
               <el-table-column prop="dictValue" label="字典键值" min-width="100" />
-              <el-table-column prop="sortOrder" label="排序" width="80" align="center" />
+              <el-table-column prop="dictSort" label="排序" width="80" align="center" />
               <el-table-column label="状态" width="90">
                 <template #default="{ row }">
                   <el-tag :type="row.status === '0' ? 'success' : 'danger'" size="small">
@@ -93,8 +93,8 @@
 
             <div class="pagination-wrap">
               <el-pagination
-                v-model:current-page="dataQuery.page"
-                v-model:page-size="dataQuery.size"
+                v-model:current-page="dataQuery.pageNum"
+                v-model:page-size="dataQuery.pageSize"
                 :page-sizes="[10, 20, 50]"
                 :total="dataTotal"
                 layout="total, sizes, prev, pager, next, jumper"
@@ -149,8 +149,8 @@
         <el-form-item label="字典键值" prop="dictValue">
           <el-input v-model="dataForm.dictValue" placeholder="如：0" maxlength="30" />
         </el-form-item>
-        <el-form-item label="排序" prop="sortOrder">
-          <el-input-number v-model="dataForm.sortOrder" :min="0" :max="999" style="width: 140px;" />
+        <el-form-item label="排序" prop="dictSort">
+          <el-input-number v-model="dataForm.dictSort" :min="0" :max="999" style="width: 140px;" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-switch v-model="dataForm.status" :active-value="'0'" :inactive-value="'1'" />
@@ -202,7 +202,7 @@ const typeRules = {
 const dataLoading = ref(false);
 const dataList = ref([]);
 const dataTotal = ref(0);
-const dataQuery = reactive({ page: 1, size: 10 });
+const dataQuery = reactive({ pageNum: 1, pageSize: 10 });
 
 // 数据弹窗
 const dataDialogVisible = ref(false);
@@ -215,7 +215,7 @@ const dataEditId = ref(null);
 const dataForm = reactive({
   dictLabel: '',
   dictValue: '',
-  sortOrder: 0,
+  dictSort: 0,
   status: '0',
   remark: '',
 });
@@ -233,7 +233,7 @@ async function fetchTypeList() {
     typeList.value = res.data || [];
     // 如果之前有选中，刷新后恢复选中状态
     if (selectedTypeId.value) {
-      const found = typeList.value.find(t => t.id === selectedTypeId.value);
+      const found = typeList.value.find(t => t.dictId === selectedTypeId.value);
       if (found) {
         selectedType.value = found;
       } else {
@@ -250,9 +250,9 @@ async function fetchTypeList() {
 }
 
 function selectType(item) {
-  selectedTypeId.value = item.id;
+  selectedTypeId.value = item.dictId;
   selectedType.value = item;
-  dataQuery.page = 1;
+  dataQuery.pageNum = 1;
   fetchDataList();
 }
 
@@ -275,7 +275,7 @@ function handleAddType() {
 function handleEditType(row) {
   resetTypeForm();
   isTypeEdit.value = true;
-  typeEditId.value = row.id;
+  typeEditId.value = row.dictId;
   typeForm.dictName = row.dictName;
   typeForm.dictType = row.dictType;
   typeForm.status = row.status ?? '0';
@@ -291,7 +291,7 @@ async function handleTypeSubmit() {
   typeSubmitLoading.value = true;
   try {
     if (isTypeEdit.value) {
-      await systemRequest.put('/dict/type', { id: typeEditId.value, ...typeForm });
+      await systemRequest.put('/dict/type', { dictId: typeEditId.value, ...typeForm });
       ElMessage.success('编辑成功');
     } else {
       await systemRequest.post('/dict/type', { ...typeForm });
@@ -313,9 +313,9 @@ async function handleDeleteType(row) {
       cancelButtonText: '取消',
       type: 'warning',
     });
-    await systemRequest.delete(`/dict/type/${row.id}`);
+    await systemRequest.delete(`/dict/type/${row.dictId}`);
     ElMessage.success('删除成功');
-    if (selectedTypeId.value === row.id) {
+    if (selectedTypeId.value === row.dictId) {
       selectedTypeId.value = null;
       selectedType.value = null;
       dataList.value = [];
@@ -346,7 +346,7 @@ async function fetchDataList() {
 function resetDataForm() {
   dataForm.dictLabel = '';
   dataForm.dictValue = '';
-  dataForm.sortOrder = 0;
+  dataForm.dictSort = 0;
   dataForm.status = '0';
   dataForm.remark = '';
   isDataEdit.value = false;
@@ -363,10 +363,10 @@ function handleAddData() {
 function handleEditData(row) {
   resetDataForm();
   isDataEdit.value = true;
-  dataEditId.value = row.id;
+  dataEditId.value = row.dictCode;
   dataForm.dictLabel = row.dictLabel;
   dataForm.dictValue = row.dictValue;
-  dataForm.sortOrder = row.sortOrder ?? 0;
+  dataForm.dictSort = row.dictSort ?? 0;
   dataForm.status = row.status ?? '0';
   dataForm.remark = row.remark || '';
   dataDialogTitle.value = '编辑字典数据';
@@ -381,7 +381,7 @@ async function handleDataSubmit() {
   try {
     const payload = { ...dataForm, dictType: selectedType.value?.dictType };
     if (isDataEdit.value) {
-      await systemRequest.put('/dict/data', { id: dataEditId.value, ...payload });
+      await systemRequest.put('/dict/data', { dictCode: dataEditId.value, ...payload });
       ElMessage.success('编辑成功');
     } else {
       await systemRequest.post('/dict/data', payload);
@@ -403,7 +403,7 @@ async function handleDeleteData(row) {
       cancelButtonText: '取消',
       type: 'warning',
     });
-    await systemRequest.delete(`/dict/data/${row.id}`);
+    await systemRequest.delete(`/dict/data/${row.dictCode}`);
     ElMessage.success('删除成功');
     fetchDataList();
   } catch {

@@ -86,7 +86,7 @@
           <!-- 工作地点下拉 -->
           <div class="filter-bar__select-wrapper" :class="{ 'is-open': openDropdown === 'location' }">
             <button class="filter-bar__select-trigger" @click="toggleDropdown('location')">
-              <span>{{ filters.location || '全部地点' }}</span>
+              <span>{{ selectedLocationLabel || '全部地点' }}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="filter-bar__select-dropdown" v-if="openDropdown === 'location'">
@@ -97,18 +97,18 @@
               >全部地点</div>
               <div
                 v-for="loc in filterOptions.locations"
-                :key="loc"
+                :key="loc.value"
                 class="filter-bar__select-option"
-                :class="{ 'is-active': filters.location === loc }"
-                @click="selectLocation(loc)"
-              >{{ loc }}</div>
+                :class="{ 'is-active': filters.location === loc.value }"
+                @click="selectLocation(loc.value)"
+              >{{ loc.label }}</div>
             </div>
           </div>
 
           <!-- 学历要求下拉 -->
           <div class="filter-bar__select-wrapper" :class="{ 'is-open': openDropdown === 'degree' }">
             <button class="filter-bar__select-trigger" @click="toggleDropdown('degree')">
-              <span>{{ filters.degree || '全部学历' }}</span>
+              <span>{{ formatDegree(filters.degree) || '全部学历' }}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="filter-bar__select-dropdown" v-if="openDropdown === 'degree'">
@@ -119,11 +119,11 @@
               >全部学历</div>
               <div
                 v-for="deg in filterOptions.degrees"
-                :key="deg"
+                :key="deg.value"
                 class="filter-bar__select-option"
-                :class="{ 'is-active': filters.degree === deg }"
-                @click="selectDegree(deg)"
-              >{{ deg }}</div>
+                :class="{ 'is-active': filters.degree === deg.value }"
+                @click="selectDegree(deg.value)"
+              >{{ deg.label }}</div>
             </div>
           </div>
 
@@ -171,11 +171,11 @@
             <button @click="filters.categoryId = ''; handleSearch()">&times;</button>
           </span>
           <span v-if="filters.location" class="filter-bar__tag">
-            {{ filters.location }}
+            {{ selectedLocationLabel }}
             <button @click="filters.location = ''; handleSearch()">&times;</button>
           </span>
           <span v-if="filters.degree" class="filter-bar__tag">
-            {{ filters.degree }}
+            {{ formatDegree(filters.degree) }}
             <button @click="filters.degree = ''; handleSearch()">&times;</button>
           </span>
         </div>
@@ -218,7 +218,7 @@
                 <label class="filter-sheet__label">工作地点</label>
                 <select v-model="filters.location" class="filter-sheet__select">
                   <option value="">全部地点</option>
-                  <option v-for="loc in filterOptions.locations" :key="loc" :value="loc">{{ loc }}</option>
+                  <option v-for="loc in filterOptions.locations" :key="loc.value" :value="loc.value">{{ loc.label }}</option>
                 </select>
               </div>
               <!-- 学历要求 -->
@@ -226,7 +226,7 @@
                 <label class="filter-sheet__label">学历要求</label>
                 <select v-model="filters.degree" class="filter-sheet__select">
                   <option value="">全部学历</option>
-                  <option v-for="deg in filterOptions.degrees" :key="deg" :value="deg">{{ deg }}</option>
+                  <option v-for="deg in filterOptions.degrees" :key="deg.value" :value="deg.value">{{ deg.label }}</option>
                 </select>
               </div>
             </div>
@@ -260,26 +260,22 @@
             <div class="job-card__header">
               <h3 class="job-card__title">{{ job.title }}</h3>
               <div class="job-card__tags">
-                <span v-if="job.tags?.includes('急聘')" class="job-card__tag job-card__tag--urgent">急聘</span>
+                <span v-if="parseTags(job.tags).includes('急聘')" class="job-card__tag job-card__tag--urgent">急聘</span>
                 <span class="job-card__tag job-card__tag--deadline">{{ formatDeadline(job.deadline) }}</span>
               </div>
             </div>
             <div class="job-card__meta">
               <span class="job-card__meta-item">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                {{ job.deptName || '--' }}
+                {{ job.deptName || '--' }}{{ job.categoryName ? ' · ' + job.categoryName : '' }}
               </span>
               <span class="job-card__meta-item">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
-                {{ job.location || '北京' }}
+                {{ formatLoc(job.location) || '北京' }}
               </span>
               <span class="job-card__meta-item">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
-                {{ job.degreeRequirement || '本科及以上' }}
-              </span>
-              <span v-if="job.categoryName" class="job-card__meta-item">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-                {{ job.categoryName }}
+                {{ formatDegree(job.degreeRequirement) || '本科及以上' }}
               </span>
             </div>
             <p class="job-card__desc">{{ truncateText(job.description, 120) }}</p>
@@ -337,6 +333,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/utils/axios';
+import { formatLoc, formatDegree, parseTags } from '@/utils/location';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 
 const router = useRouter();
@@ -433,6 +430,12 @@ const selectedCategoryLabel = computed(() => {
     }
   }
   return '';
+});
+
+const selectedLocationLabel = computed(() => {
+  if (!filters.location) return '';
+  const loc = filterOptions.value.locations.find(item => item.value === filters.location);
+  return loc ? loc.label : '';
 });
 
 const activeFilterCount = computed(() => {
@@ -540,7 +543,7 @@ function formatDeadline(deadline) {
   const d = new Date(deadline);
   const now = new Date();
   const diff = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
-  if (diff < 0) return '已截止';
+  // 列表接口已由后端按 deadline > NOW() 过滤，过期岗位不会出现（'已截止' 分支不可达）
   if (diff === 0) return '今日截止';
   if (diff <= 7) return `${diff}天后截止`;
   return `${d.getMonth() + 1}/${d.getDate()} 截止`;

@@ -46,7 +46,7 @@
             <!-- 标题区 -->
             <div class="detail-header">
               <h1 class="detail-title">{{ job.title }}</h1>
-              <div class="detail-status" v-if="job.status === 'closed' || isDeadlinePassed">
+              <div class="detail-status" v-if="job.status === 'CLOSED' || isDeadlinePassed">
                 <span class="detail-status__badge detail-status__badge--closed">已截止</span>
               </div>
             </div>
@@ -61,12 +61,12 @@
               <div class="detail-meta__item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
                 <span class="detail-meta__label">工作地点</span>
-                <span class="detail-meta__value">{{ job.location || '北京' }}</span>
+                <span class="detail-meta__value">{{ formatLoc(job.location) || '北京' }}</span>
               </div>
               <div class="detail-meta__item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
                 <span class="detail-meta__label">学历要求</span>
-                <span class="detail-meta__value">{{ job.degreeRequirement || '本科及以上' }}</span>
+                <span class="detail-meta__value">{{ formatDegree(job.degreeRequirement) || '本科及以上' }}</span>
               </div>
               <div v-if="job.categoryName" class="detail-meta__item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
@@ -81,8 +81,8 @@
             </div>
 
             <!-- 标签 -->
-            <div class="detail-tags" v-if="job.tags && job.tags.length">
-              <span v-for="tag in job.tags" :key="tag" class="detail-tag">{{ tag }}</span>
+            <div class="detail-tags" v-if="jobTags.length">
+              <span v-for="tag in jobTags" :key="tag" class="detail-tag">{{ tag }}</span>
             </div>
 
             <!-- 分割线 -->
@@ -146,7 +146,7 @@
                 已投递
               </button>
               <button
-                v-else-if="isDeadlinePassed || job.status === 'closed'"
+                v-else-if="isDeadlinePassed || job.status === 'CLOSED'"
                 class="apply-card__btn apply-card__btn--closed"
                 disabled
               >已截止</button>
@@ -169,7 +169,7 @@
                 </div>
                 <div class="apply-card__info-item" v-if="job.location">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
-                  <span>{{ job.location }}</span>
+                  <span>{{ formatLoc(job.location) }}</span>
                 </div>
               </div>
             </div>
@@ -184,6 +184,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/utils/axios';
+import { formatLoc, formatDegree, parseTags } from '@/utils/location';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
@@ -194,6 +195,9 @@ const isLoggedIn = computed(() => auth.isLoggedIn);
 
 // ---- 数据状态 ----
 const job = ref(null);
+
+/** 解析岗位标签为数组（tags 存 JSON 数组文本，兼容旧坏数据） */
+const jobTags = computed(() => parseTags(job.value?.tags));
 const loading = ref(true);
 
 // ---- 桌面端判断（用于 sticky） ----
@@ -207,9 +211,10 @@ function onResize() {
 const countdown = ref({ days: 0, hours: 0, minutes: 0 });
 let countdownTimer = null;
 
+// 截止是否已过：由后端实时返回的 status 判断（EXPIRED/CLOSED），不使用前端本地时间
 const isDeadlinePassed = computed(() => {
-  if (!job.value?.deadline) return false;
-  return new Date(job.value.deadline).getTime() < Date.now();
+  const s = job.value?.status;
+  return s === 'EXPIRED' || s === 'CLOSED';
 });
 
 function updateCountdown() {
@@ -254,9 +259,9 @@ async function fetchJobDetail() {
     const res = await api.get(`/jobs/${jobId}`);
     if (res.code === 200) {
       job.value = res.data;
-      // 启动倒计时
+      // 启动倒计时（详情接口已保证 deadline 未过期；有 deadline 即启动）
       updateCountdown();
-      if (res.data?.deadline && new Date(res.data.deadline).getTime() > Date.now()) {
+      if (res.data?.deadline) {
         countdownTimer = setInterval(updateCountdown, 60000); // 每分钟更新
       }
     } else {

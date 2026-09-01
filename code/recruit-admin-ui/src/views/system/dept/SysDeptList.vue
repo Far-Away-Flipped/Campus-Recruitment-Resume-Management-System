@@ -19,7 +19,7 @@
         default-expand-all
       >
         <el-table-column prop="deptName" label="部门名称" min-width="180" />
-        <el-table-column prop="sortOrder" label="排序" width="80" align="center" />
+        <el-table-column prop="orderNum" label="排序" width="80" align="center" />
         <el-table-column prop="leader" label="负责人" width="120" />
         <el-table-column prop="phone" label="联系电话" width="130" />
         <el-table-column label="状态" width="90">
@@ -80,8 +80,8 @@
         <el-form-item label="部门名称" prop="deptName">
           <el-input v-model="form.deptName" placeholder="请输入部门名称" maxlength="30" />
         </el-form-item>
-        <el-form-item label="排序" prop="sortOrder">
-          <el-input-number v-model="form.sortOrder" :min="0" :max="999" style="width: 140px;" />
+        <el-form-item label="排序" prop="orderNum">
+          <el-input-number v-model="form.orderNum" :min="0" :max="999" style="width: 140px;" />
         </el-form-item>
         <el-form-item label="负责人" prop="leader">
           <el-input v-model="form.leader" placeholder="请输入负责人姓名" maxlength="20" />
@@ -124,7 +124,7 @@ const parentName = ref('');
 
 const form = reactive({
   deptName: '',
-  sortOrder: 0,
+  orderNum: 0,
   leader: '',
   phone: '',
   status: '0',
@@ -183,7 +183,7 @@ async function fetchList() {
 
 function resetForm() {
   form.deptName = '';
-  form.sortOrder = 0;
+  form.orderNum = 0;
   form.leader = '';
   form.phone = '';
   form.status = '0';
@@ -209,7 +209,7 @@ function handleEdit(row) {
   isEdit.value = true;
   editId.value = row.deptId;
   form.deptName = row.deptName;
-  form.sortOrder = row.sortOrder ?? 0;
+  form.orderNum = row.orderNum ?? 0;
   form.leader = row.leader || '';
   form.phone = row.phone || '';
   form.status = row.status ?? '0';
