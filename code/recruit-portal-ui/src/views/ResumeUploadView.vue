@@ -1,5 +1,5 @@
 <template>
-  <div class="resume-page">
+  <div class="resume-page" v-motion-fade="{ y: 24 }">
     <div class="page-header">
       <h1 class="page-title">简历附件</h1>
       <p class="page-subtitle">管理您的简历文件，上传后可投递岗位时使用</p>
@@ -482,7 +482,8 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
-  background: var(--color-card);
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   margin-bottom: 8px;
@@ -694,7 +695,8 @@ onMounted(() => {
   padding: 24px;
 }
 .modal-card {
-  background: var(--color-card);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--glass-blur-heavy));
   border: 1px solid var(--color-border);
   border-radius: 12px;
   width: 100%;

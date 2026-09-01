@@ -1,5 +1,5 @@
 <template>
-  <div class="profile-page">
+  <div class="profile-page" v-motion-fade="{ y: 24 }">
     <h1 class="page-title">个人中心</h1>
 
     <!-- ===== 持久化 Tab 导航栏 ===== -->
@@ -680,7 +680,8 @@ onMounted(() => {
 
 /* 卡片 */
 .profile-card {
-  background: var(--color-card);
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 32px;
@@ -780,19 +781,33 @@ onMounted(() => {
 /* 性别单选 */
 .radio-group {
   display: flex;
+  align-items: center;
   gap: 24px;
   padding-top: 8px;
 }
-.radio-label {
-  display: flex;
+/* 用更高特异性覆盖 .form-group label { display:block }，确保 flex + gap 生效 */
+.form-group .radio-label {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 10px;                    /* radio 与文本间距，稍宽松避免拥挤 */
   cursor: pointer;
   font-size: 14px;
   color: var(--color-text);
+  line-height: 1.2;
+  white-space: nowrap;          /* 防止"男/女"文本被压缩换行 */
+  margin-bottom: 0;
 }
 .radio-label input[type="radio"] {
+  flex-shrink: 0;               /* 圆形控件不被压缩 */
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  vertical-align: middle;
   accent-color: var(--color-primary);
+}
+.radio-label span {
+  flex-shrink: 0;
 }
 
 /* 按钮 */
@@ -1040,9 +1055,12 @@ onMounted(() => {
   .radio-group {
     gap: 32px;
   }
-  .radio-label {
+  .form-group .radio-label {
     min-height: var(--touch-min);
     font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.2;
   }
 
   /* 头像区域移动端适配 */

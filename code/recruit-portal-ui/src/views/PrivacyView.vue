@@ -1,5 +1,5 @@
 <template>
-  <div class="privacy-page">
+  <div class="privacy-page" v-motion-fade="{ y: 24 }">
     <div class="page-header">
       <h1 class="page-title">隐私政策</h1>
       <p class="page-subtitle">校园招聘系统隐私政策</p>
@@ -158,7 +158,8 @@
 
 /* 内容卡片 */
 .privacy-card {
-  background: var(--color-card);
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 36px 40px;

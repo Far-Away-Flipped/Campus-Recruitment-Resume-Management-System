@@ -1,5 +1,5 @@
 <template>
-  <div class="apply-page">
+  <div class="apply-page" v-motion-fade="{ y: 24 }">
     <!-- 加载态 -->
     <LoadingSpinner :visible="loading" text="加载投递信息..." />
 
@@ -379,7 +379,8 @@ onMounted(async () => {
 
 /* 区块卡片 */
 .section-card {
-  background: var(--color-card);
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 24px 28px;

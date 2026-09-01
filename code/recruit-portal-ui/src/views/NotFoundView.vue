@@ -1,7 +1,7 @@
 <template>
-  <div class="not-found-page">
+  <div class="not-found-page" v-motion-fade="{ y: 24 }">
     <div class="not-found-card">
-      <div class="not-found-code">404</div>
+      <div class="not-found-code glow-text-strong">404</div>
       <h1 class="not-found-title">页面未找到</h1>
       <p class="not-found-desc">您访问的页面不存在或已被移除。请检查地址是否正确，或返回首页浏览其他内容。</p>
       <div class="not-found-actions">
@@ -28,6 +28,12 @@
 .not-found-card {
   text-align: center;
   max-width: 480px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 48px 40px;
+  box-shadow: var(--shadow-glow-md);
 }
 
 .not-found-code {

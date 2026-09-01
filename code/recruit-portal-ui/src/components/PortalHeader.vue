@@ -155,9 +155,10 @@ onUnmounted(() => {
 <style scoped>
 /* ===== 桌面端 Header 布局（默认样式） ===== */
 .portal-header {
-  background: rgba(10, 14, 23, 0.95);
+  background: var(--bg-glass-strong);
   border-bottom: 1px solid var(--color-border);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
+  box-shadow: 0 1px 0 rgba(95, 184, 214, 0.25), 0 6px 20px rgba(0, 0, 0, 0.4);
   position: sticky;
   top: 0;
   z-index: 100;

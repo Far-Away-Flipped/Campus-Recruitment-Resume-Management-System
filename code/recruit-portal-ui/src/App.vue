@@ -1,5 +1,6 @@
 <template>
   <div class="app-shell">
+    <SpaceBackground />
     <PortalHeader />
     <main class="main-content">
       <router-view v-slot="{ Component }">
@@ -13,10 +14,17 @@
 </template>
 
 <script setup>
+import SpaceBackground from './components/SpaceBackground.vue';
 import PortalHeader from './components/PortalHeader.vue';
 import PortalFooter from './components/PortalFooter.vue';
 </script>
 
 <style scoped>
-.main-content { padding-bottom: var(--safe-bottom); }
+.app-shell { position: relative; min-height: 100vh; display: flex; flex-direction: column; }
+.main-content {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  padding-bottom: var(--safe-bottom);
+}
 </style>

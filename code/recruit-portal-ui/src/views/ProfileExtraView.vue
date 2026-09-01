@@ -1,5 +1,5 @@
 <template>
-  <div class="profile-list-page">
+  <div class="profile-list-page" v-motion-fade="{ y: 24 }">
     <h1 class="page-title">{{ pageTitle }}</h1>
 
     <LoadingSpinner :visible="loading" :text="'加载中...'" />
@@ -317,7 +317,8 @@ onMounted(loadItems);
 .list { display: flex; flex-direction: column; gap: 12px; }
 .list-item {
   display: flex; align-items: flex-start; justify-content: space-between;
-  background: var(--color-card); border: 1px solid var(--color-border);
+  background: var(--bg-glass); border: 1px solid var(--color-border);
+  backdrop-filter: blur(var(--glass-blur));
   border-radius: 8px; padding: 16px 20px; gap: 16px;
 }
 .list-item__info { flex: 1; min-width: 0; }
@@ -342,7 +343,7 @@ onMounted(loadItems);
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal { background: var(--color-card); border-radius: 12px; padding: 28px; width: 90%; max-width: 520px; max-height: 80vh; overflow-y: auto; }
+.modal { background: var(--bg-glass-strong); backdrop-filter: blur(var(--glass-blur-heavy)); border: 1px solid var(--color-border); border-radius: 12px; padding: 28px; width: 90%; max-width: 520px; max-height: 80vh; overflow-y: auto; }
 .modal-title { font-size: 18px; margin-bottom: 20px; color: var(--color-text); }
 .form-group { margin-bottom: 14px; }
 .form-group label { display: block; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; }

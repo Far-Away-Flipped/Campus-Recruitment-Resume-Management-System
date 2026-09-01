@@ -40,7 +40,7 @@
           <span class="breadcrumb__current">{{ job.title }}</span>
         </nav>
 
-        <div class="detail-layout">
+        <div class="detail-layout" v-motion-fade="{ y: 24 }">
           <!-- 左侧：岗位详情 -->
           <div class="detail-main">
             <!-- 标题区 -->
@@ -311,6 +311,7 @@ onUnmounted(() => {
 }
 .breadcrumb__current {
   color: #9CA3AF;
+  text-shadow: 0 0 8px var(--glow-color);
 }
 
 /* ====== 双栏布局 ====== */
@@ -335,6 +336,7 @@ onUnmounted(() => {
   color: #fff;
   letter-spacing: 1px;
   line-height: 1.3;
+  text-shadow: 0 0 12px var(--glow-strong), 0 0 20px var(--glow-color);
 }
 .detail-status__badge {
   font-size: 12px;
@@ -358,9 +360,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  background: #152535;
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border-radius: 8px;
-  border: 1px solid rgba(95, 184, 214, 0.06);
+  border: 1px solid rgba(95, 184, 214, 0.1);
 }
 .detail-meta__item svg {
   color: #5FB8D6;
@@ -489,11 +492,13 @@ onUnmounted(() => {
   position: relative;
 }
 .apply-card {
-  background: #152535;
-  border: 1px solid rgba(95, 184, 214, 0.1);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
+  border: 1px solid rgba(95, 184, 214, 0.15);
   border-radius: 12px;
   padding: 32px 24px;
   text-align: center;
+  box-shadow: var(--shadow-glow-md);
 }
 .apply-card--sticky {
   position: sticky;
@@ -522,7 +527,8 @@ onUnmounted(() => {
 .apply-card__countdown {
   margin-bottom: 24px;
   padding: 16px;
-  background: rgba(95, 184, 214, 0.06);
+  background: var(--bg-trans);
+  backdrop-filter: blur(6px);
   border-radius: 8px;
   border: 1px solid rgba(95, 184, 214, 0.1);
 }

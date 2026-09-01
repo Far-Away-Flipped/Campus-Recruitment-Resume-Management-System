@@ -1,5 +1,5 @@
 <template>
-  <div class="messages-page">
+  <div class="messages-page" v-motion-fade="{ y: 24 }">
     <h1 class="page-title">
       消息中心
       <span class="unread-badge" v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
@@ -136,7 +136,7 @@ onMounted(() => {
 .form-toast--error { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; background: rgba(224,82,82,0.12); color: var(--color-danger); }
 
 .messages-list { display: flex; flex-direction: column; gap: 8px; }
-.message-item { display: flex; gap: 12px; padding: 16px; background: var(--color-card); border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; transition: border-color 0.2s; }
+.message-item { display: flex; gap: 12px; padding: 16px; background: var(--bg-glass); backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; transition: border-color 0.2s; }
 .message-item:hover { border-color: var(--color-primary); }
 .message-item--unread { border-left: 3px solid var(--color-primary); }
 .message-item__status { flex-shrink: 0; padding-top: 4px; }
@@ -148,11 +148,11 @@ onMounted(() => {
 
 .empty { text-align: center; padding: 60px 0; color: var(--color-text-secondary); }
 .pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 20px; }
-.pagination button { padding: 6px 16px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-card); color: var(--color-text); cursor: pointer; font-family: inherit; }
+.pagination button { padding: 6px 16px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--bg-glass); backdrop-filter: blur(var(--glass-blur)); color: var(--color-text); cursor: pointer; font-family: inherit; }
 .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal { background: var(--color-card); border-radius: 12px; padding: 32px; width: 90%; max-width: 560px; max-height: 70vh; overflow-y: auto; }
+.modal { background: var(--bg-glass-strong); backdrop-filter: blur(var(--glass-blur-heavy)); border: 1px solid var(--color-border); border-radius: 12px; padding: 32px; width: 90%; max-width: 560px; max-height: 70vh; overflow-y: auto; }
 .modal h3 { font-size: 18px; margin-bottom: 8px; color: var(--color-text); }
 .modal-time { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 16px; }
 .modal-body { font-size: 14px; color: var(--color-text); line-height: 1.7; white-space: pre-wrap; margin-bottom: 20px; }

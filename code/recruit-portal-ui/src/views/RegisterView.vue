@@ -1,6 +1,6 @@
 <template>
   <div class="register-page">
-    <div class="form-card">
+    <div class="form-card" v-motion-fade="{ y: 24 }">
       <h2 class="form-title">注册</h2>
       <p class="form-sub">创建遨天科技校园招聘账号</p>
 
@@ -326,18 +326,21 @@ onUnmounted(() => {
 }
 
 .form-card {
-  background: var(--color-card);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   padding: 40px;
   width: 100%;
   max-width: 440px;
+  box-shadow: var(--shadow-glow-md);
 }
 
 .form-title {
   font-size: 24px;
   margin-bottom: 4px;
   color: var(--color-text);
+  text-shadow: 0 0 12px var(--glow-strong), 0 0 20px var(--glow-color);
 }
 
 .form-sub {

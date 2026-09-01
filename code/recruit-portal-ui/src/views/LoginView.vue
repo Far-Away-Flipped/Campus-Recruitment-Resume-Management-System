@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <!-- ==================== 登录模式 ==================== -->
-    <div class="form-card" v-if="!isResetMode">
+    <div class="form-card" v-if="!isResetMode" v-motion-fade="{ y: 24 }">
       <h2 class="form-title">登录</h2>
       <p class="form-sub">登录遨天科技校园招聘系统</p>
 
@@ -53,7 +53,7 @@
     </div>
 
     <!-- ==================== 重置密码模式 ==================== -->
-    <div class="form-card" v-else>
+    <div class="form-card" v-else v-motion-fade="{ y: 24 }">
       <h2 class="form-title">重置密码</h2>
       <p class="form-sub">通过短信验证码重置您的登录密码</p>
 
@@ -424,18 +424,21 @@ onUnmounted(() => {
 }
 
 .form-card {
-  background: var(--color-card);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   padding: 40px;
   width: 100%;
   max-width: 440px;
+  box-shadow: var(--shadow-glow-md);
 }
 
 .form-title {
   font-size: 24px;
   margin-bottom: 4px;
   color: var(--color-text);
+  text-shadow: 0 0 12px var(--glow-strong), 0 0 20px var(--glow-color);
 }
 
 .form-sub {

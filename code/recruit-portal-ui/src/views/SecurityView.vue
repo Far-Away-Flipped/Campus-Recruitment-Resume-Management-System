@@ -1,5 +1,5 @@
 <template>
-  <div class="security-page">
+  <div class="security-page" v-motion-fade="{ y: 24 }">
     <div class="page-header">
       <h1 class="page-title">账号安全</h1>
       <p class="page-sub">修改您的登录密码</p>
@@ -172,7 +172,8 @@ async function handleSubmit() {
 
 /* 卡片 */
 .security-card {
-  background: var(--color-card);
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 32px;

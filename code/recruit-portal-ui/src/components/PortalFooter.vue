@@ -26,8 +26,12 @@
 
 <style scoped>
 .portal-footer {
-  background: rgba(10, 14, 23, 0.9);
+  position: relative;
+  z-index: 1;
+  background: var(--bg-glass-strong);
   border-top: 1px solid var(--color-border);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  box-shadow: 0 -1px 0 rgba(95, 184, 214, 0.25);
   padding: 40px 0 24px;
   margin-top: auto;
 }

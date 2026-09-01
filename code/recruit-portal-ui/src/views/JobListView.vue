@@ -254,9 +254,10 @@
 
         <div class="jobs__grid" v-if="jobs.length > 0">
           <article
-            v-for="job in jobs"
+            v-for="(job, i) in jobs"
             :key="job.jobId"
-            class="job-card"
+            class="job-card sys-card-conic-glow"
+            v-motion-fade="{ y: 24, delay: i * 0.06 }"
             @click="$router.push(`/jobs/${job.jobId}`)"
           >
             <div class="job-card__header">
@@ -603,8 +604,10 @@ onUnmounted(() => {
 
 /* ====== 页面标题区 ====== */
 .page-hero {
-  padding: 60px 0 40px;
+  position: relative;
+  padding: 80px 0 48px;
   text-align: center;
+  overflow: hidden;
 }
 .section-header {
   display: flex;
@@ -623,6 +626,7 @@ onUnmounted(() => {
   font-weight: 700;
   color: #fff;
   letter-spacing: 2px;
+  text-shadow: 0 0 12px var(--glow-strong), 0 0 20px var(--glow-color);
 }
 .section-title__en {
   font-size: 12px;
@@ -669,7 +673,8 @@ onUnmounted(() => {
 .filter-bar__search-input {
   width: 100%;
   padding: 10px 12px 10px 36px;
-  background: #152535;
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid rgba(95, 184, 214, 0.15);
   border-radius: 8px;
   color: #fff;
@@ -694,7 +699,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 10px 14px;
-  background: #152535;
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid rgba(95, 184, 214, 0.15);
   border-radius: 8px;
   color: #9CA3AF;
@@ -717,7 +723,8 @@ onUnmounted(() => {
   min-width: 160px;
   max-height: 280px;
   overflow-y: auto;
-  background: #152535;
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--glass-blur-heavy));
   border: 1px solid rgba(95, 184, 214, 0.2);
   border-radius: 8px;
   padding: 6px 0;
@@ -847,18 +854,19 @@ onUnmounted(() => {
   gap: 20px;
 }
 
-/* 岗位卡片 — 与 HomeView 视觉风格一致 */
+/* 岗位卡片 — 玻璃态 + 光锥旋转边框（sys-card-conic-glow 处理 hover） */
 .job-card {
-  background: #152535;
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border-radius: 12px;
   padding: 28px;
-  border: 1px solid rgba(95, 184, 214, 0.08);
+  border: 1px solid rgba(95, 184, 214, 0.1);
   cursor: pointer;
   transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
 }
 .job-card:hover {
   border-color: rgba(95, 184, 214, 0.3);
-  transform: translateY(-2px);
+  transform: translateY(-4px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
 }
 .job-card__header {
@@ -950,7 +958,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: #152535;
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid rgba(95, 184, 214, 0.12);
   border-radius: 8px;
   color: #9CA3AF;
@@ -1017,7 +1026,8 @@ onUnmounted(() => {
   gap: 6px;
   min-height: 48px;
   padding: 0 16px;
-  background: var(--color-card);
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   color: var(--color-text-secondary);
@@ -1058,7 +1068,8 @@ onUnmounted(() => {
 .filter-sheet {
   width: 100%;
   max-height: 70vh;
-  background: var(--color-card);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--glass-blur-heavy));
   border-radius: 16px 16px 0 0;
   display: flex;
   flex-direction: column;

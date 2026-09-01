@@ -29,4 +29,17 @@
   --color-primary-15: rgba(95, 184, 214, 0.15); /* 主色分隔线 */
   --section-gap: 40px;                     /* Section 间距 */
   --ease-out: cubic-bezier(0.33, 1, 0.68, 1);    /* 缓出曲线 */
+
+  /* ===== 科幻全息：玻璃态 / 辉光 ===== */
+  --bg-glass: rgba(21, 37, 53, 0.55);          /* 玻璃卡片底 */
+  --bg-glass-strong: rgba(10, 14, 23, 0.65);   /* header/footer 重玻璃 */
+  --bg-trans: rgba(255, 255, 255, 0.05);       /* 轻透明底 */
+  --glass-blur: 12px;                          /* 标准玻璃模糊 */
+  --glass-blur-heavy: 20px;                    /* 重玻璃模糊 */
+  --border-hover: rgba(95, 184, 214, 0.6);     /* 悬停边框 */
+  --glow-color: rgba(95, 184, 214, 0.4);       /* 文本辉光（弱） */
+  --glow-strong: rgba(95, 184, 214, 0.8);      /* 文本辉光（强） */
+  --shadow-glow-sm: 0 0 12px rgba(95, 184, 214, 0.2);   /* 小辉光阴影 */
+  --shadow-glow-md: 0 0 20px rgba(95, 184, 214, 0.15);  /* 中辉光阴影 */
+  --shadow-lift: 0 8px 24px rgba(0, 0, 0, 0.2);         /* 上浮阴影 */
 }

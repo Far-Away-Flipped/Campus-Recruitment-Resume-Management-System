@@ -1,5 +1,5 @@
 <template>
-  <div class="applications-page">
+  <div class="applications-page" v-motion-fade="{ y: 24 }">
     <!-- 页头 -->
     <div class="page-header">
       <h1 class="page-title">我的投递</h1>
@@ -325,7 +325,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  background: var(--color-card);
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 18px 22px;
@@ -502,7 +503,8 @@ onMounted(() => {
   padding: 24px;
 }
 .modal-card {
-  background: var(--color-card);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--glass-blur-heavy));
   border: 1px solid var(--color-border);
   border-radius: 12px;
   width: 100%;

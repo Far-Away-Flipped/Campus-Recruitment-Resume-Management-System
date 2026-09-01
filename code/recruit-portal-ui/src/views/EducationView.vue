@@ -1,5 +1,5 @@
 <template>
-  <div class="education-page">
+  <div class="education-page" v-motion-fade="{ y: 24 }">
     <div class="page-header">
       <h1 class="page-title">教育经历</h1>
       <button class="btn-add" @click="openDialog()">+ 新增教育经历</button>
@@ -356,7 +356,8 @@ onMounted(() => {
   gap: 16px;
 }
 .edu-card {
-  background: var(--color-card);
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 24px;
@@ -448,7 +449,8 @@ onMounted(() => {
   padding: 24px;
 }
 .dialog-card {
-  background: var(--color-card);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--glass-blur-heavy));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 32px;

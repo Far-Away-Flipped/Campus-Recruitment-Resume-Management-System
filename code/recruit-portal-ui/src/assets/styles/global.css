@@ -9,6 +9,25 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ===== 日期选择器图标（深色背景下的原生日历图标提亮） ===== */
+input[type="date"] {
+  color-scheme: dark; /* Firefox/Edge 原生控件深色配色 */
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+  /* 原生图标在深色背景默认深灰不可见 → 用主题青色 SVG 替换 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235FB8D6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+  background-size: 16px 16px;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 20px;
+  height: 20px;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  filter: brightness(1.35);
+}
+
 .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
 .main-content { flex: 1; }
 
@@ -111,4 +130,177 @@ body {
   background: rgba(95, 184, 214, 0.12);
   border-color: rgba(95, 184, 214, 0.4);
   color: #5FB8D6;
+}
+
+/* ===== 科幻全息：玻璃态 ===== */
+.glass          { background: var(--bg-glass); backdrop-filter: blur(var(--glass-blur)); }
+.glass-light    { background: var(--bg-trans); backdrop-filter: blur(6px) saturate(120%); }
+.glass-heavy    { background: var(--bg-glass-strong); backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%); }
+.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-glow-md);
+}
+
+/* ===== 文本辉光 ===== */
+.glow-text        { text-shadow: 0 0 8px var(--glow-color); }
+.glow-text-strong { text-shadow: 0 0 12px var(--glow-strong), 0 0 20px var(--glow-color); }
+
+/* ===== 精密边框 hover ===== */
+.border-precise {
+  border: 1px solid var(--color-border);
+  transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+}
+.border-precise:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-glow-sm);
+}
+
+/* ===== 光锥旋转卡片（移植自官网 sys-card-conic-glow）===== */
+.sys-card-conic-glow {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: rgba(95, 184, 214, 0.03);
+  border: 1px solid rgba(95, 184, 214, 0.1);
+  border-radius: var(--radius);
+  transition: all 0.3s var(--ease-out);
+}
+.sys-card-conic-glow::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: '';
+  border-radius: var(--radius);
+}
+.sys-card-conic-glow::before {
+  position: absolute;
+  inset: -200%;
+  z-index: -1;
+  content: '';
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--color-primary) 30deg,
+    transparent 60deg,
+    transparent 180deg,
+    var(--color-primary) 210deg,
+    transparent 240deg
+  );
+  border-radius: var(--radius);
+  opacity: 0;
+}
+.sys-card-conic-glow:hover {
+  background: rgba(95, 184, 214, 0.08);
+  border-color: transparent;
+  box-shadow: var(--shadow-lift), 0 0 20px rgba(95, 184, 214, 0.15);
+  transform: translateY(-4px);
+}
+.sys-card-conic-glow:hover::before {
+  opacity: 1;
+  animation: rotate-border 3s linear infinite;
+}
+.sys-card-conic-glow:hover::after {
+  background: linear-gradient(135deg, rgba(95, 184, 214, 0.08) 0%, var(--color-bg) 100%);
+}
+@keyframes rotate-border {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ===== 入口动画 ===== */
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-in-up { opacity: 0; animation: slideInUp 0.6s var(--ease-out) forwards; }
+.slide-in-up--delay-1 { animation-delay: 0.1s; }
+.slide-in-up--delay-2 { animation-delay: 0.2s; }
+
+/* ===== Hero 遮罩（移植自官网 first-screen .screen-overlay）===== */
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, rgb(0 0 0 / 80%) 0%, rgb(0 0 0 / 20%) 60%, transparent 100%),
+    linear-gradient(to bottom, transparent 90%, var(--color-bg) 100%);
+}
+
+/* ===== 科幻按钮（shimmer 扫光）===== */
+.btn-sci-fi {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-bright));
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+}
+.btn-sci-fi::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-out);
+}
+.btn-sci-fi:hover {
+  box-shadow: 0 0 20px rgba(95, 184, 214, 0.3), 0 0 40px rgba(95, 184, 214, 0.15);
+  transform: translateY(-2px);
+}
+.btn-sci-fi:hover::before {
+  opacity: 1;
+  animation: shimmer 2s linear infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===== 移动端静态星空（canvas 的静态替代，避免移动端加载大图/动画）===== */
+.star-field-static {
+  position: absolute;
+  inset: 0;
+  opacity: 0.6;
+  background-image:
+    radial-gradient(1px 1px at 10% 8%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 25% 15%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 40% 22%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 55% 8%, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 70% 18%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 85% 10%, rgba(95,184,214,0.5), transparent),
+    radial-gradient(1px 1px at 15% 32%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 30% 42%, rgba(95,184,214,0.6), transparent),
+    radial-gradient(1px 1px at 50% 38%, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 65% 32%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 80% 45%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1.5px 1.5px at 90% 28%, rgba(95,184,214,0.7), transparent),
+    radial-gradient(1px 1px at 5% 52%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 20% 62%, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 38% 55%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 52% 68%, rgba(95,184,214,0.4), transparent),
+    radial-gradient(1px 1px at 68% 58%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 82% 65%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 12% 78%, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 35% 82%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 58% 75%, rgba(95,184,214,0.3), transparent),
+    radial-gradient(1px 1px at 72% 88%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 88% 80%, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 8% 92%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 45% 90%, rgba(255,255,255,0.5), transparent);
+  background-size: 300px 300px;
 }
