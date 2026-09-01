@@ -8,7 +8,7 @@
 #   admin   HR 管理后台前端（nginx 托管 + 反代 /api/*，仅内网访问）
 #
 # 快速开始（首次构建需要网络拉取基础镜像与依赖，见 deploy/README.md）：
-#   cp .env.example .env        # 修改数据库密码与 JWT 密钥
+#   cp .env.example .env        # 必填：MYSQL_ROOT_PASSWORD 与 JWT_*_SECRET，缺失拒绝启动
 #   docker compose up -d --build
 #
 # 访问地址：
@@ -26,7 +26,7 @@ services:
       - --collation-server=utf8mb4_unicode_ci
       - --default-time-zone=+08:00
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-atmoto@ChangeMe2026}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?必填：请在.env中配置数据库root密码}
       MYSQL_DATABASE: atmoto_recruit
       MYSQL_INITDB_SKIP_TZINFO: "1"
       TZ: Asia/Shanghai
@@ -61,16 +61,16 @@ services:
       SERVER_ADDRESS: 0.0.0.0
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/atmoto_recruit?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-atmoto@ChangeMe2026}
-      # 生产环境必须覆盖开发默认 JWT 密钥（application.yml 中注释明确要求）
-      JWT_ADMIN_SECRET: ${JWT_ADMIN_SECRET:-CHANGE_ME_admin_jwt_secret}
-      JWT_PORTAL_SECRET: ${JWT_PORTAL_SECRET:-CHANGE_ME_portal_jwt_secret}
-      FILE_UPLOAD_ROOT: /data
-      LIBREOFFICE_PATH: /usr/bin/soffice
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?必填：请在.env中配置数据库root密码}
+      # 生产环境必须覆盖开发默认 JWT 密钥（缺失拒绝启动，fail-closed）
+      JWT_ADMIN_SECRET: ${JWT_ADMIN_SECRET:?必填：请在.env中配置JWT_ADMIN_SECRET}
+      JWT_PORTAL_SECRET: ${JWT_PORTAL_SECRET:?必填：请在.env中配置JWT_PORTAL_SECRET}
+      FILE_UPLOAD_ROOT: ${FILE_UPLOAD_ROOT:-/data}
+      LIBREOFFICE_PATH: ${LIBREOFFICE_PATH:-/usr/bin/soffice}
       TZ: Asia/Shanghai
     volumes:
       # 简历/头像/文档转换产物持久化（bind mount，便于人工备份）
-      - ./deploy/data:/data
+      - ./deploy/data:${FILE_UPLOAD_ROOT:-/data}
     depends_on:
       mysql:
         condition: service_healthy

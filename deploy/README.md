@@ -80,10 +80,12 @@ deploy/
 - `SERVER_ADDRESS=0.0.0.0`：生产 yml 默认 `127.0.0.1`（直连安全基线），
   容器内必须监听所有网卡供 nginx 反代。**env 优先级高于 yml**，因此覆盖生效。
 - `SPRING_DATASOURCE_*`：指向 compose 网络内的 `mysql` 服务。
-- `JWT_ADMIN_SECRET / JWT_PORTAL_SECRET`：覆盖 `application.yml` 中的
-  开发默认密钥（原文件注释已要求生产覆盖，本次在 Docker 侧补齐）。
-- `FILE_UPLOAD_ROOT=/data`：上传根目录，bind mount 到 `deploy/data`。
-- `LIBREOFFICE_PATH=/usr/bin/soffice`：Word→PDF 简历预览。
+- `JWT_ADMIN_SECRET / JWT_PORTAL_SECRET`：**必须**从 `.env` 注入（compose 用 `${VAR:?}`
+  强制提供，缺失拒绝启动）；后端 `application-prod.yml` 读取该环境变量并强制覆盖
+  `application.yml` 的开发默认密钥，未注入即启动失败（fail-closed），绝无公开默认值。
+- `FILE_UPLOAD_ROOT=/data`：上传根目录（简历/头像/文档转换产物），bind mount 到 `deploy/data`。
+  生产强制注入：compose 已配置，裸机 prod 需在系统环境变量设置，未注入即拒绝启动。
+- `LIBREOFFICE_PATH=/usr/bin/soffice`：Word→PDF 简历预览（可选，后台 BrandConfig 可覆盖）。
 
 ### 5.2 数据库初始化与增量迁移
 

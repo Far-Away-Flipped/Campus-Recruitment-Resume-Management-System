@@ -4,3 +4,25 @@ server:
   # 显式声明而非依赖 application.yml 主配置默认值，避免未来主配置变更时生产环境失守。
   # 详见《HR 后台「网络管理」模块设计方案 V1.0》第 2.2/2.3 节
   address: 127.0.0.1
+
+# ────────── JWT 密钥（生产强制覆盖，未注入即拒绝启动） ──────────
+# 无默认值：未注入 JWT_ADMIN_SECRET / JWT_PORTAL_SECRET 时，Spring 占位符解析失败、
+# 启动即报错（fail-closed），绝不回落 application.yml 的开发弱密钥。
+# Docker 部署由 docker-compose 注入；裸机 java -jar 直连部署需在系统环境变量配置。
+jwt:
+  admin:
+    secret: ${JWT_ADMIN_SECRET}
+  portal:
+    secret: ${JWT_PORTAL_SECRET}
+
+# ────────── 文件存储（生产强制覆盖，未注入即拒绝启动） ──────────
+# 无默认值：裸机 prod 未注入 FILE_UPLOAD_ROOT 时启动即报错（fail-closed），
+# 绝不回落 application.yml 的 Windows 本地路径（服务器上不存在，会导致上传失败）。
+# Docker 部署由 docker-compose 注入 /data。
+file:
+  upload-root: ${FILE_UPLOAD_ROOT}
+
+# ────────── LibreOffice 文档转换（可选，给 Linux 默认） ──────────
+# 可选项：BrandConfig 可覆盖；给标准 Linux 路径而非强制（缺 env 不卡启动）。
+libreoffice:
+  path: ${LIBREOFFICE_PATH:/usr/bin/soffice}

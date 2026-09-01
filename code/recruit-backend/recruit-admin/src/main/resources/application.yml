@@ -23,25 +23,31 @@ spring:
       max-file-size: 10MB
       max-request-size: 11MB
 
-# ────────── JWT 密钥（生产环境必须在 application-prod.yml 中覆盖） ──────────
+# ────────── JWT 密钥 ──────────
+# dev 直接使用内置弱密钥即可运行；生产必须由环境变量 JWT_ADMIN_SECRET /
+# JWT_PORTAL_SECRET 注入（docker-compose 用 ${VAR:?} 强制提供，application-prod.yml
+# 无默认值，未注入即拒绝启动，绝不回落此处 dev 密钥）。
 jwt:
   admin:
-    secret: YXRtb3RvLXJlY3J1aXQtYWRtaW4tc2VjcmV0LWtleS0yMDI2
+    secret: ${JWT_ADMIN_SECRET:YXRtb3RvLXJlY3J1aXQtYWRtaW4tc2VjcmV0LWtleS0yMDI2}
     expiration: 30
   portal:
-    secret: YXRtb3RvLXJlY3J1aXQtcG9ydGFsLXNlY3JldC1rZXktMjAyNg==
+    secret: ${JWT_PORTAL_SECRET:YXRtb3RvLXJlY3J1aXQtcG9ydGFsLXNlY3JldC1rZXktMjAyNg==}
     access-expiration: 120
     refresh-expiration: 10080
 
 # ────────── 文件存储 ──────────
+# dev 默认本机 Windows 路径即可运行；生产必须由 FILE_UPLOAD_ROOT 注入
+# （docker-compose 已注入 /data；裸机 prod 需在系统环境变量配置，见 application-prod.yml）。
 file:
-  upload-root: E:/atmoto-recruit/data
+  upload-root: ${FILE_UPLOAD_ROOT:E:/atmoto-recruit/data}
   max-file-size: 10485760
   allowed-extensions: pdf,doc,docx
 
 # ────────── LibreOffice 文档转换 ──────────
+# 可选项：BrandConfig 可覆盖；生产默认 Linux 标准路径（见 application-prod.yml）。
 libreoffice:
-  path: D:/Program Files/LibreOffice/program/soffice.exe
+  path: ${LIBREOFFICE_PATH:D:/Program Files/LibreOffice/program/soffice.exe}
 
 # ────────── Actuator（安全：仅暴露 health，避免信息泄露） ──────────
 management:
