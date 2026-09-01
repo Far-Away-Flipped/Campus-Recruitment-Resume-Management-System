@@ -13,9 +13,17 @@
           </el-select>
         </el-form-item>
         <el-form-item label="部门">
-          <el-select v-model="query.deptId" placeholder="全部" clearable style="width: 160px;">
-            <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.deptName" :value="d.deptId" />
-          </el-select>
+          <el-tree-select
+            v-model="query.deptId"
+            :data="deptOptions"
+            node-key="deptId"
+            :props="{ label: 'deptName', value: 'deptId', children: 'children' }"
+            placeholder="全部"
+            check-strictly
+            filterable
+            clearable
+            style="width: 160px;"
+          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">
@@ -123,9 +131,16 @@
           <el-input v-model="form.nickName" placeholder="请输入昵称" maxlength="30" />
         </el-form-item>
         <el-form-item label="部门" prop="deptId">
-          <el-select v-model="form.deptId" placeholder="请选择部门" style="width: 100%;">
-            <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.deptName" :value="d.deptId" />
-          </el-select>
+          <el-tree-select
+            v-model="form.deptId"
+            :data="deptOptions"
+            node-key="deptId"
+            :props="{ label: 'deptName', value: 'deptId', children: 'children' }"
+            placeholder="请选择部门"
+            check-strictly
+            filterable
+            style="width: 100%;"
+          />
         </el-form-item>
         <el-form-item label="手机号" prop="phonenumber">
           <el-input v-model="form.phonenumber" placeholder="请输入手机号" maxlength="11" />
@@ -167,6 +182,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import systemRequest from '@/utils/systemRequest';
+import request from '@/utils/request';
 
 const loading = ref(false);
 const list = ref([]);
@@ -237,21 +253,11 @@ async function fetchList() {
   }
 }
 
-// 获取部门列表
+// 获取部门列表（树结构，供 el-tree-select）
 async function fetchDeptOptions() {
   try {
-    const res = await systemRequest.get('/dept/list');
-    const raw = res.data || [];
-    // 展平树形结构
-    function flatten(nodes) {
-      const result = [];
-      for (const n of nodes || []) {
-        result.push(n);
-        if (n.children) result.push(...flatten(n.children));
-      }
-      return result;
-    }
-    deptOptions.value = flatten(raw);
+    const res = await request.get('/depts/tree');
+    deptOptions.value = res.data || [];
   } catch { /* ignore */ }
 }
 

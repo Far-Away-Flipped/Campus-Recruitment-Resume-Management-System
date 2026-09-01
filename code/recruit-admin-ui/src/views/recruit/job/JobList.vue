@@ -14,9 +14,17 @@
           </el-select>
         </el-form-item>
         <el-form-item label="部门">
-          <el-select v-model="query.deptId" placeholder="全部" clearable style="width: 160px;">
-            <el-option v-for="d in deptList" :key="d.deptId" :label="d.deptName" :value="d.deptId" />
-          </el-select>
+          <el-tree-select
+            v-model="query.deptId"
+            :data="deptList"
+            node-key="deptId"
+            :props="{ label: 'deptName', value: 'deptId', children: 'children' }"
+            placeholder="全部"
+            check-strictly
+            filterable
+            clearable
+            style="width: 160px;"
+          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">
@@ -151,16 +159,8 @@ async function fetchList() {
 async function fetchDeptList() {
   try {
     const res = await request.get('/depts/tree');
-    // dept tree 可能嵌套，展平为一级列表
-    function flatten(nodes) {
-      const result = [];
-      for (const n of nodes || []) {
-        result.push(n);
-        if (n.children) result.push(...flatten(n.children));
-      }
-      return result;
-    }
-    deptList.value = flatten(res.data || []);
+    // 保留树结构（el-tree-select 需要嵌套 children）
+    deptList.value = res.data || [];
   } catch {
     // ignore
   }

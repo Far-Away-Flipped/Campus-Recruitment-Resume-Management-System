@@ -45,12 +45,12 @@
                 @click="selectDept('')"
               >全部部门</div>
               <div
-                v-for="dept in filterOptions.depts"
+                v-for="dept in flattenedDepts"
                 :key="dept.deptId"
                 class="filter-bar__select-option"
-                :class="{ 'is-active': filters.deptId === dept.deptId }"
+                :class="{ 'filter-bar__select-option--child': dept.level > 0, 'is-active': filters.deptId === dept.deptId }"
                 @click="selectDept(dept.deptId)"
-              >{{ dept.deptName }}</div>
+              ><span v-for="i in dept.level" :key="i">&emsp;</span>{{ dept.deptName }}</div>
             </div>
           </div>
 
@@ -199,7 +199,9 @@
                 <label class="filter-sheet__label">部门</label>
                 <select v-model="filters.deptId" class="filter-sheet__select">
                   <option value="">全部部门</option>
-                  <option v-for="dept in filterOptions.depts" :key="dept.deptId" :value="dept.deptId">{{ dept.deptName }}</option>
+                  <option v-for="dept in flattenedDepts" :key="dept.deptId" :value="dept.deptId">
+                    {{ '　'.repeat(dept.level) }}{{ dept.deptName }}
+                  </option>
                 </select>
               </div>
               <!-- 岗位类别 -->
@@ -414,10 +416,32 @@ function selectDegree(deg) {
 }
 
 // ---- 计算属性 ----
+// 部门树展平为带缩进级别的列表（支持任意层级），供下拉渲染
+const flattenedDepts = computed(() => {
+  const result = [];
+  const walk = (nodes, level) => {
+    for (const n of nodes || []) {
+      result.push({ ...n, level });
+      if (n.children && n.children.length) walk(n.children, level + 1);
+    }
+  };
+  walk(filterOptions.value.depts, 0);
+  return result;
+});
+
 const selectedDeptLabel = computed(() => {
   if (!filters.deptId) return '';
-  const d = filterOptions.value.depts.find(item => item.deptId === filters.deptId);
-  return d ? d.deptName : '';
+  const find = (nodes) => {
+    for (const n of nodes || []) {
+      if (n.deptId === filters.deptId) return n.deptName;
+      if (n.children && n.children.length) {
+        const r = find(n.children);
+        if (r) return r;
+      }
+    }
+    return '';
+  };
+  return find(filterOptions.value.depts);
 });
 
 const selectedCategoryLabel = computed(() => {

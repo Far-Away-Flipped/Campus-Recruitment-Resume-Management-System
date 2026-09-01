@@ -8,6 +8,8 @@ import com.atmoto.recruit.biz.common.util.JobStatusResolver;
 import com.atmoto.recruit.common.core.page.PageQuery;
 import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
+import com.atmoto.recruit.system.mapper.SysDeptMapper;
+import com.atmoto.recruit.system.util.DeptTreeUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,6 +35,7 @@ import java.util.Map;
 public class JobPositionServiceImpl implements JobPositionService {
 
     private final JobPositionMapper jobPositionMapper;
+    private final SysDeptMapper deptMapper;
 
     /** 前端排序字段名 → MyBatis-Plus Lambda 列引用映射（deptName 非持久字段，使用 deptId 排序） */
     private static final Map<String, SFunction<JobPosition, ?>> SORT_COLUMN_MAP = new HashMap<>();
@@ -60,9 +64,12 @@ public class JobPositionServiceImpl implements JobPositionService {
         if (jobPosition.getStatus() != null && !jobPosition.getStatus().isEmpty()) {
             wrapper.eq(JobPosition::getStatus, jobPosition.getStatus());
         }
-        // 按部门筛选
+        // 按部门筛选：选择父部门时，需包含其全部子部门的岗位
         if (jobPosition.getDeptId() != null) {
-            wrapper.eq(JobPosition::getDeptId, jobPosition.getDeptId());
+            List<Long> deptIds = DeptTreeUtil.collectDeptAndDescendants(jobPosition.getDeptId(), deptMapper, false);
+            if (!deptIds.isEmpty()) {
+                wrapper.in(JobPosition::getDeptId, deptIds);
+            }
         }
         // 按岗位类别筛选
         if (jobPosition.getCategoryId() != null) {

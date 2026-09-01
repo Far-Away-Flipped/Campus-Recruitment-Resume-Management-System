@@ -55,14 +55,17 @@
           <el-input v-model="form.title" placeholder="请输入岗位名称" maxlength="50" />
         </el-form-item>
         <el-form-item label="所属部门">
-          <el-select v-model="form.deptId" placeholder="请选择部门" clearable style="width: 100%;">
-            <el-option
-              v-for="dept in deptList"
-              :key="dept.deptId"
-              :label="dept.deptName"
-              :value="dept.deptId"
-            />
-          </el-select>
+          <el-tree-select
+            v-model="form.deptId"
+            :data="deptList"
+            node-key="deptId"
+            :props="{ label: 'deptName', value: 'deptId', children: 'children' }"
+            placeholder="请选择部门"
+            check-strictly
+            filterable
+            clearable
+            style="width: 100%;"
+          />
         </el-form-item>
         <el-form-item label="岗位类别">
           <el-select v-model="form.categoryId" placeholder="请选择类别" clearable style="width: 100%;">
@@ -134,7 +137,6 @@ import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import request from '@/utils/request';
-import systemRequest from '@/utils/systemRequest';
 import { parseLoc, parseTags, formatLoc, formatDegree } from '@/utils/location';
 
 const router = useRouter();
@@ -188,7 +190,7 @@ async function fetchList() {
 
 async function fetchDeptList() {
   try {
-    const res = await systemRequest.get('/dept/list');
+    const res = await request.get('/depts/tree');
     deptList.value = res.data || [];
   } catch {
     // ignore

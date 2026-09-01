@@ -18,6 +18,7 @@ import com.atmoto.recruit.system.domain.SysDept;
 import com.atmoto.recruit.system.domain.SysDictData;
 import com.atmoto.recruit.system.mapper.SysDeptMapper;
 import com.atmoto.recruit.system.service.ISysDictDataService;
+import com.atmoto.recruit.system.util.DeptTreeUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -66,9 +67,14 @@ public class PortalJobServiceImpl implements PortalJobService {
         wrapper.eq("status", JobStatus.PUBLISHED.getCode());
         wrapper.apply("deadline > NOW()");
 
-        // 按部门筛选
+        // 按部门筛选：选择父部门时，需包含其全部子部门的岗位
         if (jobPosition.getDeptId() != null) {
-            wrapper.eq("department_id", jobPosition.getDeptId());
+            List<Long> deptIds = DeptTreeUtil.collectDeptAndDescendants(jobPosition.getDeptId(), sysDeptMapper, true);
+            if (deptIds.isEmpty()) {
+                // 部门不存在或已停用 → 查不到任何岗位
+                return page;
+            }
+            wrapper.in("department_id", deptIds);
         }
         // 按岗位类别筛选：选择父类别时，需包含其全部子类别的岗位
         if (jobPosition.getCategoryId() != null) {
@@ -218,20 +224,14 @@ public class PortalJobServiceImpl implements PortalJobService {
     public Map<String, Object> getFilterOptions() {
         Map<String, Object> options = new LinkedHashMap<>();
 
-        // 1. 部门列表（启用的部门）
+        // 1. 部门列表（启用的部门，构建树形结构供前端缩进树展示）
         List<SysDept> deptList = sysDeptMapper.selectList(
                 new LambdaQueryWrapper<SysDept>()
                         .eq(SysDept::getStatus, "0")
-                        .orderByAsc(SysDept::getOrderNum)
+                        .orderByAsc(SysDept::getParentId, SysDept::getOrderNum)
         );
-        // 前端只需 id 和 name，做精简
-        List<Map<String, Object>> deptSimple = deptList.stream().map(d -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("deptId", d.getDeptId());
-            m.put("deptName", d.getDeptName());
-            return m;
-        }).collect(Collectors.toList());
-        options.put("departments", deptSimple);
+        List<Map<String, Object>> deptTree = buildDeptTree(deptList);
+        options.put("departments", deptTree);
 
         // 2. 岗位类别树（启用的类别，构建嵌套树形结构）
         List<JobCategory> categoryList = jobCategoryMapper.selectList(
@@ -284,6 +284,48 @@ public class PortalJobServiceImpl implements PortalJobService {
             parent.setChildren(children);
             for (JobCategory child : children) {
                 attachChildrenPortal(child, parentMap);
+            }
+        }
+    }
+
+    /**
+     * 构建部门树（Map 结构：deptId/deptName/parentId/children）
+     * <p>供学生端部门筛选缩进树渲染使用。SysDept 无 children 字段，用 Map 表达层级。</p>
+     */
+    private List<Map<String, Object>> buildDeptTree(List<SysDept> deptList) {
+        // 先转成 Map 节点
+        List<Map<String, Object>> nodes = deptList.stream().map(d -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("deptId", d.getDeptId());
+            m.put("deptName", d.getDeptName());
+            m.put("parentId", d.getParentId() != null ? d.getParentId() : 0L);
+            m.put("children", new ArrayList<Map<String, Object>>());
+            return m;
+        }).collect(Collectors.toList());
+
+        // 构建 parentId → 子节点 映射
+        Map<Long, List<Map<String, Object>>> parentMap = new LinkedHashMap<>();
+        for (Map<String, Object> node : nodes) {
+            Long parentId = (Long) node.get("parentId");
+            parentMap.computeIfAbsent(parentId, k -> new ArrayList<>()).add(node);
+        }
+        // 顶级节点（parentId=0）
+        List<Map<String, Object>> roots = parentMap.getOrDefault(0L, Collections.emptyList());
+        for (Map<String, Object> root : roots) {
+            attachDeptChildrenPortal(root, parentMap);
+        }
+        return roots;
+    }
+
+    /** 递归挂载子节点到父部门 */
+    @SuppressWarnings("unchecked")
+    private void attachDeptChildrenPortal(Map<String, Object> parent, Map<Long, List<Map<String, Object>>> parentMap) {
+        Long deptId = (Long) parent.get("deptId");
+        List<Map<String, Object>> children = parentMap.getOrDefault(deptId, Collections.emptyList());
+        if (!children.isEmpty()) {
+            parent.put("children", children);
+            for (Map<String, Object> child : children) {
+                attachDeptChildrenPortal(child, parentMap);
             }
         }
     }

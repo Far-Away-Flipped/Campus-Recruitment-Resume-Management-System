@@ -2,9 +2,11 @@ package com.atmoto.recruit.system.service.impl;
 
 import com.atmoto.recruit.common.core.page.PageQuery;
 import com.atmoto.recruit.system.domain.SysUser;
+import com.atmoto.recruit.system.mapper.SysDeptMapper;
 import com.atmoto.recruit.system.mapper.SysRoleMapper;
 import com.atmoto.recruit.system.mapper.SysUserMapper;
 import com.atmoto.recruit.system.service.ISysUserService;
+import com.atmoto.recruit.system.util.DeptTreeUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -28,6 +30,7 @@ public class SysUserServiceImpl implements ISysUserService {
 
     private final SysUserMapper userMapper;
     private final SysRoleMapper roleMapper;
+    private final SysDeptMapper deptMapper;
 
     @Override
     public SysUser selectUserById(Long userId) {
@@ -58,9 +61,12 @@ public class SysUserServiceImpl implements ISysUserService {
         if (user.getStatus() != null && !user.getStatus().isEmpty()) {
             wrapper.eq(SysUser::getStatus, user.getStatus());
         }
-        // 按部门ID精确查询
+        // 按部门ID筛选：选择父部门时，需包含其全部子部门的用户
         if (user.getDeptId() != null) {
-            wrapper.eq(SysUser::getDeptId, user.getDeptId());
+            List<Long> deptIds = DeptTreeUtil.collectDeptAndDescendants(user.getDeptId(), deptMapper, false);
+            if (!deptIds.isEmpty()) {
+                wrapper.in(SysUser::getDeptId, deptIds);
+            }
         }
         wrapper.orderByAsc(SysUser::getUserId);
         return userMapper.selectList(wrapper);
@@ -83,9 +89,12 @@ public class SysUserServiceImpl implements ISysUserService {
         if (user.getStatus() != null && !user.getStatus().isEmpty()) {
             wrapper.eq(SysUser::getStatus, user.getStatus());
         }
-        // 按部门ID精确查询
+        // 按部门ID筛选：选择父部门时，需包含其全部子部门的用户
         if (user.getDeptId() != null) {
-            wrapper.eq(SysUser::getDeptId, user.getDeptId());
+            List<Long> deptIds = DeptTreeUtil.collectDeptAndDescendants(user.getDeptId(), deptMapper, false);
+            if (!deptIds.isEmpty()) {
+                wrapper.in(SysUser::getDeptId, deptIds);
+            }
         }
         wrapper.orderByAsc(SysUser::getUserId);
         return userMapper.selectPage(page, wrapper);
