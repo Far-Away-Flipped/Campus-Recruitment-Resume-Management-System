@@ -139,16 +139,16 @@ public class CommonFileController {
     private String getContentType(String ext) {
         if (ext == null) return "application/octet-stream";
         switch (ext.toLowerCase()) {
-            case "pdf":
+            case ".pdf":
                 return "application/pdf";
-            case "doc":
+            case ".doc":
                 return "application/msword";
-            case "docx":
+            case ".docx":
                 return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-            case "jpg":
-            case "jpeg":
+            case ".jpg":
+            case ".jpeg":
                 return "image/jpeg";
-            case "png":
+            case ".png":
                 return "image/png";
             default:
                 return "application/octet-stream";

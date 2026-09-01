@@ -230,11 +230,13 @@ async function handleLogin() {
     const redirect = route.query.redirect || '/';
     router.push(redirect);
   } catch (e) {
-    const code = e.response?.data?.code;
-    if (code === 20002) {
-      error.value = '手机号或密码错误';
+    // 业务错误（拦截器已 toast）：这里仅保留登录失败后的内联错误提示
+    const data = e.response?.data;
+    const msg = data?.msg;
+    if (data?.code === 20005) {
+      error.value = '账号已被锁定，请15分钟后再试';
     } else {
-      error.value = e.response?.data?.msg || '登录失败，请稍后重试';
+      error.value = msg || '登录失败，请稍后重试';
     }
   } finally {
     loading.value = false;
@@ -330,7 +332,8 @@ async function sendResetSmsCode() {
   } catch (e) {
     const msg = e.response?.data?.msg || '发送验证码失败，请重试';
     error.value = msg;
-    if (e.response?.data?.code === 20003) {
+    // 图形验证码错误时自动刷新
+    if (e.response?.data?.code === 20004) {
       refreshCaptcha();
     }
   } finally {

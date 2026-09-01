@@ -248,11 +248,6 @@ async function fetchPreview() {
     const jobRes = await api.get(`/jobs/${jobId}`);
     if (jobRes.code === 200 && jobRes.data) {
       job.value = jobRes.data;
-    } else {
-      // API 返回了错误码，将后端消息展示给用户，避免静默空状态
-      errorMsg.value = jobRes.msg || '获取岗位信息失败';
-      loading.value = false;
-      return;
     }
   } catch (e) {
     errorMsg.value = e.response?.data?.msg || '获取岗位信息失败，请检查网络连接';
@@ -314,11 +309,11 @@ async function handleApply() {
   } catch (e) {
     const data = e.response?.data;
     const code = data?.code;
-    if (code === 20002 || data?.message?.includes('已投递')) {
+    if (code === 50001 || data?.message?.includes('已投递')) {
       errorMsg.value = '您已投递过该岗位，不能重复投递。';
-    } else if (code === 20003 || data?.message?.includes('截止')) {
+    } else if (code === 40003 || code === 50002 || data?.message?.includes('截止')) {
       errorMsg.value = '该岗位已截止投递。';
-    } else if (code === 20004 || data?.message?.includes('资料不完整') || data?.message?.includes('完善')) {
+    } else if (code === 30002 || code === 30003 || code === 30004 || data?.message?.includes('资料不完整') || data?.message?.includes('完善')) {
       errorMsg.value = '您的个人资料不完整，请前往个人中心完善后再投递。';
     } else {
       errorMsg.value = data?.message || '投递失败，请稍后重试';

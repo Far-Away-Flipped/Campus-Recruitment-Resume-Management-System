@@ -384,6 +384,7 @@ CREATE TABLE `not_message` (
     `recipient_id`   BIGINT       NOT NULL COMMENT '接收人ID',
     `recipient_type` VARCHAR(16)  NOT NULL COMMENT '接收人类型：STUDENT/HR',
     `message_type`   VARCHAR(32)  NOT NULL COMMENT '消息类型',
+    `dedup_key`      VARCHAR(128) DEFAULT NULL COMMENT '幂等键：APPLICATION_STATUS_CHANGED:{historyId}，唯一防重',
     `title`          VARCHAR(256) NOT NULL COMMENT '消息标题',
     `content`        TEXT         NOT NULL COMMENT '消息正文',
     `ref_id`         BIGINT       DEFAULT NULL COMMENT '关联业务ID',
@@ -391,6 +392,7 @@ CREATE TABLE `not_message` (
     `read_time`      DATETIME     DEFAULT NULL COMMENT '阅读时间',
     `create_time`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发送时间',
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_dedup_key` (`dedup_key`),
     KEY `idx_recipient_read` (`recipient_id`, `recipient_type`, `is_read`),
     KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='站内消息表 S-015（P1预留，一期不实现业务逻辑）';
@@ -761,7 +763,7 @@ ALTER TABLE job_position MODIFY COLUMN category_id BIGINT NOT NULL DEFAULT 0;
 -- ============================================
 CREATE TABLE IF NOT EXISTS `app_snapshot` (
     `snapshot_id`             BIGINT       NOT NULL AUTO_INCREMENT COMMENT '快照ID',
-    `application_id`          BIGINT       NOT NULL COMMENT '关联投递记录ID',
+    `application_id`          BIGINT       DEFAULT NULL COMMENT '关联投递记录ID（投递事务中先插快照拿snapshot_id，再回填此列，故须可空）',
     `student_id`              BIGINT       NOT NULL COMMENT '学生ID',
     `version_no`              INT          NOT NULL DEFAULT 1 COMMENT '快照版本号',
     `snapshot_time`           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '快照生成时间',

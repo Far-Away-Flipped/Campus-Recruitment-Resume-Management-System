@@ -215,8 +215,8 @@ async function sendSmsCode() {
   } catch (e) {
     const msg = e.response?.data?.msg || '发送验证码失败，请重试';
     error.value = msg;
-    // 验证码错误时自动刷新
-    if (e.response?.data?.code === 20003) {
+    // 图形验证码错误时自动刷新
+    if (e.response?.data?.code === 20004) {
       refreshCaptcha();
     }
   } finally {
@@ -290,13 +290,11 @@ async function handleRegister() {
     if (res.code === 200 && res.data) {
       auth.setTokens(res.data.accessToken, res.data.refreshToken);
       router.push('/');
-    } else {
-      error.value = res.msg || '注册失败，请稍后重试';
     }
   } catch (e) {
     const code = e.response?.data?.code;
     const msg = e.response?.data?.msg;
-    if (code === 20004) {
+    if (code === 30001) {
       error.value = '手机号已注册，请直接登录';
     } else {
       error.value = msg || '注册失败，请稍后重试';

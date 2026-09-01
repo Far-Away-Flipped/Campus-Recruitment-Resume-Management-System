@@ -533,11 +533,9 @@ async function fetchJobs() {
     if (res.code === 200) {
       jobs.value = res.data?.rows || [];
       total.value = res.data?.total || 0;
-    } else {
-      jobs.value = [];
-      total.value = 0;
     }
   } catch {
+    // 业务/网络错误已由 axios 拦截器统一 toast，这里仅清空列表
     jobs.value = [];
     total.value = 0;
   } finally {
@@ -557,7 +555,7 @@ async function fetchFilterOptions() {
       };
     }
   } catch {
-    // 筛选选项加载失败不影响主列表
+    // 筛选选项加载失败不影响主列表（拦截器已 toast）
   }
 }
 

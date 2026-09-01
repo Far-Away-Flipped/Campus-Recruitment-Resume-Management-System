@@ -87,7 +87,7 @@ async function loadMessages() {
       total.value = res.data.total || 0;
     }
   } catch (e) {
-    error.value = '加载消息失败';
+    error.value = e.response?.data?.msg || '加载消息失败';
   } finally {
     loading.value = false;
   }

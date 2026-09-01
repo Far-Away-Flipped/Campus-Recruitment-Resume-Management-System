@@ -264,10 +264,9 @@ async function fetchJobDetail() {
       if (res.data?.deadline) {
         countdownTimer = setInterval(updateCountdown, 60000); // 每分钟更新
       }
-    } else {
-      job.value = null;
     }
   } catch {
+    // 岗位不存在/接口错误：拦截器已 toast，这里降级为 404 空态
     job.value = null;
   } finally {
     loading.value = false;

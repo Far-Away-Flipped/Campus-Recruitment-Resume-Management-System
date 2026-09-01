@@ -81,11 +81,31 @@
       <template #header><span class="card-title">简历附件</span></template>
       <div class="file-list">
         <div v-for="f in detail.resumeFiles" :key="f.id" class="file-item">
-          <span class="file-name">{{ f.originalName }}</span>
-          <span class="file-meta">上传于 {{ f.uploadTime }} · {{ formatFileSize(f.fileSize) }}</span>
+          <div class="file-info">
+            <span class="file-name">{{ f.originalName }}</span>
+            <span class="file-meta">上传于 {{ f.uploadTime }} · {{ formatFileSize(f.fileSize) }}</span>
+          </div>
+          <div class="file-actions">
+            <el-button type="primary" size="small" link @click="previewResumeFile(f)">预览</el-button>
+            <el-button type="success" size="small" link @click="downloadResumeFile(f)">下载</el-button>
+          </div>
         </div>
       </div>
     </el-card>
+
+    <!-- 简历附件预览弹窗 -->
+    <el-dialog
+      v-model="previewDialogVisible"
+      :title="previewingFile?.originalName || '简历预览'"
+      width="70%"
+      top="5vh"
+      destroy-on-close
+    >
+      <div v-loading="previewLoading" class="preview-dialog-body">
+        <iframe v-if="previewUrl" :src="previewUrl" class="preview-iframe" frameborder="0" />
+        <el-empty v-else-if="!previewLoading" description="暂不支持预览此文件类型" :image-size="60" />
+      </div>
+    </el-dialog>
 
     <!-- 投递历史 -->
     <el-card shadow="never" class="info-card">
@@ -116,10 +136,17 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import request from '@/utils/request';
+import axios from 'axios';
 
 const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
+
+/** 简历附件预览状态 */
+const previewDialogVisible = ref(false);
+const previewLoading = ref(false);
+const previewUrl = ref('');
+const previewingFile = ref(null);
 
 const detail = reactive({
   studentId: null, phone: '', realName: '', email: '', gender: '',
@@ -148,6 +175,65 @@ function statusTagType(s) { return statusTagMap[s] || ''; }
 /** 跳转简历详情 */
 function goResumeDetail(row) {
   router.push({ name: 'resume-detail', params: { id: row.applicationId } });
+}
+
+/**
+ * 获取简历附件的一次性预览ticket
+ * 复用后端 /api/admin/students/{id}/resume-files/{fileId}/ticket
+ */
+async function getPreviewTicket(file) {
+  const res = await request.post(`/students/${route.params.id}/resume-files/${file.id}/ticket`);
+  return res.data?.ticket;
+}
+
+/** 预览简历附件（iframe 内嵌展示 PDF/DOC） */
+async function previewResumeFile(file) {
+  previewingFile.value = file;
+  previewDialogVisible.value = true;
+  previewLoading.value = true;
+  previewUrl.value = '';
+  try {
+    const ticket = await getPreviewTicket(file);
+    if (!ticket) throw new Error('未获取到预览凭证');
+    // 用 axios 带 auth 拿 blob，转 blob URL 供 iframe 预览（避免 ticket 经 URL 泄露/二次消费）
+    const token = localStorage.getItem('admin_token');
+    const response = await axios.get('/api/common/file/preview', {
+      params: { ticket },
+      responseType: 'blob',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    previewUrl.value = URL.createObjectURL(response.data);
+  } catch (e) {
+    ElMessage.error(e.response?.data?.msg || '预览失败，请稍后重试');
+    previewDialogVisible.value = false;
+  } finally {
+    previewLoading.value = false;
+  }
+}
+
+/** 下载简历附件（blob 触发浏览器下载，保留原始文件名） */
+async function downloadResumeFile(file) {
+  try {
+    const ticket = await getPreviewTicket(file);
+    if (!ticket) throw new Error('未获取到下载凭证');
+    const token = localStorage.getItem('admin_token');
+    const response = await axios.get('/api/common/file/preview', {
+      params: { ticket },
+      responseType: 'blob',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const blobUrl = URL.createObjectURL(response.data);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = file.originalName || 'resume';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+    ElMessage.success('下载成功');
+  } catch (e) {
+    ElMessage.error(e.response?.data?.msg || '下载失败，请稍后重试');
+  }
 }
 
 async function fetchDetail() {
@@ -193,11 +279,15 @@ onMounted(() => { fetchDetail(); });
 .card-title { font-weight: 600; font-size: 15px; color: #303133; }
 .file-list { display: flex; flex-direction: column; gap: 8px; }
 .file-item {
-  display: flex; justify-content: space-between; padding: 8px 12px;
-  background: #f5f7fa; border-radius: 6px; font-size: 13px;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; background: #f5f7fa; border-radius: 6px; font-size: 13px;
 }
-.file-name { color: #303133; font-weight: 500; }
+.file-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.file-name { color: #303133; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-meta { color: #909399; font-size: 12px; }
+.file-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .job-link { color: #409eff; cursor: pointer; }
 .job-link:hover { text-decoration: underline; }
+.preview-dialog-body { min-height: 50vh; }
+.preview-iframe { width: 100%; height: 65vh; border: none; }
 </style>

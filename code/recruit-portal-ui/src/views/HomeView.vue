@@ -173,12 +173,12 @@ onMounted(async () => {
   try {
     const res = await api.get('/brand/banners')
     if (res.code === 200) banners.value = (res.data || []).slice(0, 3)
-  } catch (_) { /* 公告非关键数据，静默失败 */ }
+  } catch (_) { /* 公告非关键数据，静默失败（拦截器已 toast，页面底部展示非阻塞） */ }
 
   try {
     const res = await api.get('/jobs/list', { params: { pageNum: 1, pageSize: 6 } })
     if (res.code === 200) featuredJobs.value = res.data?.rows || []
-  } catch (_) { /* 岗位非关键数据，静默失败 */ }
+  } catch (_) { /* 岗位非关键数据，静默失败（拦截器已 toast，页面底部展示非阻塞） */ }
 })
 </script>
 

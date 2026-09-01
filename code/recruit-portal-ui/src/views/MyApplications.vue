@@ -215,16 +215,15 @@ async function fetchApplications() {
     const res = await api.get('/applications/my', {
       params: { pageNum: pageNum.value, pageSize: pageSize.value },
     });
-    if (res.code === 200 && res.data) {
-      applications.value = res.data.rows || [];
-      total.value = res.data.total || 0;
-    } else {
-      applications.value = [];
-      total.value = 0;
+    if (res.code === 200) {
+      applications.value = res.data?.rows || [];
+      total.value = res.data?.total || 0;
     }
   } catch (e) {
-    errorMsg.value = e.response?.data?.msg || '加载投递记录失败，请稍后重试';
+    // 业务/网络错误已由拦截器 toast，这里置空列表并展示内联兜底信息
     applications.value = [];
+    total.value = 0;
+    errorMsg.value = e.response?.data?.msg || '加载投递记录失败，请稍后重试';
   } finally {
     loading.value = false;
   }
@@ -245,8 +244,6 @@ async function openDetail(app) {
     const res = await api.get(`/applications/${app.applicationId}`);
     if (res.code === 200) {
       detail.value = res.data;
-    } else {
-      detailError.value = res.message || '加载详情失败';
     }
   } catch (e) {
     detailError.value = e.response?.data?.msg || '加载详情失败，请稍后重试';

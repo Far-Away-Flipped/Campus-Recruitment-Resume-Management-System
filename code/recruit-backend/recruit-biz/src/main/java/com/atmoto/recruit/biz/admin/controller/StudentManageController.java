@@ -2,8 +2,10 @@ package com.atmoto.recruit.biz.admin.controller;
 
 import com.atmoto.recruit.biz.admin.vo.*;
 import com.atmoto.recruit.biz.common.domain.AuditResumeAccess;
+import com.atmoto.recruit.biz.common.domain.ResumeFile;
 import com.atmoto.recruit.biz.common.domain.Student;
 import com.atmoto.recruit.biz.common.mapper.AuditResumeAccessMapper;
+import com.atmoto.recruit.biz.common.mapper.ResumeFileMapper;
 import com.atmoto.recruit.biz.common.mapper.StudentMapper;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.atmoto.recruit.common.core.domain.TableDataInfo;
@@ -12,14 +14,16 @@ import com.atmoto.recruit.framework.security.context.AdminUserHolder;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.benmanes.caffeine.cache.Cache;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * 学生用户管理 Controller
@@ -29,12 +33,25 @@ import java.util.Set;
  */
 @Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/admin/students")
 public class StudentManageController {
 
     private final StudentMapper studentMapper;
     private final AuditResumeAccessMapper auditResumeAccessMapper;
+
+    /** 一次性预览ticket缓存（与简历详情预览共用，60秒过期、用后即焚） */
+    private final Cache<String, Long> previewTicketCache;
+    private final ResumeFileMapper resumeFileMapper;
+
+    public StudentManageController(StudentMapper studentMapper,
+                                   AuditResumeAccessMapper auditResumeAccessMapper,
+                                   @Qualifier("previewTicketCache") Cache<String, Long> previewTicketCache,
+                                   ResumeFileMapper resumeFileMapper) {
+        this.studentMapper = studentMapper;
+        this.auditResumeAccessMapper = auditResumeAccessMapper;
+        this.previewTicketCache = previewTicketCache;
+        this.resumeFileMapper = resumeFileMapper;
+    }
 
     private static final Set<String> VALID_STATUSES = Set.of("ACTIVE", "DISABLED");
 
@@ -108,6 +125,45 @@ public class StudentManageController {
         auditStudentAccess(detail, request);
 
         return AjaxResult.success(detail);
+    }
+
+    /**
+     * 生成简历附件一次性预览ticket（学生维度）
+     * <p>
+     * 学生详情页的简历附件列表按学生聚合（stu_resume_file 无 application_id 关联），
+     * 复用简历详情的一次性ticket机制：前端拿到 ticket 后打开
+     * {@code /api/common/file/preview?ticket=xxx} 预览（该接口已在 SecurityConfig permitAll，
+     * ticket 即鉴权凭证，60秒过期、用后即焚）。
+     * </p>
+     * <p>鉴权：文件必须属于该学生，且学生必须存在。</p>
+     */
+    @PostMapping("/{id}/resume-files/{fileId}/ticket")
+    public AjaxResult generateResumeFileTicket(@PathVariable Long id,
+                                               @PathVariable Long fileId) {
+        // 1. 校验学生存在
+        StudentDetailVO student = studentMapper.selectStudentDetail(id);
+        if (student == null) {
+            return AjaxResult.error("学生账号不存在");
+        }
+
+        // 2. 校验附件存在且属于该学生
+        ResumeFile file = resumeFileMapper.selectById(fileId);
+        if (file == null) {
+            return AjaxResult.error("附件不存在");
+        }
+        if (!file.getStudentId().equals(id)) {
+            return AjaxResult.error("附件不属于该学生");
+        }
+
+        // 3. 生成一次性ticket（60秒过期）
+        // 磁盘存在性与路径校验交给 /api/common/file/preview（它使用 file.upload-root 配置定位文件）
+        String ticket = UUID.randomUUID().toString().replace("-", "");
+        previewTicketCache.put(ticket, fileId);
+        log.info("学生详情生成预览ticket：studentId={}, fileId={}", id, fileId);
+
+        PreviewTicketVO vo = new PreviewTicketVO();
+        vo.setTicket(ticket);
+        return AjaxResult.success(vo);
     }
 
     /** 写入学生详情查看审计日志 */
