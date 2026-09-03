@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -42,6 +43,9 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final ApplicationMapper applicationMapper;
     private final AppSnapshotMapper appSnapshotMapper;
     private final AppStatusHistoryMapper appStatusHistoryMapper;
+    private final StudentInternshipMapper studentInternshipMapper;
+    private final StudentCertificateMapper studentCertificateMapper;
+    private final StudentActivityMapper studentActivityMapper;
     private final NotifyService notifyService;
     private final ObjectMapper objectMapper;
 
@@ -137,6 +141,23 @@ public class ApplicationServiceImpl implements ApplicationService {
         String profileJson = toJson(profile);
         String educationsJson = toJson(educations);
 
+        // 6.1 查询并序列化实习/项目、技能/证书、社团经历（可选信息，无则空数组；收录进快照供后台/学生端查看投递当时的完整简历）
+        List<StudentInternship> internships = studentInternshipMapper.selectList(
+                new LambdaQueryWrapper<StudentInternship>()
+                        .eq(StudentInternship::getStudentId, studentId)
+                        .orderByAsc(StudentInternship::getSortOrder));
+        List<StudentCertificate> certificates = studentCertificateMapper.selectList(
+                new LambdaQueryWrapper<StudentCertificate>()
+                        .eq(StudentCertificate::getStudentId, studentId)
+                        .orderByAsc(StudentCertificate::getSortOrder));
+        List<StudentActivity> activities = studentActivityMapper.selectList(
+                new LambdaQueryWrapper<StudentActivity>()
+                        .eq(StudentActivity::getStudentId, studentId)
+                        .orderByAsc(StudentActivity::getSortOrder));
+        String internshipsJson = toJson(internships != null ? internships : Collections.emptyList());
+        String certificatesJson = toJson(certificates != null ? certificates : Collections.emptyList());
+        String activitiesJson = toJson(activities != null ? activities : Collections.emptyList());
+
         // 取第一条教育经历（按 sortOrder 升序，最低的排最前）作为冗余筛选字段
         StudentEducation highestEdu = educations.get(0);
 
@@ -149,6 +170,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         snapshot.setSnapshotTime(LocalDateTime.now());
         snapshot.setSnapshotProfile(profileJson);
         snapshot.setSnapshotEducations(educationsJson);
+        snapshot.setSnapshotInternships(internshipsJson);
+        snapshot.setSnapshotCertificates(certificatesJson);
+        snapshot.setSnapshotActivities(activitiesJson);
         snapshot.setSnapshotResumeFile(resumeFileJson);
         appSnapshotMapper.insert(snapshot);
 

@@ -66,6 +66,15 @@ public class ApplicationDetailVo {
     /** 教育经历快照数据（JSON字符串） */
     private String snapshotEducations;
 
+    /** 实习/项目经历快照数据（JSON字符串，新投递才有；旧投递为 null） */
+    private String snapshotInternships;
+
+    /** 技能/证书/语言能力快照数据（JSON字符串，新投递才有；旧投递为 null） */
+    private String snapshotCertificates;
+
+    /** 社团/校园经历快照数据（JSON字符串，新投递才有；旧投递为 null） */
+    private String snapshotActivities;
+
     /** 简历附件快照数据（JSON字符串） */
     private String snapshotResumeFile;
 

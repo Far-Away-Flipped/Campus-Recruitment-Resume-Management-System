@@ -179,6 +179,9 @@ public class PortalApplicationServiceImpl implements PortalApplicationService {
             vo.setSnapshotTime(snapshot.getSnapshotTime());
             vo.setSnapshotProfile(snapshot.getSnapshotProfile());
             vo.setSnapshotEducations(snapshot.getSnapshotEducations());
+            vo.setSnapshotInternships(snapshot.getSnapshotInternships());
+            vo.setSnapshotCertificates(snapshot.getSnapshotCertificates());
+            vo.setSnapshotActivities(snapshot.getSnapshotActivities());
             vo.setSnapshotResumeFile(snapshot.getSnapshotResumeFile());
         }
 

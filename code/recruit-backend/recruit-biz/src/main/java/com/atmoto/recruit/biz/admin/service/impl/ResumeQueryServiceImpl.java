@@ -165,7 +165,7 @@ public class ResumeQueryServiceImpl implements ResumeQueryService {
                         evo.setDegree((String) m.get("degree"));
                         evo.setStartDate(m.get("startDate") != null ? java.time.LocalDate.parse(m.get("startDate").toString()) : null);
                         evo.setEndDate(m.get("endDate") != null ? java.time.LocalDate.parse(m.get("endDate").toString()) : null);
-                        evo.setGpa((String) m.get("gpaRank"));
+                        evo.setGpa((String) m.get("gpa")); // 实体属性 gpa(@TableField gpa_rank)，Jackson key 为 gpa
                         return evo;
                     }).collect(Collectors.toList()));
                 } catch (Exception e) {
@@ -207,8 +207,55 @@ public class ResumeQueryServiceImpl implements ResumeQueryService {
                 svo.setSnapshotEducations(snapshot.getSnapshotEducations());
                 svo.setSnapshotResumeFile(snapshot.getSnapshotResumeFile());
                 vo.setCurrentSnapshot(svo);
+
+                // 实习/项目经历：从快照读（新投递已收录；改造前旧快照三列为 NULL → 留空，不回退实时数据）
+                if (snapshot.getSnapshotInternships() != null) {
+                    try {
+                        List<InternshipBriefVO> list = objectMapper.readValue(
+                                snapshot.getSnapshotInternships(),
+                                new com.fasterxml.jackson.core.type.TypeReference<List<InternshipBriefVO>>() {});
+                        list.forEach(x -> x.setRecordTypeLabel("I".equals(x.getRecordType()) ? "实习经历" : "项目经历"));
+                        vo.setInternships(list);
+                    } catch (Exception e) {
+                        log.warn("快照实习/项目经历解析失败,置空: applicationId={}", applicationId, e);
+                    }
+                }
+                // 技能/证书/语言能力
+                if (snapshot.getSnapshotCertificates() != null) {
+                    try {
+                        List<CertificateBriefVO> list = objectMapper.readValue(
+                                snapshot.getSnapshotCertificates(),
+                                new com.fasterxml.jackson.core.type.TypeReference<List<CertificateBriefVO>>() {});
+                        list.forEach(x -> {
+                            switch (x.getCertType()) {
+                                case "SKILL" -> x.setCertTypeLabel("技能");
+                                case "CERT" -> x.setCertTypeLabel("证书");
+                                case "LANGUAGE" -> x.setCertTypeLabel("语言能力");
+                                default -> x.setCertTypeLabel(x.getCertType());
+                            }
+                        });
+                        vo.setCertificates(list);
+                    } catch (Exception e) {
+                        log.warn("快照技能/证书经历解析失败,置空: applicationId={}", applicationId, e);
+                    }
+                }
+                // 社团/校园经历
+                if (snapshot.getSnapshotActivities() != null) {
+                    try {
+                        List<ActivityBriefVO> list = objectMapper.readValue(
+                                snapshot.getSnapshotActivities(),
+                                new com.fasterxml.jackson.core.type.TypeReference<List<ActivityBriefVO>>() {});
+                        vo.setActivities(list);
+                    } catch (Exception e) {
+                        log.warn("快照社团经历解析失败,置空: applicationId={}", applicationId, e);
+                    }
+                }
             }
         }
+        // 三类经历兜底为空列表（保证前端拿到数组，不因空值渲染异常）
+        if (vo.getInternships() == null) vo.setInternships(Collections.emptyList());
+        if (vo.getCertificates() == null) vo.setCertificates(Collections.emptyList());
+        if (vo.getActivities() == null) vo.setActivities(Collections.emptyList());
 
         // 附件列表（仅返回磁盘上实际存在的文件）
         List<ResumeFile> files = resumeFileMapper.selectList(

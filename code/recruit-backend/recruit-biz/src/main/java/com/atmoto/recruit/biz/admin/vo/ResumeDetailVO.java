@@ -58,6 +58,15 @@ public class ResumeDetailVO {
     // ── 教育经历列表 ──
     private List<EducationVO> educations;
 
+    // ── 实习/项目经历列表（投递快照，旧投递可能为空）──
+    private List<InternshipBriefVO> internships;
+
+    // ── 技能/证书/语言能力列表（投递快照，旧投递可能为空）──
+    private List<CertificateBriefVO> certificates;
+
+    // ── 社团/校园经历列表（投递快照，旧投递可能为空）──
+    private List<ActivityBriefVO> activities;
+
     // ── 当前快照（最近版本） ──
     private SnapshotVO currentSnapshot;
 
