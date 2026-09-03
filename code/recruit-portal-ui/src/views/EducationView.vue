@@ -22,22 +22,26 @@
       <div class="edu-card" v-for="item in list" :key="item.id">
         <div class="edu-card__header">
           <h3 class="edu-card__school">{{ item.schoolName || '-' }}</h3>
-          <span class="edu-card__degree">{{ degreeLabel(item.degree) }}</span>
         </div>
         <div class="edu-card__body">
-          <div class="edu-card__field">
-            <span class="edu-card__label">专业</span>
-            <span class="edu-card__value">{{ item.major || '-' }}</span>
+          <!-- 第一排：学历 + 专业 -->
+          <div class="edu-card__row edu-card__row--main">
+            <span class="edu-card__degree">{{ degreeLabel(item.degree) }}</span>
+            <span class="edu-card__major">{{ item.major || '-' }}</span>
           </div>
-          <div class="edu-card__field">
-            <span class="edu-card__label">入学时间</span>
-            <span class="edu-card__value">{{ item.startDate || '-' }}</span>
+          <!-- 第二排：入学、毕业时间放一起 -->
+          <div class="edu-card__row edu-card__row--time">
+            <span class="edu-card__time">
+              <span class="edu-card__label">入学</span>
+              <span class="edu-card__value">{{ item.startDate || '-' }}</span>
+            </span>
+            <span class="edu-card__time-sep">—</span>
+            <span class="edu-card__time">
+              <span class="edu-card__label">毕业</span>
+              <span class="edu-card__value">{{ item.endDate || '-' }}</span>
+            </span>
           </div>
-          <div class="edu-card__field">
-            <span class="edu-card__label">毕业时间</span>
-            <span class="edu-card__value">{{ item.endDate || '-' }}</span>
-          </div>
-          <div class="edu-card__field" v-if="item.gpa">
+          <div class="edu-card__row edu-card__row--gpa" v-if="item.gpa">
             <span class="edu-card__label">GPA</span>
             <span class="edu-card__value">{{ item.gpa }}</span>
           </div>
@@ -391,19 +395,40 @@ onMounted(() => {
   flex-shrink: 0;
 }
 .edu-card__body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 16px;
 }
-.edu-card__field {
+/* 第一排：学历标签 + 专业 */
+.edu-card__row--main {
   display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  align-items: center;
+  gap: 12px;
+}
+.edu-card__major {
+  font-size: 15px;
+  color: var(--color-text);
+  font-weight: 500;
+}
+/* 第二排：入学、毕业时间一起 */
+.edu-card__row--time {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.edu-card__time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.edu-card__time-sep {
+  color: var(--color-text-secondary);
+  opacity: 0.5;
 }
 .edu-card__label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 .edu-card__value {

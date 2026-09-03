@@ -32,7 +32,7 @@
             />
           </div>
 
-          <!-- 部门下拉 -->
+          <!-- 部门下拉（优化停用，保留代码便于恢复）
           <div class="filter-bar__select-wrapper" :class="{ 'is-open': openDropdown === 'dept' }">
             <button class="filter-bar__select-trigger" @click="toggleDropdown('dept')">
               <span>{{ selectedDeptLabel || '全部部门' }}</span>
@@ -53,6 +53,7 @@
               ><span v-for="i in dept.level" :key="i">&emsp;</span>{{ dept.deptName }}</div>
             </div>
           </div>
+          -->
 
           <!-- 岗位类别（树形选择） -->
           <div class="filter-bar__select-wrapper" :class="{ 'is-open': openDropdown === 'category' }">
@@ -105,7 +106,7 @@
             </div>
           </div>
 
-          <!-- 学历要求下拉 -->
+          <!-- 学历要求下拉（优化停用，保留代码便于恢复）
           <div class="filter-bar__select-wrapper" :class="{ 'is-open': openDropdown === 'degree' }">
             <button class="filter-bar__select-trigger" @click="toggleDropdown('degree')">
               <span>{{ formatDegree(filters.degree) || '全部学历' }}</span>
@@ -126,6 +127,7 @@
               >{{ deg.label }}</div>
             </div>
           </div>
+          -->
 
           <!-- 搜索按钮 -->
           <button class="filter-bar__btn" @click="handleSearch">搜索</button>
@@ -162,10 +164,12 @@
             关键词：{{ filters.keyword }}
             <button @click="filters.keyword = ''; handleSearch()">&times;</button>
           </span>
+          <!-- 部门已选标签（优化停用）
           <span v-if="filters.deptId" class="filter-bar__tag">
             {{ selectedDeptLabel }}
             <button @click="filters.deptId = ''; handleSearch()">&times;</button>
           </span>
+          -->
           <span v-if="filters.categoryId" class="filter-bar__tag">
             {{ selectedCategoryLabel }}
             <button @click="filters.categoryId = ''; handleSearch()">&times;</button>
@@ -174,10 +178,12 @@
             {{ selectedLocationLabel }}
             <button @click="filters.location = ''; handleSearch()">&times;</button>
           </span>
+          <!-- 学历已选标签（优化停用）
           <span v-if="filters.degree" class="filter-bar__tag">
             {{ formatDegree(filters.degree) }}
             <button @click="filters.degree = ''; handleSearch()">&times;</button>
           </span>
+          -->
         </div>
       </div>
     </section>
@@ -194,7 +200,7 @@
               </button>
             </div>
             <div class="filter-sheet__body">
-              <!-- 部门 -->
+              <!-- 部门（优化停用，保留代码便于恢复）
               <div class="filter-sheet__group">
                 <label class="filter-sheet__label">部门</label>
                 <select v-model="filters.deptId" class="filter-sheet__select">
@@ -204,6 +210,7 @@
                   </option>
                 </select>
               </div>
+              -->
               <!-- 岗位类别 -->
               <div class="filter-sheet__group">
                 <label class="filter-sheet__label">岗位类别</label>
@@ -223,7 +230,7 @@
                   <option v-for="loc in filterOptions.locations" :key="loc.value" :value="loc.value">{{ loc.label }}</option>
                 </select>
               </div>
-              <!-- 学历要求 -->
+              <!-- 学历要求（优化停用，保留代码便于恢复）
               <div class="filter-sheet__group">
                 <label class="filter-sheet__label">学历要求</label>
                 <select v-model="filters.degree" class="filter-sheet__select">
@@ -231,6 +238,7 @@
                   <option v-for="deg in filterOptions.degrees" :key="deg.value" :value="deg.value">{{ deg.label }}</option>
                 </select>
               </div>
+              -->
             </div>
             <div class="filter-sheet__footer">
               <button class="filter-sheet__btn filter-sheet__btn--reset" @click="handleReset(); closeFilterSheet();">重置</button>
@@ -569,7 +577,7 @@ function formatDeadline(deadline) {
   // 列表接口已由后端按 deadline > NOW() 过滤，过期岗位不会出现（'已截止' 分支不可达）
   if (diff === 0) return '今日截止';
   if (diff <= 7) return `${diff}天后截止`;
-  return `${d.getMonth() + 1}/${d.getDate()} 截止`;
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} 截止`;
 }
 
 function truncateText(text, len) {
