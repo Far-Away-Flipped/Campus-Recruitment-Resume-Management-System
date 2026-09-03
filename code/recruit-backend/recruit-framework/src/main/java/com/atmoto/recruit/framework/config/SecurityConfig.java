@@ -64,6 +64,7 @@ public class SecurityConfig {
                     "/api/portal/auth/reset-password",
                     "/api/portal/jobs/**",
                     "/api/portal/brand/**",
+                    "/api/portal/dict/**",
                     "/api/portal/profile/avatar/**"
                 ).permitAll()
                 .anyRequest().authenticated()
