@@ -79,7 +79,9 @@
       </div>
     </template>
 
-    <!-- 详情抽屉 -->
+    <!-- 详情抽屉：Teleport 到 body，脱离 applications-page 的 transform 容器，
+         否则 position:fixed 遮罩会被限制在页面容器内而非铺满视口 -->
+    <Teleport to="body">
     <Transition name="drawer">
       <div class="drawer-overlay" v-if="detailVisible" @click.self="closeDetail">
         <aside class="drawer" role="dialog" aria-modal="true">
@@ -200,6 +202,7 @@
         </aside>
       </div>
     </Transition>
+    </Teleport>
   </div>
 </template>
 
