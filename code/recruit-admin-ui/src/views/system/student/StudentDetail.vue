@@ -49,7 +49,9 @@
       <el-table :data="detail.educations || []" size="small" style="width: 100%;">
         <el-table-column prop="schoolName" label="学校" min-width="160" show-overflow-tooltip />
         <el-table-column prop="major" label="专业" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="degree" label="学历" width="80" />
+        <el-table-column label="学历" width="90">
+          <template #default="{ row }">{{ formatDegree(row.degree) || '-' }}</template>
+        </el-table-column>
         <el-table-column prop="startDate" label="入学时间" width="110" />
         <el-table-column prop="endDate" label="毕业时间" width="110" />
       </el-table>
@@ -73,6 +75,29 @@
           </template>
         </el-table-column>
         <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip />
+      </el-table>
+    </el-card>
+
+    <!-- 技能证书/语言能力 -->
+    <el-card v-if="detail.certificates && detail.certificates.length > 0" shadow="never" class="info-card">
+      <template #header><span class="card-title">技能证书/语言能力</span></template>
+      <el-table :data="detail.certificates" size="small" style="width: 100%;">
+        <el-table-column label="类型" width="110">
+          <template #default="{ row }">{{ row.certTypeLabel || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="certName" label="名称" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="certLevel" label="等级/分数" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="description" label="说明" min-width="160" show-overflow-tooltip />
+      </el-table>
+    </el-card>
+
+    <!-- 社团/校园经历 -->
+    <el-card v-if="detail.activities && detail.activities.length > 0" shadow="never" class="info-card">
+      <template #header><span class="card-title">社团/校园经历</span></template>
+      <el-table :data="detail.activities" size="small" style="width: 100%;">
+        <el-table-column prop="orgName" label="社团/组织" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="position" label="担任职务" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="description" label="主要职责及业绩" min-width="220" show-overflow-tooltip />
       </el-table>
     </el-card>
 
@@ -137,6 +162,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import request from '@/utils/request';
 import axios from 'axios';
+import { formatDegree } from '@/utils/location';
 
 const route = useRoute();
 const router = useRouter();
@@ -151,7 +177,7 @@ const previewingFile = ref(null);
 const detail = reactive({
   studentId: null, phone: '', realName: '', email: '', gender: '',
   birthDate: '', currentCity: '', avatarUrl: '', status: '', createTime: '',
-  educations: [], internships: [], resumeFiles: [], applications: [],
+  educations: [], internships: [], certificates: [], activities: [], resumeFiles: [], applications: [],
 });
 
 function genderLabel(g) {

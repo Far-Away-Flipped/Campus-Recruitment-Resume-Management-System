@@ -122,6 +122,63 @@
                 </div>
               </div>
             </div>
+            <!-- 投递简历（快照：教育/实习/技能/社团） -->
+            <div class="detail-section resume-section" v-if="hasResumeContent">
+              <h4 class="detail-section__title">投递简历</h4>
+              <!-- 教育经历 -->
+              <div class="resume-block" v-if="detailEducations.length > 0">
+                <div class="resume-block__label">教育经历</div>
+                <div class="resume-block__item" v-for="(edu, i) in detailEducations" :key="'edu' + i">
+                  <div class="resume-block__line">
+                    <span class="resume-block__main">{{ edu.schoolName || '--' }}</span>
+                    <span v-if="edu.major" class="resume-block__tag">{{ edu.major }}</span>
+                    <span v-if="edu.degree" class="resume-block__tag">{{ formatDegree(edu.degree) }}</span>
+                  </div>
+                  <div class="resume-block__sub" v-if="edu.startDate || edu.endDate">
+                    {{ edu.startDate || '?' }} ~ {{ edu.endDate || '至今' }}
+                  </div>
+                  <div class="resume-block__desc" v-if="edu.gpa">GPA：{{ edu.gpa }}</div>
+                </div>
+              </div>
+              <!-- 实习/项目经历 -->
+              <div class="resume-block" v-if="detailInternships.length > 0">
+                <div class="resume-block__label">实习/项目经历</div>
+                <div class="resume-block__item" v-for="(it, i) in detailInternships" :key="'it' + i">
+                  <div class="resume-block__line">
+                    <span class="resume-block__main">{{ it.orgName || '--' }}</span>
+                    <span class="resume-block__tag">{{ internTypeLabel(it.recordType) }}</span>
+                    <span v-if="it.position" class="resume-block__tag">{{ it.position }}</span>
+                  </div>
+                  <div class="resume-block__sub" v-if="it.startDate || it.endDate">
+                    {{ it.startDate || '?' }} ~ {{ it.endDate || '至今' }}
+                  </div>
+                  <div class="resume-block__desc" v-if="it.description">{{ it.description }}</div>
+                </div>
+              </div>
+              <!-- 技能/证书/语言能力 -->
+              <div class="resume-block" v-if="detailCertificates.length > 0">
+                <div class="resume-block__label">技能证书/语言能力</div>
+                <div class="resume-block__item" v-for="(ct, i) in detailCertificates" :key="'ct' + i">
+                  <div class="resume-block__line">
+                    <span class="resume-block__main">{{ ct.certName || '--' }}</span>
+                    <span class="resume-block__tag">{{ certTypeLabel(ct.certType) }}</span>
+                    <span v-if="ct.certLevel" class="resume-block__tag">{{ ct.certLevel }}</span>
+                  </div>
+                  <div class="resume-block__desc" v-if="ct.description">{{ ct.description }}</div>
+                </div>
+              </div>
+              <!-- 社团/校园经历 -->
+              <div class="resume-block" v-if="detailActivities.length > 0">
+                <div class="resume-block__label">社团/校园经历</div>
+                <div class="resume-block__item" v-for="(ac, i) in detailActivities" :key="'ac' + i">
+                  <div class="resume-block__line">
+                    <span class="resume-block__main">{{ ac.orgName || '--' }}</span>
+                    <span v-if="ac.position" class="resume-block__tag">{{ ac.position }}</span>
+                  </div>
+                  <div class="resume-block__desc" v-if="ac.description">{{ ac.description }}</div>
+                </div>
+              </div>
+            </div>
             <!-- 状态流转历史 -->
             <div class="detail-section" v-if="detail.statusHistory && detail.statusHistory.length > 0">
               <h4 class="detail-section__title">状态流转</h4>
@@ -153,6 +210,7 @@
 import { ref, computed, onMounted } from 'vue';
 import api from '@/utils/axios';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
+import { formatDegree } from '@/utils/location';
 
 const applications = ref([]);
 const loading = ref(true);
@@ -168,6 +226,37 @@ const detailVisible = ref(false);
 const detailLoading = ref(false);
 const detailError = ref('');
 const detail = ref(null);
+
+// ── 投递简历（快照）解析 ──
+/** 解析快照 JSON 数组字符串；空/非法返回 [] */
+function parseJsonList(str) {
+  if (!str) return [];
+  try {
+    const arr = JSON.parse(str);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+/** 实习/项目经历类型标签（与 ProfileExtraView 的 recordType 下拉一致） */
+const INTERN_LABEL = { I: '实习经历', P: '项目经历' };
+/** 技能/证书/语言能力类型标签（与 ProfileExtraView 的 certType 下拉一致） */
+const CERT_LABEL = { CERT: '证书', SKILL: '技能', LANGUAGE: '语言能力' };
+
+const detailEducations = computed(() => parseJsonList(detail.value?.snapshotEducations));
+const detailInternships = computed(() => parseJsonList(detail.value?.snapshotInternships));
+const detailCertificates = computed(() => parseJsonList(detail.value?.snapshotCertificates));
+const detailActivities = computed(() => parseJsonList(detail.value?.snapshotActivities));
+/** 投递简历区块是否展示（四类至少一类有内容；旧投递快照无三类经历则仅教育有值时也展示） */
+const hasResumeContent = computed(() =>
+  detailEducations.value.length > 0 ||
+  detailInternships.value.length > 0 ||
+  detailCertificates.value.length > 0 ||
+  detailActivities.value.length > 0
+);
+
+function internTypeLabel(code) { return INTERN_LABEL[code] || code || ''; }
+function certTypeLabel(code) { return CERT_LABEL[code] || code || ''; }
 
 const STATUS_MAP = {
   PENDING_SCREEN: '待筛选',
@@ -508,7 +597,7 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: 12px;
   width: 100%;
-  max-width: 560px;
+  max-width: 760px;
   max-height: 80vh;
   overflow-y: auto;
   padding: 24px 28px;
@@ -646,6 +735,55 @@ onMounted(() => {
   color: #6E7D8A;
   margin-top: 4px;
   line-height: 1.5;
+}
+
+/* 投递简历（快照）区块 */
+.resume-section .resume-block {
+  margin-bottom: 14px;
+}
+.resume-block__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6E7D8A;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.resume-block__item {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.resume-block__item:last-child {
+  border-bottom: none;
+}
+.resume-block__line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.resume-block__main {
+  font-size: 13px;
+  color: var(--color-text);
+  font-weight: 500;
+}
+.resume-block__tag {
+  font-size: 11px;
+  color: #5FB8D6;
+  background: rgba(95, 184, 214, 0.12);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.resume-block__sub {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+.resume-block__desc {
+  font-size: 12px;
+  color: #6E7D8A;
+  margin-top: 2px;
+  line-height: 1.5;
+  word-break: break-all;
 }
 
 /* 响应式 */

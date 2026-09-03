@@ -89,7 +89,9 @@
         <el-table-column prop="studentName" label="姓名" min-width="90" />
         <el-table-column prop="school" label="学校" min-width="140" show-overflow-tooltip />
         <el-table-column prop="major" label="专业" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="degree" label="学历" width="80" />
+        <el-table-column prop="degree" label="学历" width="90">
+          <template #default="{ row }">{{ formatDegree(row.degree) || '-' }}</template>
+        </el-table-column>
         <el-table-column prop="applyTime" label="投递时间" width="160" />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
@@ -147,6 +149,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import request from '@/utils/request';
 import axios from 'axios';
+import { formatDegree } from '@/utils/location';
 
 const router = useRouter();
 const loading = ref(false);

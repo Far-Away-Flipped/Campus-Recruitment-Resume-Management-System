@@ -112,6 +112,22 @@ public class StudentManageController {
             intern.setRecordTypeLabel("I".equals(intern.getRecordType()) ? "实习经历" : "项目经历");
         }
         detail.setInternships(internships);
+
+        // 技能/证书/语言能力 — certType 映射为中文标签
+        java.util.List<CertificateBriefVO> certificates = studentMapper.selectCertificatesByStudentId(id);
+        for (CertificateBriefVO cert : certificates) {
+            switch (cert.getCertType()) {
+                case "SKILL" -> cert.setCertTypeLabel("技能");
+                case "CERT" -> cert.setCertTypeLabel("证书");
+                case "LANGUAGE" -> cert.setCertTypeLabel("语言能力");
+                default -> cert.setCertTypeLabel(cert.getCertType());
+            }
+        }
+        detail.setCertificates(certificates);
+
+        // 社团/校园经历
+        detail.setActivities(studentMapper.selectActivitiesByStudentId(id));
+
         detail.setResumeFiles(studentMapper.selectResumeFilesByStudentId(id));
 
         // 投递历史 — 状态码映射为中文标签

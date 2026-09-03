@@ -193,6 +193,12 @@ import LoadingSpinner from '@/components/LoadingSpinner.vue';
 const route = useRoute();
 const router = useRouter();
 
+/** 性别码值 → 中文 */
+function genderLabel(g) {
+  const map = { M: '男', F: '女', O: '其他' };
+  return map[g] || g || '';
+}
+
 const loading = ref(true);
 const submitting = ref(false);
 const job = ref(null);
@@ -268,13 +274,14 @@ async function fetchPreview() {
     let educationSummary = '';
     if (eduRes.code === 200 && eduRes.data && eduRes.data.length > 0) {
       const latest = eduRes.data[0];
-      educationSummary = [latest.schoolName, latest.major, latest.degree]
+      // degree 为码值（如 BACHELOR），formatDegree 转中文（如 本科）
+      educationSummary = [latest.schoolName, latest.major, formatDegree(latest.degree)]
         .filter(Boolean).join(' / ');
     }
 
     preview.value = {
       name: profile?.name || '',
-      gender: profile?.gender || '',
+      gender: genderLabel(profile?.gender),
       phone: profile?.phone || '',
       email: profile?.email || '',
       educationSummary,

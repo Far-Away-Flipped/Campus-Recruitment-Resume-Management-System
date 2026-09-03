@@ -82,6 +82,21 @@ public interface StudentMapper extends BaseMapper<Student> {
             "ORDER BY sort_order ASC")
     List<InternshipBriefVO> selectInternshipsByStudentId(@Param("studentId") Long studentId);
 
+    /** 查询技能/证书/语言能力（按 sort_order 升序） */
+    @Select("SELECT id, cert_type AS certType, cert_name AS certName, " +
+            "cert_level AS certLevel, description " +
+            "FROM stu_certificate " +
+            "WHERE student_id = #{studentId} AND del_flag = '0' " +
+            "ORDER BY sort_order ASC")
+    List<CertificateBriefVO> selectCertificatesByStudentId(@Param("studentId") Long studentId);
+
+    /** 查询社团/校园经历（按 sort_order 升序） */
+    @Select("SELECT id, org_name AS orgName, position, description " +
+            "FROM stu_activity " +
+            "WHERE student_id = #{studentId} AND del_flag = '0' " +
+            "ORDER BY sort_order ASC")
+    List<ActivityBriefVO> selectActivitiesByStudentId(@Param("studentId") Long studentId);
+
     /** 查询简历附件（当前版本，按上传时间降序） */
     @Select("SELECT id, file_name AS originalName, file_type AS fileExt, " +
             "file_size AS fileSize, preview_status AS previewStatus, " +

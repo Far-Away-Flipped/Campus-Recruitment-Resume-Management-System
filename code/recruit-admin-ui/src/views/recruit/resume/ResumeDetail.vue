@@ -32,7 +32,7 @@
           <template #header><span class="card-title">基本信息</span></template>
           <el-descriptions :column="2" border size="small">
             <el-descriptions-item label="姓名">{{ detail.snapshotName || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="性别">{{ detail.snapshotGender || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="性别">{{ genderLabel(detail.snapshotGender) }}</el-descriptions-item>
             <el-descriptions-item label="出生年月">{{ detail.snapshotBirth || '-' }}</el-descriptions-item>
             <el-descriptions-item label="手机号码">{{ detail.snapshotPhone || '-' }}</el-descriptions-item>
             <el-descriptions-item label="电子邮箱">{{ detail.snapshotEmail || '-' }}</el-descriptions-item>
@@ -46,11 +46,55 @@
           <el-table :data="detail.educations || []" size="small" style="width: 100%;">
             <el-table-column prop="schoolName" label="学校" min-width="140" show-overflow-tooltip />
             <el-table-column prop="major" label="专业" min-width="120" show-overflow-tooltip />
-            <el-table-column prop="degree" label="学历" width="80" />
+            <el-table-column label="学历" width="90">
+              <template #default="{ row }">{{ formatDegree(row.degree) || '-' }}</template>
+            </el-table-column>
             <el-table-column prop="startDate" label="入学时间" width="110" />
             <el-table-column prop="endDate" label="毕业时间" width="110" />
           </el-table>
           <el-empty v-if="!detail.educations || detail.educations.length === 0" description="暂无教育经历" :image-size="40" />
+        </el-card>
+
+        <!-- 实习/项目经历 -->
+        <el-card shadow="never" class="info-card">
+          <template #header><span class="card-title">实习/项目经历</span></template>
+          <el-table :data="detail.internships || []" size="small" style="width: 100%;">
+            <el-table-column label="类型" width="90">
+              <template #default="{ row }">{{ row.recordTypeLabel || '-' }}</template>
+            </el-table-column>
+            <el-table-column prop="orgName" label="公司/项目" min-width="120" show-overflow-tooltip />
+            <el-table-column prop="position" label="岗位/角色" min-width="100" show-overflow-tooltip />
+            <el-table-column label="起止时间" width="180">
+              <template #default="{ row }">{{ row.startDate || '-' }} ~ {{ row.endDate || '-' }}</template>
+            </el-table-column>
+            <el-table-column prop="description" label="描述" min-width="140" show-overflow-tooltip />
+          </el-table>
+          <el-empty v-if="!detail.internships || detail.internships.length === 0" description="暂无实习/项目经历" :image-size="40" />
+        </el-card>
+
+        <!-- 技能证书/语言能力 -->
+        <el-card shadow="never" class="info-card">
+          <template #header><span class="card-title">技能证书/语言能力</span></template>
+          <el-table :data="detail.certificates || []" size="small" style="width: 100%;">
+            <el-table-column label="类型" width="100">
+              <template #default="{ row }">{{ row.certTypeLabel || '-' }}</template>
+            </el-table-column>
+            <el-table-column prop="certName" label="名称" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="certLevel" label="等级/分数" min-width="100" show-overflow-tooltip />
+            <el-table-column prop="description" label="说明" min-width="140" show-overflow-tooltip />
+          </el-table>
+          <el-empty v-if="!detail.certificates || detail.certificates.length === 0" description="暂无技能/证书" :image-size="40" />
+        </el-card>
+
+        <!-- 社团/校园经历 -->
+        <el-card shadow="never" class="info-card">
+          <template #header><span class="card-title">社团/校园经历</span></template>
+          <el-table :data="detail.activities || []" size="small" style="width: 100%;">
+            <el-table-column prop="orgName" label="社团/组织" min-width="140" show-overflow-tooltip />
+            <el-table-column prop="position" label="担任职务" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="description" label="主要职责及业绩" min-width="180" show-overflow-tooltip />
+          </el-table>
+          <el-empty v-if="!detail.activities || detail.activities.length === 0" description="暂无社团/校园经历" :image-size="40" />
         </el-card>
 
         <!-- 投递信息 -->
@@ -167,6 +211,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown } from '@element-plus/icons-vue';
 import request from '@/utils/request';
 import axios from 'axios';
+import { formatDegree } from '@/utils/location';
 
 const route = useRoute();
 const router = useRouter();
@@ -183,6 +228,9 @@ const detail = reactive({
   applyTime: '',
   status: '',
   educations: [],
+  internships: [],
+  certificates: [],
+  activities: [],
 });
 
 const remarks = ref([]);
@@ -247,6 +295,12 @@ function statusLabel(s) {
 }
 function statusTagType(s) {
   return statusTagMap[s] || 'info';
+}
+
+/** 性别码值 → 中文 */
+function genderLabel(g) {
+  const map = { M: '男', F: '女', O: '其他' };
+  return map[g] || g || '-';
 }
 
 async function fetchDetail() {

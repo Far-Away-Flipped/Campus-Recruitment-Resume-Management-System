@@ -58,6 +58,12 @@ public class StudentDetailVO {
     /** 实习/项目经历列表 */
     private List<InternshipBriefVO> internships;
 
+    /** 技能/证书/语言能力列表 */
+    private List<CertificateBriefVO> certificates;
+
+    /** 社团/校园经历列表 */
+    private List<ActivityBriefVO> activities;
+
     /** 简历附件列表 */
     private List<ResumeFileBriefVO> resumeFiles;
 
