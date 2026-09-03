@@ -83,10 +83,7 @@
             <label>学历 <span class="required">*</span></label>
             <select v-model="dialogForm.degree">
               <option value="">请选择学历</option>
-              <option value="BACHELOR">本科</option>
-              <option value="MASTER">硕士</option>
-              <option value="DOCTOR">博士</option>
-              <option value="OTHER">其他</option>
+              <option v-for="deg in degreeOptions" :key="deg.value" :value="deg.value">{{ deg.label }}</option>
             </select>
           </div>
 
@@ -153,16 +150,23 @@ const emptyForm = () => ({
 
 const dialogForm = reactive(emptyForm());
 
-/** 学历映射 */
-const DEGREE_MAP = {
-  BACHELOR: '本科',
-  MASTER: '硕士',
-  DOCTOR: '博士',
-  OTHER: '其他',
-};
-
+// --- 学历选项：从 education_degree 字典接口加载（后端字典为唯一真源，不硬编码） ---
+const degreeOptions = ref([]);
+/** 学历码值 → 中文：优先查字典选项，未知码原样返回 */
 function degreeLabel(key) {
-  return DEGREE_MAP[key] || key || '-';
+  if (!key) return '-';
+  const hit = degreeOptions.value.find(o => o.value === key);
+  return hit ? hit.label : key;
+}
+
+/** 加载学历字典选项（/api/portal/dict/data/education_degree 匿名可读） */
+async function loadDegreeOptions() {
+  try {
+    const res = await api.get('/dict/data/education_degree');
+    degreeOptions.value = (res.code === 200 && Array.isArray(res.data)) ? res.data : [];
+  } catch {
+    degreeOptions.value = [];
+  }
 }
 
 /** 加载教育经历列表 */
@@ -283,6 +287,7 @@ async function handleDelete(id) {
 }
 
 onMounted(() => {
+  loadDegreeOptions();
   loadList();
 });
 </script>

@@ -9,15 +9,21 @@ import com.alibaba.excel.write.metadata.style.WriteCellStyle;
 import com.alibaba.excel.write.metadata.style.WriteFont;
 import com.alibaba.excel.write.style.HorizontalCellStyleStrategy;
 import com.atmoto.recruit.biz.admin.service.ResumeExportService;
+import com.atmoto.recruit.biz.common.domain.AppSnapshot;
 import com.atmoto.recruit.biz.common.domain.Application;
 import com.atmoto.recruit.biz.common.domain.StudentProfile;
 import com.atmoto.recruit.biz.common.enums.ApplicationStatus;
+import com.atmoto.recruit.biz.common.mapper.AppSnapshotMapper;
 import com.atmoto.recruit.biz.common.mapper.ApplicationMapper;
 import com.atmoto.recruit.biz.common.mapper.StudentProfileMapper;
 import com.atmoto.recruit.common.constant.BizConstants;
 import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
+import com.atmoto.recruit.system.domain.SysDictData;
+import com.atmoto.recruit.system.service.ISysDictDataService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +35,9 @@ import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,17 +53,49 @@ public class ResumeExportServiceImpl implements ResumeExportService {
 
     private final ApplicationMapper applicationMapper;
     private final StudentProfileMapper studentProfileMapper;
+    private final AppSnapshotMapper appSnapshotMapper;
+    private final ObjectMapper objectMapper;
+    private final ISysDictDataService dictDataService;
 
     /** 导出日累计计数缓存（Caffeine，24小时过期） */
     private final Cache<String, int[]> exportCountCache;
 
     public ResumeExportServiceImpl(ApplicationMapper applicationMapper,
                                    StudentProfileMapper studentProfileMapper,
+                                   AppSnapshotMapper appSnapshotMapper,
+                                   ObjectMapper objectMapper,
+                                   ISysDictDataService dictDataService,
                                    @Qualifier("exportCountCache") Cache<String, int[]> exportCountCache) {
         this.applicationMapper = applicationMapper;
         this.studentProfileMapper = studentProfileMapper;
+        this.appSnapshotMapper = appSnapshotMapper;
+        this.objectMapper = objectMapper;
+        this.dictDataService = dictDataService;
         this.exportCountCache = exportCountCache;
     }
+
+    /** 实习/项目 recordType → 中文 */
+    private static final Map<String, String> RECORD_TYPE_LABELS = new LinkedHashMap<>() {{
+        put("I", "实习经历");
+        put("P", "项目经历");
+    }};
+
+    /** 技能/证书 certType → 中文 */
+    private static final Map<String, String> CERT_TYPE_LABELS = new LinkedHashMap<>() {{
+        put("SKILL", "技能");
+        put("CERT", "证书");
+        put("LANGUAGE", "语言能力");
+    }};
+
+    /** 性别 → 中文 */
+    private static final Map<String, String> GENDER_LABELS = new LinkedHashMap<>() {{
+        put("M", "男");
+        put("F", "女");
+        put("O", "其他");
+    }};
+
+    /** 学历字典缓存（懒加载：首次导出时从 education_degree 字典读取，避免硬编码漂移） */
+    private Map<String, String> degreeLabelsCache = null;
 
     /** 临时文件导出目录 */
     private static final String EXPORT_DIR = System.getProperty("java.io.tmpdir")
@@ -101,7 +141,7 @@ public class ResumeExportServiceImpl implements ResumeExportService {
                 new LambdaQueryWrapper<StudentProfile>()
                         .in(StudentProfile::getStudentId, studentIds));
 
-        // 5. 构建导出行数据（使用快照冗余列）
+        // 5. 构建导出行数据（基本信息用快照冗余列，经历用投递快照 JSON）
         List<ResumeExportRow> rows = new ArrayList<>();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -110,16 +150,22 @@ public class ResumeExportServiceImpl implements ResumeExportService {
             row.setName(app.getSnapshotName() != null ? app.getSnapshotName() : "");
             row.setSchool(app.getSnapshotSchool() != null ? app.getSnapshotSchool() : "");
             row.setMajor(app.getSnapshotMajor() != null ? app.getSnapshotMajor() : "");
-            row.setDegree(app.getSnapshotDegree() != null ? app.getSnapshotDegree() : "");
+            row.setDegree(degreeLabel(app.getSnapshotDegree()));
 
-            // 手机号脱敏：138****1234
-            String phone = "";
+            // 性别：快照无性别冗余列，从 stu_profile 实时取（静态字段，投递后不变也合理）
+            StudentProfile matchedProfile = null;
             for (StudentProfile p : profiles) {
                 if (p.getStudentId().equals(app.getStudentId())) {
-                    phone = p.getPhone() != null ? p.getPhone() : "";
+                    matchedProfile = p;
                     break;
                 }
             }
+            row.setGender(matchedProfile != null && matchedProfile.getGender() != null
+                    ? GENDER_LABELS.getOrDefault(matchedProfile.getGender(), matchedProfile.getGender()) : "");
+
+            // 手机号脱敏：138****1234
+            String phone = matchedProfile != null && matchedProfile.getPhone() != null
+                    ? matchedProfile.getPhone() : "";
             row.setPhone(maskPhone(phone));
 
             // 投递时间
@@ -130,6 +176,16 @@ public class ResumeExportServiceImpl implements ResumeExportService {
                 row.setStatus(ApplicationStatus.fromCode(app.getStatus()).getLabel());
             } catch (IllegalArgumentException e) {
                 row.setStatus(app.getStatus());
+            }
+
+            // 实习/项目、技能/证书、社团经历 —— 从投递快照读（改造后新投递才有，老投递为空）
+            if (app.getCurrentSnapshotId() != null) {
+                AppSnapshot snapshot = appSnapshotMapper.selectById(app.getCurrentSnapshotId());
+                if (snapshot != null) {
+                    row.setInternships(parseInternships(snapshot.getSnapshotInternships()));
+                    row.setCertificates(parseCertificates(snapshot.getSnapshotCertificates()));
+                    row.setActivities(parseActivities(snapshot.getSnapshotActivities()));
+                }
             }
 
             rows.add(row);
@@ -181,6 +237,140 @@ public class ResumeExportServiceImpl implements ResumeExportService {
         return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 
+    /** 学历码值 → 中文（从 education_degree 字典读取，未知码原样返回） */
+    private String degreeLabel(String code) {
+        if (code == null) return "";
+        if (degreeLabelsCache == null) {
+            Map<String, String> map = new LinkedHashMap<>();
+            try {
+                List<SysDictData> dict = dictDataService.selectDictDataByType("education_degree");
+                if (dict != null) {
+                    for (SysDictData d : dict) {
+                        map.put(d.getDictValue(), d.getDictLabel());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("读取学历字典失败,学历将按码值导出: {}", e.getMessage());
+            }
+            degreeLabelsCache = map;
+        }
+        return degreeLabelsCache.getOrDefault(code, code);
+    }
+
+    /**
+     * 解析实习/项目经历快照 JSON → 可读文本
+     * 快照 key 与 VO 字段对齐：recordType/orgName/position/startDate/endDate/description
+     */
+    private String parseInternships(String json) {
+        if (json == null || json.isBlank()) return "";
+        try {
+            List<Map<String, Object>> list = objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
+            if (list == null || list.isEmpty()) return "";
+            List<String> lines = new ArrayList<>();
+            for (Map<String, Object> m : list) {
+                StringBuilder sb = new StringBuilder();
+                String recordType = str(m, "recordType");
+                if (recordType != null && !recordType.isEmpty()) {
+                    sb.append(RECORD_TYPE_LABELS.getOrDefault(recordType, recordType)).append("：");
+                }
+                sb.append(str(m, "orgName") != null && !str(m, "orgName").isEmpty() ? str(m, "orgName") : "");
+                String position = str(m, "position");
+                if (position != null && !position.isEmpty()) {
+                    sb.append(" / ").append(position);
+                }
+                String dates = dateRange(str(m, "startDate"), str(m, "endDate"));
+                if (dates != null && !dates.isEmpty()) {
+                    sb.append("（").append(dates).append("）");
+                }
+                String desc = str(m, "description");
+                if (desc != null && !desc.isEmpty()) {
+                    sb.append(" ").append(desc);
+                }
+                lines.add(sb.toString());
+            }
+            return String.join("\n", lines);
+        } catch (Exception e) {
+            log.warn("导出实习经历快照解析失败,置空: {}", e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * 解析技能/证书/语言快照 JSON → 可读文本
+     * 快照 key：certType/certName/certLevel/description
+     */
+    private String parseCertificates(String json) {
+        if (json == null || json.isBlank()) return "";
+        try {
+            List<Map<String, Object>> list = objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
+            if (list == null || list.isEmpty()) return "";
+            List<String> lines = new ArrayList<>();
+            for (Map<String, Object> m : list) {
+                StringBuilder sb = new StringBuilder();
+                String certType = str(m, "certType");
+                if (certType != null && !certType.isEmpty()) {
+                    sb.append(CERT_TYPE_LABELS.getOrDefault(certType, certType)).append("：");
+                }
+                sb.append(str(m, "certName") != null ? str(m, "certName") : "");
+                String level = str(m, "certLevel");
+                if (level != null && !level.isEmpty()) {
+                    sb.append(" / ").append(level);
+                }
+                String desc = str(m, "description");
+                if (desc != null && !desc.isEmpty()) {
+                    sb.append(" ").append(desc);
+                }
+                lines.add(sb.toString());
+            }
+            return String.join("\n", lines);
+        } catch (Exception e) {
+            log.warn("导出技能/证书快照解析失败,置空: {}", e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * 解析社团/校园经历快照 JSON → 可读文本
+     * 快照 key：orgName/position/description
+     */
+    private String parseActivities(String json) {
+        if (json == null || json.isBlank()) return "";
+        try {
+            List<Map<String, Object>> list = objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
+            if (list == null || list.isEmpty()) return "";
+            List<String> lines = new ArrayList<>();
+            for (Map<String, Object> m : list) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(str(m, "orgName") != null ? str(m, "orgName") : "");
+                String position = str(m, "position");
+                if (position != null && !position.isEmpty()) {
+                    sb.append(" / ").append(position);
+                }
+                String desc = str(m, "description");
+                if (desc != null && !desc.isEmpty()) {
+                    sb.append(" ").append(desc);
+                }
+                lines.add(sb.toString());
+            }
+            return String.join("\n", lines);
+        } catch (Exception e) {
+            log.warn("导出社团经历快照解析失败,置空: {}", e.getMessage());
+            return "";
+        }
+    }
+
+    /** 取 Map 中 String 值（null 安全） */
+    private String str(Map<String, Object> m, String key) {
+        Object v = m.get(key);
+        return v != null ? String.valueOf(v) : null;
+    }
+
+    /** 起止日期区间文本，如 2025-07-01 ~ 2025-12-31 */
+    private String dateRange(String start, String end) {
+        if ((start == null || start.isEmpty()) && (end == null || end.isEmpty())) return "";
+        return (start == null || start.isEmpty() ? "?" : start) + " ~ " + (end == null || end.isEmpty() ? "至今" : end);
+    }
+
     // ── 内部类：Excel 导出行映射 ──
 
     @Data
@@ -198,14 +388,26 @@ public class ResumeExportServiceImpl implements ResumeExportService {
         @ExcelProperty(value = "学历", index = 3)
         private String degree;
 
-        @ExcelProperty(value = "手机号", index = 4)
+        @ExcelProperty(value = "性别", index = 4)
+        private String gender;
+
+        @ExcelProperty(value = "手机号", index = 5)
         private String phone;
 
-        @ExcelProperty(value = "投递时间", index = 5)
+        @ExcelProperty(value = "投递时间", index = 6)
         private String applyTime;
 
-        @ExcelProperty(value = "当前状态", index = 6)
+        @ExcelProperty(value = "当前状态", index = 7)
         private String status;
+
+        @ExcelProperty(value = "实习/项目经历", index = 8)
+        private String internships;
+
+        @ExcelProperty(value = "技能证书/语言", index = 9)
+        private String certificates;
+
+        @ExcelProperty(value = "社团/校园经历", index = 10)
+        private String activities;
     }
 
     // ── 内部类：Header水印处理器 ──
