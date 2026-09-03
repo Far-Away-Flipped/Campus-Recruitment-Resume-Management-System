@@ -590,6 +590,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  overflow-y: auto; /* 内容超高时整层可滚，避免卡片顶部被裁出视口 */
 }
 .modal-card {
   background: var(--bg-glass-strong);
@@ -600,6 +601,7 @@ onMounted(() => {
   max-width: 760px;
   max-height: 80vh;
   overflow-y: auto;
+  margin: auto; /* flex 下正常垂直居中；内容超高时 auto margin 归零、顶部贴 0 不裁切 */
   padding: 24px 28px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
