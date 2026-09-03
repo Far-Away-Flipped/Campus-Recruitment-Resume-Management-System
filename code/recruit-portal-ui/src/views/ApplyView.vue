@@ -74,9 +74,18 @@
           </div>
         </div>
         <!-- 教育背景 -->
-        <div class="profile-section" v-if="preview.educationSummary">
+        <div class="profile-section" v-if="preview.educationList && preview.educationList.length > 0">
           <h3 class="profile-section__title">教育背景</h3>
-          <p class="profile-section__text">{{ preview.educationSummary }}</p>
+          <div class="education-preview" v-for="(edu, i) in preview.educationList" :key="i">
+            <div class="education-preview__main">
+              {{ edu.schoolName }}
+              <template v-if="edu.major"> · {{ edu.major }}</template>
+              <template v-if="edu.degreeLabel">（{{ edu.degreeLabel }}）</template>
+            </div>
+            <div class="education-preview__sub" v-if="edu.startDate || edu.endDate">
+              {{ edu.startDate || '?' }} ~ {{ edu.endDate || '至今' }}
+            </div>
+          </div>
         </div>
         <!-- 附件统计 -->
         <div class="profile-section">
@@ -283,12 +292,19 @@ async function fetchPreview() {
 
     const profile = (profileRes.code === 200 && profileRes.data) ? profileRes.data : null;
 
-    let educationSummary = '';
+    // 教育经历：投递确认页展示全部（不只最高学历一条）
+    const educationList = [];
     if (eduRes.code === 200 && eduRes.data && eduRes.data.length > 0) {
-      const latest = eduRes.data[0];
-      // degree 为码值（如 BACHELOR），formatDegree 转中文（如 本科）
-      educationSummary = [latest.schoolName, latest.major, formatDegree(latest.degree)]
-        .filter(Boolean).join(' / ');
+      for (const e of eduRes.data) {
+        // degree 为码值（如 BACHELOR），formatDegree 转中文（如 本科）
+        educationList.push({
+          schoolName: e.schoolName || '',
+          major: e.major || '',
+          degreeLabel: formatDegree(e.degree),
+          startDate: e.startDate || '',
+          endDate: e.endDate || '',
+        });
+      }
     }
 
     preview.value = {
@@ -296,7 +312,7 @@ async function fetchPreview() {
       gender: genderLabel(profile?.gender),
       phone: profile?.phone || '',
       email: profile?.email || '',
-      educationSummary,
+      educationList,
       attachmentCount: (filesRes.code === 200 && filesRes.data) ? filesRes.data.length : 0,
       incomplete: !profile?.name || !profile?.phone || !profile?.email,
     };
@@ -481,6 +497,23 @@ onMounted(async () => {
 }
 .profile-section__text strong {
   color: var(--color-primary);
+}
+/* 教育背景多段预览 */
+.education-preview {
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+}
+.education-preview:last-child {
+  border-bottom: none;
+}
+.education-preview__main {
+  font-size: 14px;
+  color: var(--color-text);
+}
+.education-preview__sub {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
 }
 .text-warning {
   color: var(--color-warning);

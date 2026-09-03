@@ -104,6 +104,23 @@ public class ResumeExportServiceImpl implements ResumeExportService {
     /** 学历字典缓存（懒加载：首次导出时从 education_degree 字典读取，避免硬编码漂移） */
     private Map<String, String> degreeLabelsCache = null;
 
+    /**
+     * 学历等级（值越大学历越高），口径与学生管理列表"最高学历"一致：
+     * 博士 > 硕士 > 本科 > 大专 > 其他 > 不限；未知码/空最低。
+     */
+    private static int educationRank(String code) {
+        if (code == null) return -1;
+        switch (code) {
+            case "DOCTOR": return 5;
+            case "MASTER": return 4;
+            case "BACHELOR": return 3;
+            case "ASSOCIATE": return 2;
+            case "OTHER": return 1;
+            case "NONE": return 0;
+            default: return -1;
+        }
+    }
+
     /** 临时文件导出目录 */
     private static final String EXPORT_DIR = System.getProperty("java.io.tmpdir")
             + File.separator + "recruit-export";
@@ -189,10 +206,21 @@ public class ResumeExportServiceImpl implements ResumeExportService {
             row.setSourceLabel(app.getSourceLabel() != null && !app.getSourceLabel().isBlank()
                     ? app.getSourceLabel() : sourceLabelFallback(app.getSource()));
 
-            // 实习/项目、技能/证书、社团经历 —— 从投递快照读（改造后新投递才有，老投递为空）
+            // 教育经历、实习/项目、技能/证书、社团经历 —— 从投递快照读（改造前老快照无实习/技能/社团列为空，教育快照自始即有）
             if (app.getCurrentSnapshotId() != null) {
                 AppSnapshot snapshot = appSnapshotMapper.selectById(app.getCurrentSnapshotId());
                 if (snapshot != null) {
+                    row.setEducations(parseEducations(snapshot.getSnapshotEducations()));
+                    // 学校/专业/学历三列：优先取快照教育中的最高学历一条（按学历等级，与学生管理列表口径一致），
+                    // 解析不到则保留上方投递冗余列值兜底
+                    Map<String, Object> highest = pickHighestEducation(snapshot.getSnapshotEducations());
+                    if (highest != null) {
+                        String hs = str(highest, "schoolName");
+                        row.setSchool(hs != null ? hs : "");
+                        String hm = str(highest, "major");
+                        row.setMajor(hm != null ? hm : "");
+                        row.setDegree(degreeLabel(str(highest, "degree")));
+                    }
                     row.setInternships(parseInternships(snapshot.getSnapshotInternships()));
                     row.setCertificates(parseCertificates(snapshot.getSnapshotCertificates()));
                     row.setActivities(parseActivities(snapshot.getSnapshotActivities()));
@@ -277,6 +305,70 @@ public class ResumeExportServiceImpl implements ResumeExportService {
             degreeLabelsCache = map;
         }
         return degreeLabelsCache.getOrDefault(code, code);
+    }
+
+    /**
+     * 解析教育经历快照 JSON → 可读文本（导出全部教育经历，非仅最高学历）
+     * 快照 key 与实体字段对齐：schoolName/major/degree/startDate/endDate/gpa
+     * 学历 degree 为码值，经字典转中文；多条用换行分隔
+     */
+    private String parseEducations(String json) {
+        if (json == null || json.isBlank()) return "";
+        try {
+            List<Map<String, Object>> list = objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
+            if (list == null || list.isEmpty()) return "";
+            List<String> lines = new ArrayList<>();
+            for (Map<String, Object> m : list) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(str(m, "schoolName") != null ? str(m, "schoolName") : "");
+                String major = str(m, "major");
+                if (major != null && !major.isEmpty()) {
+                    sb.append(" / ").append(major);
+                }
+                String degree = degreeLabel(str(m, "degree"));
+                if (!degree.isEmpty()) {
+                    sb.append(" / ").append(degree);
+                }
+                String dates = dateRange(str(m, "startDate"), str(m, "endDate"));
+                if (dates != null && !dates.isEmpty()) {
+                    sb.append("（").append(dates).append("）");
+                }
+                String gpa = str(m, "gpa");
+                if (gpa != null && !gpa.isEmpty()) {
+                    sb.append(" GPA:").append(gpa);
+                }
+                lines.add(sb.toString());
+            }
+            return String.join("\n", lines);
+        } catch (Exception e) {
+            log.warn("导出教育经历快照解析失败,置空: {}", e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * 从教育经历快照 JSON 中挑最高学历那条（按 educationRank 等级，同学生管理列表口径）；
+     * 空/解析失败返回 null。
+     */
+    private Map<String, Object> pickHighestEducation(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            List<Map<String, Object>> list = objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
+            if (list == null || list.isEmpty()) return null;
+            Map<String, Object> best = null;
+            int bestRank = -1;
+            for (Map<String, Object> m : list) {
+                int rank = educationRank(str(m, "degree"));
+                if (rank > bestRank) {
+                    bestRank = rank;
+                    best = m;
+                }
+            }
+            return best;
+        } catch (Exception e) {
+            log.warn("导出教育经历快照解析失败(最高学历): {}", e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -433,6 +525,9 @@ public class ResumeExportServiceImpl implements ResumeExportService {
 
         @ExcelProperty(value = "来源渠道", index = 11)
         private String sourceLabel;
+
+        @ExcelProperty(value = "教育经历(全部)", index = 12)
+        private String educations;
     }
 
     // ── 内部类：Header水印处理器 ──
