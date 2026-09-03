@@ -102,7 +102,7 @@
           <template #header><span class="card-title">投递信息</span></template>
           <el-descriptions :column="2" border size="small">
             <el-descriptions-item label="投递岗位">{{ detail.jobTitle || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="来源渠道">{{ detail.source || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="来源渠道">{{ detail.sourceLabel || '-' }}</el-descriptions-item>
             <el-descriptions-item label="投递时间">{{ detail.applyTime || '-' }}</el-descriptions-item>
             <el-descriptions-item label="筛选状态">
               <el-dropdown

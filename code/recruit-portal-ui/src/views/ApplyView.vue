@@ -140,10 +140,7 @@
         <div class="form-group">
           <label class="form-label">渠道来源</label>
           <select v-model="source" class="form-select">
-            <option value="官网">官网</option>
-            <option value="宣讲会">宣讲会</option>
-            <option value="内推">内推</option>
-            <option value="其他">其他</option>
+            <option v-for="opt in sourceOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
         </div>
         <p class="apply-notice">
@@ -184,9 +181,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/utils/axios';
+import { useDictStore } from '@/stores/dict';
 import { formatLoc, formatDegree } from '@/utils/location';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 
@@ -203,7 +201,21 @@ const loading = ref(true);
 const submitting = ref(false);
 const job = ref(null);
 const preview = ref(null);
-const source = ref('官网');
+const source = ref('OFFICIAL_SITE');
+
+// 渠道来源选项：从 apply_source 字典加载（value 即码）；字典不可用时回退固定四项
+const dictStore = useDictStore();
+const sourceOptions = computed(() => {
+  const list = dictStore.optionsMap.apply_source;
+  return (list && list.length)
+    ? list
+    : [
+        { label: '官网', value: 'OFFICIAL_SITE' },
+        { label: '宣讲会', value: 'CAMPUS_TALK' },
+        { label: '内推', value: 'REFERRAL' },
+        { label: '其他', value: 'OTHER' },
+      ];
+});
 const resumeFiles = ref([]);
 const selectedFileId = ref(null);
 const errorMsg = ref('');
@@ -331,6 +343,7 @@ async function handleApply() {
 }
 
 onMounted(async () => {
+  dictStore.ensureLoaded('apply_source'); // 渠道下拉选项（非阻塞，字典就绪后自动刷新）
   fetchPreview();
   // 拉取简历附件列表
   try {

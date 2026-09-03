@@ -39,6 +39,9 @@ public class ApplicationDetailVo {
     /** 渠道来源 */
     private String source;
 
+    /** 渠道来源中文快照（投递时固化） */
+    private String sourceLabel;
+
     /** 投递时间 */
     private LocalDateTime applyTime;
 

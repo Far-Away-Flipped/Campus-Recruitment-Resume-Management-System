@@ -101,6 +101,8 @@ public class ResumeQueryServiceImpl implements ResumeQueryService {
         vo.setStatus(app.getStatus());
         vo.setApplyTime(app.getApplyTime());
         vo.setSource(app.getSource());
+        // 来源渠道展示读中文快照，兼容存量/异常时兜底原值
+        vo.setSourceLabel(app.getSourceLabel() != null ? app.getSourceLabel() : app.getSource());
 
         // 状态中文名
         try {

@@ -35,6 +35,9 @@ public class Application extends BaseEntity {
     /** 渠道来源详情（DB列名 source_detail） */
     @TableField("source_detail")
     private String sourceDetail;
+    /** 渠道来源中文快照（投递时按字典固化，DB列名 source_label） */
+    @TableField("source_label")
+    private String sourceLabel;
     private LocalDateTime applyTime;
 
     // ── C-06 裁决：筛选字段冗余为普通列（DB中已实际存在） ──

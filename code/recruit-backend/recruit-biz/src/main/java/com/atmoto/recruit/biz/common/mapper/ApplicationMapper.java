@@ -209,7 +209,7 @@ public interface ApplicationMapper extends BaseMapper<Application> {
      * @return 渠道来源+投递数的列表
      */
     @Select("<script>" +
-            "SELECT a.source AS name, COUNT(*) AS value " +
+            "SELECT COALESCE(NULLIF(a.source_label, ''), a.source) AS name, COUNT(*) AS value " +
             "FROM app_application a " +
             "<if test='ownerUserId != null'>" +
             "LEFT JOIN job_position jp ON a.job_id = jp.job_id " +
@@ -218,7 +218,7 @@ public interface ApplicationMapper extends BaseMapper<Application> {
             "<if test='startDate != null'>AND a.apply_time &gt;= #{startDate}</if> " +
             "<if test='endDate != null'>AND a.apply_time &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)</if> " +
             "<if test='ownerUserId != null'>AND jp.owner_user_id = #{ownerUserId}</if> " +
-            "GROUP BY a.source " +
+            "GROUP BY COALESCE(NULLIF(a.source_label, ''), a.source) " +
             "ORDER BY value DESC" +
             "</script>")
     List<ReportDataVO> countBySource(@Param("startDate") LocalDate startDate,

@@ -9,6 +9,8 @@ import com.atmoto.recruit.biz.common.service.ApplicationService;
 import com.atmoto.recruit.biz.notify.NotifyService;
 import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
+import com.atmoto.recruit.system.domain.SysDictData;
+import com.atmoto.recruit.system.service.ISysDictDataService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,7 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 投递核心 Service 实现（M4 投递流程）
@@ -48,6 +52,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final StudentActivityMapper studentActivityMapper;
     private final NotifyService notifyService;
     private final ObjectMapper objectMapper;
+    private final ISysDictDataService dictDataService;
 
     /**
      * 学生投递岗位（核心事务）
@@ -185,8 +190,11 @@ public class ApplicationServiceImpl implements ApplicationService {
         application.setStatus(ApplicationStatus.PENDING_SCREEN.getCode());
         application.setVersion(1);
         application.setCurrentSnapshotId(snapshot.getSnapshotId());
-        application.setSource(source != null && !source.isEmpty()
-                ? source : SourceChannel.OFFICIAL_SITE.getCode());
+        // 渠道来源：归一为 apply_source 字典码，同时固化解码时的中文 label 快照
+        // （前端传码；兼容旧前端传中文 label；未知值回退默认官网。字典异常用枚举兜底）
+        String[] sourceNorm = normalizeSource(source);
+        application.setSource(sourceNorm[0]);
+        application.setSourceLabel(sourceNorm[1]);
         application.setApplyTime(LocalDateTime.now());
         // 筛选冗余字段
         application.setSnapshotName(profile.getName());
@@ -236,6 +244,64 @@ public class ApplicationServiceImpl implements ApplicationService {
         notifyService.sendHrNotification(jobId, hrTitle, hrContent);
 
         return application;
+    }
+
+    /**
+     * 归一化投递来源渠道：返回 [字典码, 中文label快照]
+     * <p>规则：以 apply_source 字典为唯一真源——传合法码直接用、传中文 label 兼容旧前端
+     * 反查成码、未知值回退默认官网；label 从字典取（投递时固化快照），字典查询异常/缺失时
+     * 用 SourceChannel 枚举兜底，避免提交失败。</p>
+     */
+    private String[] normalizeSource(String raw) {
+        // 查 apply_source 字典，构建 value↔label 双向映射（校园规模每次 submit 一次查询可忽略）
+        Map<String, String> valueToLabel = new HashMap<>();
+        Map<String, String> labelToValue = new HashMap<>();
+        boolean dictOk = false;
+        try {
+            List<SysDictData> srcDict = dictDataService.selectDictDataByType("apply_source");
+            if (srcDict != null) {
+                for (SysDictData d : srcDict) {
+                    if (d.getDictValue() != null && d.getDictLabel() != null) {
+                        valueToLabel.put(d.getDictValue(), d.getDictLabel());
+                        labelToValue.put(d.getDictLabel(), d.getDictValue());
+                    }
+                }
+                dictOk = !valueToLabel.isEmpty();
+            }
+        } catch (Exception e) {
+            log.warn("读取 apply_source 字典失败，渠道来源回退枚举兜底: {}", e.getMessage());
+        }
+
+        String code;
+        if (raw != null && !raw.isBlank()) {
+            String rawTrim = raw.trim();
+            if (valueToLabel.containsKey(rawTrim)) {
+                code = rawTrim;                          // 已是合法字典码
+            } else if (labelToValue.containsKey(rawTrim)) {
+                code = labelToValue.get(rawTrim);        // 兼容旧前端传中文 label
+            } else {
+                // 未知值：枚举码/枚举中文名匹配，仍未知则回退默认官网
+                code = null;
+                for (SourceChannel c : SourceChannel.values()) {
+                    if (c.getCode().equalsIgnoreCase(rawTrim) || c.getLabel().equals(rawTrim)) {
+                        code = c.getCode();
+                        break;
+                    }
+                }
+                if (code == null) {
+                    code = SourceChannel.OFFICIAL_SITE.getCode();
+                    log.warn("未知投递来源渠道，回退默认官网：raw={}", raw);
+                }
+            }
+        } else {
+            code = SourceChannel.OFFICIAL_SITE.getCode();
+        }
+
+        String label = dictOk ? valueToLabel.get(code) : null;
+        if (label == null) {
+            label = SourceChannel.valueOf(code).getLabel(); // code 已被白名单约束，valueOf 安全
+        }
+        return new String[]{code, label};
     }
 
     /**

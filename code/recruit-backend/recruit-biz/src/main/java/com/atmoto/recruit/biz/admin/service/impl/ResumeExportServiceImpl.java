@@ -9,10 +9,13 @@ import com.alibaba.excel.write.metadata.style.WriteCellStyle;
 import com.alibaba.excel.write.metadata.style.WriteFont;
 import com.alibaba.excel.write.style.HorizontalCellStyleStrategy;
 import com.atmoto.recruit.biz.admin.service.ResumeExportService;
+import com.atmoto.recruit.biz.common.domain.AppHrNote;
 import com.atmoto.recruit.biz.common.domain.AppSnapshot;
 import com.atmoto.recruit.biz.common.domain.Application;
 import com.atmoto.recruit.biz.common.domain.StudentProfile;
 import com.atmoto.recruit.biz.common.enums.ApplicationStatus;
+import com.atmoto.recruit.biz.common.enums.SourceChannel;
+import com.atmoto.recruit.biz.common.mapper.AppHrNoteMapper;
 import com.atmoto.recruit.biz.common.mapper.AppSnapshotMapper;
 import com.atmoto.recruit.biz.common.mapper.ApplicationMapper;
 import com.atmoto.recruit.biz.common.mapper.StudentProfileMapper;
@@ -35,6 +38,7 @@ import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +58,7 @@ public class ResumeExportServiceImpl implements ResumeExportService {
     private final ApplicationMapper applicationMapper;
     private final StudentProfileMapper studentProfileMapper;
     private final AppSnapshotMapper appSnapshotMapper;
+    private final AppHrNoteMapper appHrNoteMapper;
     private final ObjectMapper objectMapper;
     private final ISysDictDataService dictDataService;
 
@@ -63,12 +68,14 @@ public class ResumeExportServiceImpl implements ResumeExportService {
     public ResumeExportServiceImpl(ApplicationMapper applicationMapper,
                                    StudentProfileMapper studentProfileMapper,
                                    AppSnapshotMapper appSnapshotMapper,
+                                   AppHrNoteMapper appHrNoteMapper,
                                    ObjectMapper objectMapper,
                                    ISysDictDataService dictDataService,
                                    @Qualifier("exportCountCache") Cache<String, int[]> exportCountCache) {
         this.applicationMapper = applicationMapper;
         this.studentProfileMapper = studentProfileMapper;
         this.appSnapshotMapper = appSnapshotMapper;
+        this.appHrNoteMapper = appHrNoteMapper;
         this.objectMapper = objectMapper;
         this.dictDataService = dictDataService;
         this.exportCountCache = exportCountCache;
@@ -178,6 +185,10 @@ public class ResumeExportServiceImpl implements ResumeExportService {
                 row.setStatus(app.getStatus());
             }
 
+            // 来源渠道：读投递时固化的中文快照；存量/异常时按字典或枚举兜底为中文，仍未知原码
+            row.setSourceLabel(app.getSourceLabel() != null && !app.getSourceLabel().isBlank()
+                    ? app.getSourceLabel() : sourceLabelFallback(app.getSource()));
+
             // 实习/项目、技能/证书、社团经历 —— 从投递快照读（改造后新投递才有，老投递为空）
             if (app.getCurrentSnapshotId() != null) {
                 AppSnapshot snapshot = appSnapshotMapper.selectById(app.getCurrentSnapshotId());
@@ -225,6 +236,17 @@ public class ResumeExportServiceImpl implements ResumeExportService {
         // 后续里程碑接入审计模块
 
         return filePath;
+    }
+
+    /**
+     * 来源渠道中文兜底：码 → SourceChannel 枚举中文；已是中文/未知值原样返回（可审计）
+     */
+    private String sourceLabelFallback(String source) {
+        if (source == null || source.isBlank()) return "";
+        for (SourceChannel c : SourceChannel.values()) {
+            if (c.getCode().equals(source)) return c.getLabel();
+        }
+        return source;
     }
 
     /**
@@ -408,6 +430,9 @@ public class ResumeExportServiceImpl implements ResumeExportService {
 
         @ExcelProperty(value = "社团/校园经历", index = 10)
         private String activities;
+
+        @ExcelProperty(value = "来源渠道", index = 11)
+        private String sourceLabel;
     }
 
     // ── 内部类：Header水印处理器 ──

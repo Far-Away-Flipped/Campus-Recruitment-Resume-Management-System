@@ -171,6 +171,8 @@ public class PortalApplicationServiceImpl implements PortalApplicationService {
             vo.setStatusLabel(application.getStatus());
         }
         vo.setSource(application.getSource());
+        // 来源渠道展示读中文快照，兼容存量/异常时兜底原值
+        vo.setSourceLabel(application.getSourceLabel() != null ? application.getSourceLabel() : application.getSource());
         vo.setApplyTime(application.getApplyTime());
 
         // 快照信息

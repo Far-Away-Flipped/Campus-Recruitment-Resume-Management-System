@@ -116,9 +116,9 @@
                     </span>
                   </span>
                 </div>
-                <div class="detail-item" v-if="detail.source">
+                <div class="detail-item" v-if="detail.sourceLabel">
                   <span class="detail-item__label">渠道来源</span>
-                  <span class="detail-item__value">{{ detail.source }}</span>
+                  <span class="detail-item__value">{{ detail.sourceLabel }}</span>
                 </div>
               </div>
             </div>
