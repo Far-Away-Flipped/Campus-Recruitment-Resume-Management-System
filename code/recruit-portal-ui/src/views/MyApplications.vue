@@ -79,26 +79,33 @@
       </div>
     </template>
 
-    <!-- 详情弹窗 -->
-    <Transition name="modal">
-      <div class="modal-overlay" v-if="detailVisible" @click.self="closeDetail">
-        <div class="modal-card">
-          <div class="modal-card__header">
-            <h3>投递详情</h3>
-            <button class="modal-close" @click="closeDetail">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
+    <!-- 详情抽屉 -->
+    <Transition name="drawer">
+      <div class="drawer-overlay" v-if="detailVisible" @click.self="closeDetail">
+        <aside class="drawer" role="dialog" aria-modal="true">
+          <header class="drawer__header">
+            <div class="drawer__head-main">
+              <h3 class="drawer__title">投递详情</h3>
+              <p class="drawer__job" v-if="detail && detail.jobTitle">{{ detail.jobTitle }}</p>
+            </div>
+            <div class="drawer__head-side">
+              <span v-if="detail && detail.status" class="status-tag" :class="statusClass(detail.status)">
+                <span class="status-tag__dot"></span>
+                {{ detail.statusLabel || statusLabel(detail.status) }}
+              </span>
+              <button class="drawer__close" @click="closeDetail" aria-label="关闭">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </header>
+
           <LoadingSpinner :visible="detailLoading" text="加载详情..." />
-          <template v-if="!detailLoading && detail">
-            <!-- 基本信息 -->
-            <div class="detail-section">
-              <h4 class="detail-section__title">基本信息</h4>
+
+          <div class="drawer__body" v-if="!detailLoading && detail">
+            <!-- 投递信息 -->
+            <section class="detail-section">
+              <h4 class="detail-section__title">投递信息</h4>
               <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-item__label">投递岗位</span>
-                  <span class="detail-item__value">{{ detail.jobTitle || '--' }}</span>
-                </div>
                 <div class="detail-item">
                   <span class="detail-item__label">所属部门</span>
                   <span class="detail-item__value">{{ detail.company || '--' }}</span>
@@ -107,23 +114,15 @@
                   <span class="detail-item__label">投递时间</span>
                   <span class="detail-item__value">{{ formatTime(detail.applyTime) }}</span>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-item__label">当前状态</span>
-                  <span class="detail-item__value">
-                    <span class="status-tag" :class="statusClass(detail.status)">
-                      <span class="status-tag__dot"></span>
-                      {{ detail.statusLabel || statusLabel(detail.status) }}
-                    </span>
-                  </span>
-                </div>
                 <div class="detail-item" v-if="detail.sourceLabel">
                   <span class="detail-item__label">渠道来源</span>
                   <span class="detail-item__value">{{ detail.sourceLabel }}</span>
                 </div>
               </div>
-            </div>
+            </section>
+
             <!-- 投递简历（快照：教育/实习/技能/社团） -->
-            <div class="detail-section resume-section" v-if="hasResumeContent">
+            <section class="detail-section resume-section" v-if="hasResumeContent">
               <h4 class="detail-section__title">投递简历</h4>
               <!-- 教育经历 -->
               <div class="resume-block" v-if="detailEducations.length > 0">
@@ -178,11 +177,12 @@
                   <div class="resume-block__desc" v-if="ac.description">{{ ac.description }}</div>
                 </div>
               </div>
-            </div>
+            </section>
+
             <!-- 状态流转历史 -->
-            <div class="detail-section" v-if="detail.statusHistory && detail.statusHistory.length > 0">
+            <section class="detail-section">
               <h4 class="detail-section__title">状态流转</h4>
-              <div class="timeline">
+              <div class="timeline" v-if="detail.statusHistory && detail.statusHistory.length > 0">
                 <div class="timeline-item" v-for="(item, idx) in detail.statusHistory" :key="idx">
                   <div class="timeline-item__dot" :class="idx === 0 ? 'timeline-item__dot--active' : ''"></div>
                   <div class="timeline-item__content">
@@ -192,15 +192,12 @@
                   </div>
                 </div>
               </div>
-            </div>
-            <!-- 无流转记录 -->
-            <div class="detail-section" v-else>
-              <h4 class="detail-section__title">状态流转</h4>
-              <p class="detail-empty">暂无状态变更记录</p>
-            </div>
-          </template>
+              <p class="detail-empty" v-else>暂无状态变更记录</p>
+            </section>
+          </div>
+
           <div class="message message--error" v-if="detailError">{{ detailError }}</div>
-        </div>
+        </aside>
       </div>
     </Transition>
   </div>
@@ -579,46 +576,63 @@ onMounted(() => {
   font-family: var(--font-mono);
 }
 
-/* ====== 弹窗 ====== */
-.modal-overlay {
+/* ====== 详情抽屉 ====== */
+.drawer-overlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
-  background: rgba(0, 0, 0, 0.65);
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  overflow-y: auto; /* 内容超高时整层可滚，避免卡片顶部被裁出视口 */
 }
-.modal-card {
+/* 右侧全高抽屉：顶部对齐 + 自身滚动，内容再多也不会顶出视口 */
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 560px;
+  max-width: 92vw;
   background: var(--bg-glass-strong);
   backdrop-filter: blur(var(--glass-blur-heavy));
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  width: 100%;
-  max-width: 760px;
-  max-height: 80vh;
-  overflow-y: auto;
-  margin: auto; /* flex 下正常垂直居中；内容超高时 auto margin 归零、顶部贴 0 不裁切 */
-  padding: 24px 28px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  border-left: 1px solid var(--color-border);
+  box-shadow: -16px 0 48px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
 }
-.modal-card__header {
+.drawer__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
-.modal-card__header h3 {
+.drawer__head-main {
+  min-width: 0;
+}
+.drawer__title {
   font-size: 18px;
   font-weight: 600;
   color: var(--color-text);
 }
-.modal-close {
-  width: 32px;
-  height: 32px;
+.drawer__job {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.drawer__head-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.drawer__close {
+  width: 34px;
+  height: 34px;
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
@@ -629,18 +643,34 @@ onMounted(() => {
   justify-content: center;
   transition: all 0.2s;
 }
-.modal-close:hover {
+.drawer__close:hover {
   border-color: var(--color-border);
   color: var(--color-text);
 }
+.drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 28px;
+  -webkit-overflow-scrolling: touch;
+}
 
-/* Modal 过渡 */
-.modal-enter-active { transition: all 0.25s ease; }
-.modal-leave-active { transition: all 0.2s ease; }
-.modal-enter-from { opacity: 0; }
-.modal-leave-to { opacity: 0; }
-.modal-enter-from .modal-card { transform: scale(0.95) translateY(10px); }
-.modal-leave-to .modal-card { transform: scale(0.95) translateY(10px); }
+/* Drawer 过渡：右侧滑入 */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: opacity 0.28s ease;
+}
+.drawer-enter-active .drawer,
+.drawer-leave-active .drawer {
+  transition: transform 0.28s ease;
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  opacity: 0;
+}
+.drawer-enter-from .drawer,
+.drawer-leave-to .drawer {
+  transform: translateX(100%);
+}
 
 /* 详情区块 */
 .detail-section {
@@ -806,10 +836,9 @@ onMounted(() => {
     width: 100%;
     justify-content: space-between;
   }
-  .modal-card {
+  .drawer {
+    width: 100%;
     max-width: 100%;
-    max-height: 90vh;
-    padding: 18px 16px;
   }
   .detail-grid {
     grid-template-columns: 1fr;
@@ -838,18 +867,12 @@ onMounted(() => {
     justify-content: space-between;
   }
 
-  /* 详情弹窗底部滑入 */
-  .modal-overlay {
-    align-items: flex-end;
-    padding: 0;
-  }
-  .modal-card {
-    border-radius: 16px 16px 0 0;
+  /* 详情抽屉触摸优化 */
+  .drawer {
+    width: 100%;
     max-width: 100%;
-    max-height: 90vh;
-    padding: 18px 16px;
   }
-  .modal-close {
+  .drawer__close {
     width: var(--touch-min);
     height: var(--touch-min);
   }
