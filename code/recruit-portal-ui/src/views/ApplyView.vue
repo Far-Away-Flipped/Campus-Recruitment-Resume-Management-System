@@ -152,6 +152,17 @@
             <option v-for="opt in sourceOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
         </div>
+        <!-- 渠道详情（选填）：字典项 remark 非空时显示，remark 即字段显示名称（如内推的内推人+部门） -->
+        <div class="form-group" v-if="detailFieldLabel">
+          <label class="form-label">{{ detailFieldLabel }}<span class="field-optional">（选填）</span></label>
+          <input
+            v-model="sourceDetail"
+            type="text"
+            class="form-input"
+            maxlength="64"
+            placeholder="如：张三/研发部"
+          />
+        </div>
         <p class="apply-notice">
           提交后信息无法撤回，请确认以上信息真实有效。虚假信息将取消应聘资格。
         </p>
@@ -190,7 +201,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/utils/axios';
 import { useDictStore } from '@/stores/dict';
@@ -229,6 +240,16 @@ const resumeFiles = ref([]);
 const selectedFileId = ref(null);
 const errorMsg = ref('');
 const toast = ref({ show: false, message: '' });
+
+// 渠道详情（选填，如内推的内推人+部门）：字典项 remark 非空 = 该渠道有详情字段，remark 即显示名称
+const sourceDetail = ref('');
+const selectedSource = computed(() => sourceOptions.value.find(o => o.value === source.value));
+const detailFieldLabel = computed(() => selectedSource.value?.remark || '');
+// 切到无详情字段的渠道时清空已填内容，避免误带到其他渠道提交
+watch(source, v => {
+  const opt = sourceOptions.value.find(o => o.value === v);
+  if (!opt?.remark) sourceDetail.value = '';
+});
 
 function formatDeadline(deadline) {
   if (!deadline) return '--';
@@ -331,6 +352,8 @@ async function handleApply() {
     const res = await api.post('/applications/submit', {
       jobId: String(route.params.jobId),
       source: source.value,
+      // 选填渠道详情：空/未配置详情字段的渠道不传（undefined 被 JSON.stringify 省略）
+      sourceDetail: sourceDetail.value.trim() || undefined,
       fileId: selectedFileId.value,
     });
     if (res.code === 200) {
@@ -599,6 +622,33 @@ onMounted(async () => {
   color: var(--color-text);
 }
 
+/* 渠道详情选填输入框（与 .form-select 同款规格） */
+.form-input {
+  width: 100%;
+  max-width: 320px;
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-input:focus {
+  border-color: var(--color-primary);
+}
+.form-input::placeholder {
+  color: var(--color-text-secondary);
+}
+.field-optional {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-left: 4px;
+}
+
 /* 投递提示 */
 .apply-notice {
   font-size: 13px;
@@ -719,6 +769,11 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
   .form-select {
+    max-width: 100%;
+    min-height: var(--input-min-h);
+    font-size: 16px;
+  }
+  .form-input {
     max-width: 100%;
     min-height: var(--input-min-h);
     font-size: 16px;

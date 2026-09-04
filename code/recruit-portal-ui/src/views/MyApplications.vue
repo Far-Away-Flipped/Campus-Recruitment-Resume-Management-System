@@ -120,6 +120,10 @@
                   <span class="detail-item__label">渠道来源</span>
                   <span class="detail-item__value">{{ detail.sourceLabel }}</span>
                 </div>
+                <div class="detail-item" v-if="detail.sourceDetail">
+                  <span class="detail-item__label">{{ sourceDetailLabel }}</span>
+                  <span class="detail-item__value">{{ detail.sourceDetail }}</span>
+                </div>
               </div>
             </section>
 
@@ -211,6 +215,9 @@ import { ref, computed, onMounted } from 'vue';
 import api from '@/utils/axios';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import { formatDegree } from '@/utils/location';
+import { useDictStore } from '@/stores/dict';
+
+const dictStore = useDictStore();
 
 const applications = ref([]);
 const loading = ref(true);
@@ -247,6 +254,9 @@ const detailEducations = computed(() => parseJsonList(detail.value?.snapshotEduc
 const detailInternships = computed(() => parseJsonList(detail.value?.snapshotInternships));
 const detailCertificates = computed(() => parseJsonList(detail.value?.snapshotCertificates));
 const detailActivities = computed(() => parseJsonList(detail.value?.snapshotActivities));
+/** 渠道详情字段显示名称：取 apply_source 字典项 remark（如内推的"内推人+部门"），未配置兜底"推荐人" */
+const sourceDetailLabel = computed(() =>
+  dictStore.optionsMap.apply_source?.find(o => o.value === detail.value?.source)?.remark || '推荐人');
 /** 投递简历区块是否展示（四类至少一类有内容；旧投递快照无三类经历则仅教育有值时也展示） */
 const hasResumeContent = computed(() =>
   detailEducations.value.length > 0 ||
@@ -349,6 +359,8 @@ function closeDetail() {
 
 onMounted(() => {
   fetchApplications();
+  // 渠道详情字段显示名称（apply_source 字典项 remark，非阻塞，就绪后详情标签自动刷新）
+  dictStore.ensureLoaded('apply_source');
 });
 </script>
 

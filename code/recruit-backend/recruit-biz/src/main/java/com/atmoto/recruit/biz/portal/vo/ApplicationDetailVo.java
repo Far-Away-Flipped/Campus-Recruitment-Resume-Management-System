@@ -42,6 +42,9 @@ public class ApplicationDetailVo {
     /** 渠道来源中文快照（投递时固化） */
     private String sourceLabel;
 
+    /** 渠道详情/推荐人（内推渠道填推荐人姓名） */
+    private String sourceDetail;
+
     /** 投递时间 */
     private LocalDateTime applyTime;
 

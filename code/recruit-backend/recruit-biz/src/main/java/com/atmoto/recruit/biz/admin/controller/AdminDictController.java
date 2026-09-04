@@ -42,6 +42,8 @@ public class AdminDictController {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("label", d.getDictLabel());
             m.put("value", d.getDictValue());
+            // 字典项备注：如 apply_source 用作该渠道选填详情字段的显示名称
+            m.put("remark", d.getRemark());
             return m;
         }).collect(Collectors.toList());
         return AjaxResult.success(options);

@@ -32,9 +32,10 @@ public interface ApplicationService {
      *
      * @param studentId 学生ID（来自 PortalUserHolder）
      * @param jobId     目标岗位ID
-     * @param source    渠道来源（默认 OFFICIAL_SITE）
-     * @param fileId    指定用作简历快照的附件ID（可空，不传则默认取第一条）
+     * @param source       渠道来源（默认 OFFICIAL_SITE）
+     * @param sourceDetail 渠道详情/推荐人（内推渠道填推荐人姓名，可空）
+     * @param fileId       指定用作简历快照的附件ID（可空，不传则默认取第一条）
      * @return 投递记录
      */
-    Application submitApplication(Long studentId, Long jobId, String source, Long fileId);
+    Application submitApplication(Long studentId, Long jobId, String source, String sourceDetail, Long fileId);
 }

@@ -63,7 +63,7 @@ public class ApplicationServiceImpl implements ApplicationService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Application submitApplication(Long studentId, Long jobId, String source, Long fileId) {
+    public Application submitApplication(Long studentId, Long jobId, String source, String sourceDetail, Long fileId) {
         // ═══════════════════════════════════════════
         // 校验 1：岗位存在且已发布且未截止
         // ═══════════════════════════════════════════
@@ -195,6 +195,11 @@ public class ApplicationServiceImpl implements ApplicationService {
         String[] sourceNorm = normalizeSource(source);
         application.setSource(sourceNorm[0]);
         application.setSourceLabel(sourceNorm[1]);
+        // 渠道详情/推荐人（内推）：trim 后非空才存，空/空白转 null
+        if (sourceDetail != null) {
+            String detail = sourceDetail.trim();
+            application.setSourceDetail(detail.isEmpty() ? null : detail);
+        }
         application.setApplyTime(LocalDateTime.now());
         // 筛选冗余字段
         application.setSnapshotName(profile.getName());

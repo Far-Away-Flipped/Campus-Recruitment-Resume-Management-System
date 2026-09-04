@@ -103,6 +103,7 @@
           <el-descriptions :column="2" border size="small">
             <el-descriptions-item label="投递岗位">{{ detail.jobTitle || '-' }}</el-descriptions-item>
             <el-descriptions-item label="来源渠道">{{ detail.sourceLabel || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="sourceDetailLabel" v-if="detail.sourceDetail">{{ detail.sourceDetail }}</el-descriptions-item>
             <el-descriptions-item label="投递时间">{{ detail.applyTime || '-' }}</el-descriptions-item>
             <el-descriptions-item label="筛选状态">
               <el-dropdown
@@ -212,9 +213,11 @@ import { ArrowDown } from '@element-plus/icons-vue';
 import request from '@/utils/request';
 import axios from 'axios';
 import { formatDegree } from '@/utils/location';
+import { useDictStore } from '@/stores/dict';
 
 const route = useRoute();
 const router = useRouter();
+const dictStore = useDictStore();
 
 const detail = reactive({
   snapshotName: '',
@@ -225,6 +228,8 @@ const detail = reactive({
   snapshotCity: '',
   jobTitle: '',
   source: '',
+  sourceLabel: '',
+  sourceDetail: '',
   applyTime: '',
   status: '',
   educations: [],
@@ -241,6 +246,10 @@ const activeAttachmentId = ref(null);
 const previewUrl = ref('');
 const previewLoading = ref(false);
 const loading = ref(false);
+
+/** 渠道详情字段显示名称：取 apply_source 字典项 remark（如内推的"内推人+部门"），未配置兜底"推荐人" */
+const sourceDetailLabel = computed(() =>
+  dictStore.optionsMap.apply_source?.find(o => o.value === detail.source)?.remark || '推荐人');
 
 /** 状态码 -> 中文标签 */
 const statusMap = {
@@ -417,6 +426,8 @@ async function handleAddRemark() {
 
 onMounted(() => {
   fetchDetail();
+  // 渠道详情字段显示名称（apply_source 字典项 remark，非阻塞，就绪后标签自动刷新）
+  dictStore.ensureLoaded('apply_source');
 });
 </script>
 

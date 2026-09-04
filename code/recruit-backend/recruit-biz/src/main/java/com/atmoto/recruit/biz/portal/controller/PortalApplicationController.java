@@ -48,7 +48,7 @@ public class PortalApplicationController {
     public AjaxResult submit(@Validated @RequestBody SubmitApplicationRequest request) {
         Long studentId = PortalUserHolder.get();
         Application application = applicationService.submitApplication(
-                studentId, request.getJobId(), request.getSource(), request.getFileId());
+                studentId, request.getJobId(), request.getSource(), request.getSourceDetail(), request.getFileId());
         return AjaxResult.success("投递成功", application.getApplicationId());
     }
 

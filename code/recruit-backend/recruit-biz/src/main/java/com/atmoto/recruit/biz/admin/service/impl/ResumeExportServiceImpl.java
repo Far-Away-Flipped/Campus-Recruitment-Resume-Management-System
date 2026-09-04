@@ -205,6 +205,8 @@ public class ResumeExportServiceImpl implements ResumeExportService {
             // 来源渠道：读投递时固化的中文快照；存量/异常时按字典或枚举兜底为中文，仍未知原码
             row.setSourceLabel(app.getSourceLabel() != null && !app.getSourceLabel().isBlank()
                     ? app.getSourceLabel() : sourceLabelFallback(app.getSource()));
+            // 推荐人（内推渠道填写的渠道详情）
+            row.setSourceDetail(app.getSourceDetail() != null ? app.getSourceDetail() : "");
 
             // 教育经历、实习/项目、技能/证书、社团经历 —— 从投递快照读（改造前老快照无实习/技能/社团列为空，教育快照自始即有）
             if (app.getCurrentSnapshotId() != null) {
@@ -528,6 +530,9 @@ public class ResumeExportServiceImpl implements ResumeExportService {
 
         @ExcelProperty(value = "教育经历(全部)", index = 12)
         private String educations;
+
+        @ExcelProperty(value = "推荐人", index = 13)
+        private String sourceDetail;
     }
 
     // ── 内部类：Header水印处理器 ──
