@@ -133,54 +133,70 @@
               <!-- 教育经历 -->
               <div class="resume-block" v-if="detailEducations.length > 0">
                 <div class="resume-block__label">教育经历</div>
-                <div class="resume-block__item" v-for="(edu, i) in detailEducations" :key="'edu' + i">
-                  <div class="resume-block__line">
-                    <span class="resume-block__main">{{ edu.schoolName || '--' }}</span>
-                    <span v-if="edu.major" class="resume-block__tag">{{ edu.major }}</span>
-                    <span v-if="edu.degree" class="resume-block__tag">{{ formatDegree(edu.degree) }}</span>
+                <div class="exp-card-list">
+                  <div class="exp-card" v-for="(edu, i) in detailEducations" :key="'edu' + i">
+                    <div class="exp-card__head">
+                      <span class="exp-card__title">{{ edu.schoolName || '--' }}</span>
+                      <span class="exp-card__tags" v-if="edu.major || edu.degree">
+                        <span v-if="edu.major" class="exp-card__tag exp-card__tag--edu">{{ edu.major }}</span>
+                        <span v-if="edu.degree" class="exp-card__tag exp-card__tag--edu">{{ formatDegree(edu.degree) }}</span>
+                      </span>
+                    </div>
+                    <div class="exp-card__sub" v-if="edu.startDate || edu.endDate">
+                      {{ edu.startDate || '?' }} ~ {{ edu.endDate || '至今' }}
+                    </div>
+                    <div class="exp-card__desc" v-if="edu.gpa">GPA：{{ edu.gpa }}</div>
                   </div>
-                  <div class="resume-block__sub" v-if="edu.startDate || edu.endDate">
-                    {{ edu.startDate || '?' }} ~ {{ edu.endDate || '至今' }}
-                  </div>
-                  <div class="resume-block__desc" v-if="edu.gpa">GPA：{{ edu.gpa }}</div>
                 </div>
               </div>
               <!-- 实习/项目经历 -->
               <div class="resume-block" v-if="detailInternships.length > 0">
                 <div class="resume-block__label">实习/项目经历</div>
-                <div class="resume-block__item" v-for="(it, i) in detailInternships" :key="'it' + i">
-                  <div class="resume-block__line">
-                    <span class="resume-block__main">{{ it.orgName || '--' }}</span>
-                    <span class="resume-block__tag">{{ internTypeLabel(it.recordType) }}</span>
-                    <span v-if="it.position" class="resume-block__tag">{{ it.position }}</span>
+                <div class="exp-card-list">
+                  <div class="exp-card" v-for="(it, i) in detailInternships" :key="'it' + i">
+                    <div class="exp-card__head">
+                      <span class="exp-card__title">{{ it.orgName || '--' }}</span>
+                      <span class="exp-card__tags" v-if="it.recordType || it.position">
+                        <span class="exp-card__tag exp-card__tag--intern">{{ internTypeLabel(it.recordType) }}</span>
+                        <span v-if="it.position" class="exp-card__tag exp-card__tag--intern">{{ it.position }}</span>
+                      </span>
+                    </div>
+                    <div class="exp-card__sub" v-if="it.startDate || it.endDate">
+                      {{ it.startDate || '?' }} ~ {{ it.endDate || '至今' }}
+                    </div>
+                    <div class="exp-card__desc" v-if="it.description">{{ it.description }}</div>
                   </div>
-                  <div class="resume-block__sub" v-if="it.startDate || it.endDate">
-                    {{ it.startDate || '?' }} ~ {{ it.endDate || '至今' }}
-                  </div>
-                  <div class="resume-block__desc" v-if="it.description">{{ it.description }}</div>
                 </div>
               </div>
               <!-- 技能/证书/语言能力 -->
               <div class="resume-block" v-if="detailCertificates.length > 0">
                 <div class="resume-block__label">技能证书/语言能力</div>
-                <div class="resume-block__item" v-for="(ct, i) in detailCertificates" :key="'ct' + i">
-                  <div class="resume-block__line">
-                    <span class="resume-block__main">{{ ct.certName || '--' }}</span>
-                    <span class="resume-block__tag">{{ certTypeLabel(ct.certType) }}</span>
-                    <span v-if="ct.certLevel" class="resume-block__tag">{{ ct.certLevel }}</span>
+                <div class="exp-card-list">
+                  <div class="exp-card" v-for="(ct, i) in detailCertificates" :key="'ct' + i">
+                    <div class="exp-card__head">
+                      <span class="exp-card__title">{{ ct.certName || '--' }}</span>
+                      <span class="exp-card__tags" v-if="ct.certType || ct.certLevel">
+                        <span class="exp-card__tag exp-card__tag--cert">{{ certTypeLabel(ct.certType) }}</span>
+                        <span v-if="ct.certLevel" class="exp-card__tag exp-card__tag--cert">{{ ct.certLevel }}</span>
+                      </span>
+                    </div>
+                    <div class="exp-card__desc" v-if="ct.description">{{ ct.description }}</div>
                   </div>
-                  <div class="resume-block__desc" v-if="ct.description">{{ ct.description }}</div>
                 </div>
               </div>
               <!-- 社团/校园经历 -->
               <div class="resume-block" v-if="detailActivities.length > 0">
                 <div class="resume-block__label">社团/校园经历</div>
-                <div class="resume-block__item" v-for="(ac, i) in detailActivities" :key="'ac' + i">
-                  <div class="resume-block__line">
-                    <span class="resume-block__main">{{ ac.orgName || '--' }}</span>
-                    <span v-if="ac.position" class="resume-block__tag">{{ ac.position }}</span>
+                <div class="exp-card-list">
+                  <div class="exp-card" v-for="(ac, i) in detailActivities" :key="'ac' + i">
+                    <div class="exp-card__head">
+                      <span class="exp-card__title">{{ ac.orgName || '--' }}</span>
+                      <span class="exp-card__tags" v-if="ac.position">
+                        <span class="exp-card__tag exp-card__tag--activity">{{ ac.position }}</span>
+                      </span>
+                    </div>
+                    <div class="exp-card__desc" v-if="ac.description">{{ ac.description }}</div>
                   </div>
-                  <div class="resume-block__desc" v-if="ac.description">{{ ac.description }}</div>
                 </div>
               </div>
             </section>
@@ -793,43 +809,64 @@ onMounted(() => {
   font-weight: 600;
   color: #6E7D8A;
   letter-spacing: 1px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
-.resume-block__item {
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+
+/* 经历卡片：每条经历一张玻璃卡片（风格对齐 ProfileExtraView 的 list-item） */
+.exp-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.resume-block__item:last-child {
-  border-bottom: none;
+.exp-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  backdrop-filter: blur(var(--glass-blur));
+  transition: border-color 0.2s;
 }
-.resume-block__line {
+.exp-card:hover {
+  border-color: rgba(95, 184, 214, 0.4);
+}
+.exp-card__head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   flex-wrap: wrap;
-  gap: 6px;
 }
-.resume-block__main {
-  font-size: 13px;
+.exp-card__title {
+  font-size: 14px;
+  font-weight: 600;
   color: var(--color-text);
-  font-weight: 500;
 }
-.resume-block__tag {
+.exp-card__tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.exp-card__tag {
   font-size: 11px;
-  color: #5FB8D6;
-  background: rgba(95, 184, 214, 0.12);
+  padding: 2px 8px;
   border-radius: 4px;
-  padding: 1px 6px;
+  white-space: nowrap;
 }
-.resume-block__sub {
+/* 四类经历徽标分色：教育青 / 实习绿 / 技能黄 / 社团紫 */
+.exp-card__tag--edu { color: #5FB8D6; background: rgba(95, 184, 214, 0.12); }
+.exp-card__tag--intern { color: #5FB88D; background: rgba(95, 184, 141, 0.12); }
+.exp-card__tag--cert { color: #E8A33D; background: rgba(232, 163, 61, 0.12); }
+.exp-card__tag--activity { color: #A78BFA; background: rgba(167, 139, 250, 0.12); }
+.exp-card__sub {
   font-size: 12px;
   color: var(--color-text-secondary);
-  margin-top: 2px;
+  margin-top: 6px;
 }
-.resume-block__desc {
+.exp-card__desc {
   font-size: 12px;
   color: #6E7D8A;
-  margin-top: 2px;
-  line-height: 1.5;
+  margin-top: 6px;
+  line-height: 1.6;
   word-break: break-all;
 }
 
