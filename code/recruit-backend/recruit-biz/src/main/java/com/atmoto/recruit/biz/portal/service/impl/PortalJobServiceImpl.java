@@ -94,7 +94,8 @@ public class PortalJobServiceImpl implements PortalJobService {
             wrapper.eq("degree_requirement", jobPosition.getDegreeRequirement());
         }
 
-        // 按创建时间降序排列
+        // 展示排序优先（sort_order 越大越靠前），权重相同按创建时间降序（新岗靠前）
+        wrapper.orderByDesc("sort_order");
         wrapper.orderByDesc("create_time");
 
         jobPositionMapper.selectPage(page, wrapper);

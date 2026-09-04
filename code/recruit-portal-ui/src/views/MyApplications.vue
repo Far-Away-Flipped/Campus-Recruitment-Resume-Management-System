@@ -109,7 +109,7 @@
               <h4 class="detail-section__title">投递信息</h4>
               <div class="detail-grid">
                 <div class="detail-item">
-                  <span class="detail-item__label">所属部门</span>
+                  <span class="detail-item__label">投递部门</span>
                   <span class="detail-item__value">{{ detail.company || '--' }}</span>
                 </div>
                 <div class="detail-item">

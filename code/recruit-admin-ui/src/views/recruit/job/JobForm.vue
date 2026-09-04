@@ -80,6 +80,11 @@
           />
         </el-form-item>
 
+        <el-form-item label="展示排序">
+          <el-input-number v-model="form.sortOrder" :min="0" :max="999" style="width: 140px;" />
+          <div class="form-item-tip">数值越大，门户展示越靠前；相同则新发布的靠前</div>
+        </el-form-item>
+
         <el-form-item label="标签">
           <el-input-tag v-model="form.tags" placeholder="输入标签后回车添加，如：急聘、Java" max="10" />
         </el-form-item>
@@ -145,6 +150,8 @@ const form = reactive({
   location: [],
   degreeRequirement: '',
   deadline: '',
+  // 展示排序权重（0-999，越大越靠前）；必须在此声明，fetchDetail 按 key 回填，漏声明会丢存量值
+  sortOrder: 0,
   tags: [],
   description: '',
   requirement: '',
@@ -328,6 +335,13 @@ async function applyTemplate() {
 .job-form-page {
   max-width: 800px;
   margin: 0 auto;
+}
+
+.form-item-tip {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
+  margin-left: 12px;
 }
 
 .form-header {

@@ -67,7 +67,8 @@
         </el-table-column>
         <el-table-column prop="deadline" label="截止日期" width="120" sortable="custom" />
         <el-table-column prop="applicationCount" label="投递数" width="90" align="center" />
-        <el-table-column label="操作" width="260" fixed="right">
+        <el-table-column prop="sortOrder" label="展示排序" width="90" align="center" />
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="$router.push(`/recruit/jobs/${row.jobId}/edit`)">
               编辑
@@ -232,7 +233,7 @@ onMounted(() => {
 
 <style scoped>
 .job-list-page {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 

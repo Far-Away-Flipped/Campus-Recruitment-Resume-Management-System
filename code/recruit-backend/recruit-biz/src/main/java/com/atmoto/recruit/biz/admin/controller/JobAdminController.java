@@ -143,6 +143,12 @@ public class JobAdminController {
             Integer.parseInt(body.get("headcount").toString()) : 1;
         if (headcount <= 0) return AjaxResult.error("招聘人数必须大于0");
 
+        // 展示排序校验：0-999，非法/缺省按 0
+        Integer sortOrder = intg(body, "sortOrder");
+        if (sortOrder != null && (sortOrder < 0 || sortOrder > 999)) {
+            return AjaxResult.error("展示排序须在 0-999 之间");
+        }
+
         JobPosition jobPosition = new JobPosition();
         jobPosition.setTitle(title);
         jobPosition.setDeptId(deptId);
@@ -155,6 +161,7 @@ public class JobAdminController {
         jobPosition.setDeadline(deadline);
         jobPosition.setStatus("DRAFT");
         jobPosition.setHeadcount(headcount);
+        jobPosition.setSortOrder(sortOrder != null ? sortOrder : 0);
 
         int rows = jobPositionService.insertJob(jobPosition);
         return rows > 0 ? AjaxResult.success("创建成功", Map.of("jobId", jobPosition.getJobId())) : AjaxResult.error("新增岗位失败");
@@ -172,6 +179,12 @@ public class JobAdminController {
         String requirement = str(body, "requirement");
         String tags = tags(body);
         String status = str(body, "status");
+
+        // 展示排序校验：0-999；缺省 null → 不更新存量权重
+        Integer sortOrder = intg(body, "sortOrder");
+        if (sortOrder != null && (sortOrder < 0 || sortOrder > 999)) {
+            return AjaxResult.error("展示排序须在 0-999 之间");
+        }
 
         if (jobId == null) return AjaxResult.error("岗位ID不能为空");
         if (title == null || title.isBlank()) return AjaxResult.error("岗位名称不能为空");
@@ -204,6 +217,7 @@ public class JobAdminController {
         // EXPIRED 为实时派生态（不持久化），编辑不接受写回 EXPIRED（保存草稿传 DRAFT 仍生效）
         if (status != null && !JobStatus.EXPIRED.getCode().equals(status)) update.setStatus(status);
         if (deadline != null) update.setDeadline(deadline);
+        if (sortOrder != null) update.setSortOrder(sortOrder);
 
         int rows = jobPositionService.updateJob(update);
         return rows > 0 ? AjaxResult.success("修改岗位成功") : AjaxResult.error("修改岗位失败");
@@ -315,5 +329,12 @@ public class JobAdminController {
         if (v == null) return null;
         if (v instanceof Number) return ((Number) v).longValue();
         try { return Long.parseLong(v.toString()); } catch (NumberFormatException e) { return null; }
+    }
+    /** Integer 取参：兼容 JSON number 与字符串；非法返回 null（调用方按缺省处理，避免 500） */
+    private Integer intg(Map<String, Object> body, String key) {
+        Object v = body.get(key);
+        if (v == null) return null;
+        if (v instanceof Number) return ((Number) v).intValue();
+        try { return Integer.parseInt(v.toString().trim()); } catch (NumberFormatException e) { return null; }
     }
 }
