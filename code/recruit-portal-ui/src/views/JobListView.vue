@@ -289,7 +289,9 @@
                 {{ formatDegree(job.degreeRequirement) || '本科及以上' }}
               </span>
             </div>
-            <p class="job-card__desc">{{ truncateText(job.description, 120) }}</p>
+            <div class="job-card__desc">
+              <p v-for="(line, i) in summarizeLines(job.description, 3, 40)" :key="i">{{ line }}</p>
+            </div>
           </article>
         </div>
 
@@ -345,6 +347,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/utils/axios';
 import { formatLoc, formatDegree, parseTags } from '@/utils/location';
+import { summarizeLines } from '@/utils/text';
 import { onMediaChange, MOBILE_QUERY } from '@/utils/media';
 import { lockBodyScroll, unlockBodyScroll, resetBodyScroll, scrollToTop } from '@/utils/scroll-lock';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
@@ -586,12 +589,6 @@ function formatDeadline(deadline) {
   if (diff === 0) return '今日截止';
   if (diff <= 7) return `${diff}天后截止`;
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} 截止`;
-}
-
-function truncateText(text, len) {
-  if (!text) return '';
-  const plain = text.replace(/<[^>]+>/g, '');
-  return plain.length > len ? plain.slice(0, len) + '...' : plain;
 }
 
 // ---- 点击外部关闭下拉 ----
@@ -946,10 +943,14 @@ onUnmounted(() => {
   color: #6E7D8A;
   flex-shrink: 0;
 }
+/* 卡片岗位职责摘要：按序号分段逐行展示（分段的由来见 utils/text.js） */
 .job-card__desc {
   font-size: 13px;
   color: #6E7D8A;
   line-height: 1.7;
+}
+.job-card__desc p {
+  margin: 0;
 }
 
 /* ====== 空态 ====== */

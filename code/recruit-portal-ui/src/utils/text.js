@@ -38,3 +38,24 @@ export function splitNumberedLines(text) {
   }
   return out;
 }
+
+/**
+ * 卡片摘要用：拆段后只保留前若干段，超出部分收成省略号。
+ * 段落之间会换行展示，所以这里按「段」而不是按字符总数控制长度，
+ * 避免把一条条目从中间切断。
+ *
+ * @param {string} text 原始文本
+ * @param {number} maxLines 最多展示几段
+ * @param {number} maxCharsPerLine 每段最多多少字符
+ * @returns {string[]} 展示用文本行
+ */
+export function summarizeLines(text, maxLines = 3, maxCharsPerLine = 40) {
+  const lines = splitNumberedLines(text);
+  const shown = lines.slice(0, maxLines).map((line) =>
+    line.length > maxCharsPerLine ? `${line.slice(0, maxCharsPerLine)}…` : line
+  );
+  if (lines.length > maxLines && shown.length > 0) {
+    shown[shown.length - 1] = `${shown[shown.length - 1].replace(/…$/, '')} …`;
+  }
+  return shown;
+}
