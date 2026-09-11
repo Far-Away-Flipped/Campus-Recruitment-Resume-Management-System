@@ -1,0 +1,38 @@
+# syntax=docker/dockerfile:1
+# ============================================================
+# 后端镜像 —— 离线复用版（registry 不可达时的替代构建路径）
+#
+# 适用场景：本机/内网访问 Docker Hub 或其镜像源超时（例如国内镜像源返回
+# 403/429 导致 `docker compose build backend` 长时间卡在
+# `FROM eclipse-temurin:17-jre`），但本地**已有**一个旧版后端镜像。
+#
+# 原理：旧后端镜像里已经装好了运行时的全部依赖
+#   - eclipse-temurin 17 JRE (/opt/java/openjdk)
+#   - LibreOffice（Word/DOCX → PDF 预览）
+#   - fonts-noto-cjk（验证码、简历渲染的中文字体）
+# 因此直接以它为基底层，只替换应用 jar，全程不访问任何 registry。
+#
+# 前置：先产出 jar（宿主机无 JDK/Maven 时用容器构建），再拷到本目录
+#   docker run --rm \
+#     -v "<repo>/code/recruit-backend":/src \
+#     -v atmoto-m2:/root/.m2/repository \
+#     -w /src maven:3.9-eclipse-temurin-17 \
+#     mvn -B -DskipTests package
+#   cp code/recruit-backend/recruit-admin/target/recruit-admin.jar deploy/backend/
+#
+#   （必须拷出来：根 .dockerignore 排除了 target/，jar 无法直接从 target 拷入构建上下文。
+#     根 .gitignore 已全局忽略 *.jar，所以暂存在这里不会误提交。）
+#
+# 构建（在仓库根目录执行）：
+#   docker build -f deploy/backend/Dockerfile.offline -t atmoto/recruit-backend:latest .
+#
+# ⚠️ 与标准流程的关系：deploy/backend/Dockerfile 才是正式构建路径。
+# 本文件只是在 registry 不可用时的应急通道；网络恢复后应重新执行
+# `docker compose build backend` 以回到标准产物（否则镜像的构建历史与
+# 基线不一致，后续升级/审计会对不上）。
+# ============================================================
+
+FROM atmoto/recruit-backend:latest
+
+# 只替换应用，不动已装好的运行时依赖
+COPY deploy/backend/recruit-admin.jar /app/recruit-admin.jar

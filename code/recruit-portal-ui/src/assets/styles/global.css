@@ -28,8 +28,13 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   filter: brightness(1.35);
 }
 
-.app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+/* 视口高度：100vh 在 iOS Safari 取的是"大视口"（含地址栏），首屏会被顶出可视区。
+   先声明 vh 作旧浏览器回退，再用 dvh 覆盖（支持的浏览器认后者）。 */
+.app-shell { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 .main-content { flex: 1; }
+
+/* 防图片撑破窄屏（后端富文本 / 头像等） */
+img { max-width: 100%; height: auto; }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
@@ -38,7 +43,10 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 @media (max-width: 767px) {
   body { font-size: 16px; -webkit-text-size-adjust: 100%; }
   :root { --container-px: 16px; }
+  /* 输入类控件最小高度：兼顾 iOS 聚焦缩放（字号另由各页面设 16px） */
   input, select, textarea { min-height: var(--input-min-h); }
+  /* 勾选类控件必须排除，否则被上面的规则拉成 48px 高 */
+  input[type="checkbox"], input[type="radio"] { min-height: 0; }
   button, .btn-submit, .btn-primary, .btn-ghost {
     min-height: var(--touch-min); min-width: var(--touch-min);
   }
@@ -47,6 +55,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     opacity: 0.7;
     transition: opacity 0.05s ease;
   }
+}
+
+/* 玻璃态兜底：不支持 backdrop-filter 的浏览器（老 iOS / 部分安卓 WebView）
+   var(--bg-glass) 只有 55% 不透明度，没有模糊时文字会糊，这里换成实心底 */
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  .glass, .glass-card { background: var(--color-card); }
+  .glass-light { background: rgba(21, 37, 53, 0.9); }
+  .glass-heavy { background: var(--color-bg); }
 }
 
 /* 系统动效降级 */
@@ -133,12 +149,12 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* ===== 科幻全息：玻璃态 ===== */
-.glass          { background: var(--bg-glass); backdrop-filter: blur(var(--glass-blur)); }
-.glass-light    { background: var(--bg-trans); backdrop-filter: blur(6px) saturate(120%); }
-.glass-heavy    { background: var(--bg-glass-strong); backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%); }
+.glass          { background: var(--bg-glass); -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); }
+.glass-light    { background: var(--bg-trans); -webkit-backdrop-filter: blur(6px) saturate(120%); backdrop-filter: blur(6px) saturate(120%); }
+.glass-heavy    { background: var(--bg-glass-strong); -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%); backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%); }
 .glass-card {
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-glow-md);

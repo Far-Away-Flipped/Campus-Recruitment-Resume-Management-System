@@ -92,6 +92,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/auth.js';
+import { onMediaChange, MOBILE_QUERY } from '../utils/media.js';
+import { lockBodyScroll, unlockBodyScroll, resetBodyScroll } from '../utils/scroll-lock.js';
 import api from '../utils/axios.js';
 const auth = useAuthStore();
 
@@ -101,7 +103,7 @@ const isMobile = ref(false);
 const drawerOpen = ref(false);
 
 function checkMobile() {
-  isMobile.value = window.matchMedia('(max-width: 767px)').matches;
+  isMobile.value = window.matchMedia(MOBILE_QUERY).matches;
   if (!isMobile.value && drawerOpen.value) {
     closeDrawer();
   }
@@ -110,15 +112,15 @@ function checkMobile() {
 function toggleDrawer() {
   drawerOpen.value = !drawerOpen.value;
   if (drawerOpen.value) {
-    document.body.style.overflow = 'hidden';
+    lockBodyScroll();
   } else {
-    document.body.style.overflow = '';
+    unlockBodyScroll();
   }
 }
 
 function closeDrawer() {
   drawerOpen.value = false;
-  document.body.style.overflow = '';
+  unlockBodyScroll();
 }
 
 function onKeydown(e) {
@@ -137,8 +139,9 @@ async function loadUnreadCount() {
 // 初始化
 checkMobile();
 
-const mediaQuery = window.matchMedia('(max-width: 767px)');
-mediaQuery.addEventListener('change', checkMobile);
+// 用共享 helper：iOS ≤13 的 MediaQueryList 没有 addEventListener，只有 addListener
+const mediaQuery = window.matchMedia(MOBILE_QUERY);
+const offMediaChange = onMediaChange(mediaQuery, checkMobile);
 
 onMounted(() => {
   document.addEventListener('keydown', onKeydown);
@@ -146,9 +149,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  mediaQuery.removeEventListener('change', checkMobile);
+  offMediaChange();
   document.removeEventListener('keydown', onKeydown);
-  document.body.style.overflow = '';
+  resetBodyScroll();
 });
 </script>
 
@@ -157,7 +160,7 @@ onUnmounted(() => {
 .portal-header {
   background: var(--bg-glass-strong);
   border-bottom: 1px solid var(--color-border);
-  backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%); backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
   box-shadow: 0 1px 0 rgba(95, 184, 214, 0.25), 0 6px 20px rgba(0, 0, 0, 0.4);
   position: sticky;
   top: 0;

@@ -11,6 +11,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import { onMediaChange } from '../utils/media.js';
 
 // ---- 响应式画布状态 ----
 let w = 0;
@@ -153,17 +154,19 @@ function syncState() {
 
 function onMobileChange() { syncState(); }
 function onReduceChange() { syncState(); }
+let offMobile = () => {};
+let offReduce = () => {};
 
 onMounted(() => {
-  mqMobile.addEventListener('change', onMobileChange);
-  mqReduce.addEventListener('change', onReduceChange);
+  offMobile = onMediaChange(mqMobile, onMobileChange);
+  offReduce = onMediaChange(mqReduce, onReduceChange);
   window.addEventListener('resize', resize);
   syncState();
 });
 
 onUnmounted(() => {
-  mqMobile.removeEventListener('change', onMobileChange);
-  mqReduce.removeEventListener('change', onReduceChange);
+  offMobile();
+  offReduce();
   window.removeEventListener('resize', resize);
   stopLoop();
 });

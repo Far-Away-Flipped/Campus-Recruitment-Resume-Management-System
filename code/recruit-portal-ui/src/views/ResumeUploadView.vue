@@ -124,7 +124,8 @@
       </div>
     </div>
 
-    <!-- PDF 预览弹窗 -->
+    <!-- PDF 预览弹窗（Teleport 到 body：避免被祖先 transform 变成包含块，导致弹窗定位到页面盒子外） -->
+    <Teleport to="body">
     <Transition name="modal">
       <div class="modal-overlay" v-if="previewVisible" @click.self="closePreview">
         <div class="modal-card modal-card--wide">
@@ -145,14 +146,18 @@
         </div>
       </div>
     </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import api from '@/utils/axios';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
+import { needsNativePdfHandoff } from '@/utils/media';
+import { lockBodyScroll, unlockBodyScroll, resetBodyScroll } from '@/utils/scroll-lock';
+import { formatDateTime } from '@/utils/date';
 
 const fileInput = ref(null);
 const dragOver = ref(false);
@@ -209,10 +214,7 @@ function formatSize(bytes) {
 }
 
 function formatTime(timeStr) {
-  if (!timeStr) return '-';
-  const d = new Date(timeStr);
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatDateTime(timeStr);
 }
 
 function triggerUpload() {
@@ -283,18 +285,52 @@ async function fetchFiles() {
   }
 }
 
+/** 申请一次性预览 ticket（用后即焚，60s 有效，URL 里不带 token） */
+async function fetchPreviewTicket(fileId) {
+  const res = await api.post(`/files/${fileId}/ticket`);
+  const ticket = res.data?.ticket;
+  if (!ticket) throw new Error('未获取到预览凭证');
+  return ticket;
+}
+
+/** 用一次性 ticket 打开后端真实 URL：交系统 PDF 阅读器 / 下载器处理 */
+function openTicketUrl(ticket, download, fileName) {
+  const url = `/api/portal/files/preview?ticket=${encodeURIComponent(ticket)}`
+    + (download ? '&download=1' : '');
+  const a = document.createElement('a');
+  a.href = url;
+  // 预览走当前标签页：iOS Safari 会把"取完 ticket 后的异步新开标签"当弹窗拦掉，
+  // 同页导航不会被拦，用户看完用返回手势即可回到列表。
+  // 下载带 download 属性，走的是下载而非弹窗，保留新标签不影响。
+  a.target = download ? '_blank' : '_self';
+  a.rel = 'noopener';
+  if (download) a.download = fileName || '';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 /** 内嵌 PDF 预览 -- 通过 fetch 带 Authorization header 获取文件 blob，生成 blob URL 供 iframe 使用 */
 async function previewFile(f) {
+  errorMsg.value = '';
+
+  // 手机 / iOS：iframe 渲染不了 PDF，blob URL 在 Safari 17.2+ 又被来源分区 →
+  // 改用一次性 ticket 打开真实 URL，由系统阅读器接管
+  if (needsNativePdfHandoff()) {
+    try {
+      openTicketUrl(await fetchPreviewTicket(f.id), false);
+    } catch (e) {
+      errorMsg.value = e.response?.data?.msg || '打开预览失败，请稍后重试';
+    }
+    return;
+  }
+
   previewVisible.value = true;
   previewFileName.value = f.originalName;
   previewLoading.value = true;
   previewError.value = '';
   previewUrl.value = '';
-
-  // 释放之前的 blob URL
-  if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
-    URL.revokeObjectURL(previewUrl.value);
-  }
+  lockBodyScroll();
 
   try {
     const token = localStorage.getItem('access_token');
@@ -319,11 +355,16 @@ function closePreview() {
   previewUrl.value = '';
   previewFileName.value = '';
   previewError.value = '';
+  unlockBodyScroll();
 }
 
-function downloadFile(f) {
-  // 触发文件下载
-  window.open(`/api/portal/files/${f.id}/download`, '_blank');
+async function downloadFile(f) {
+  errorMsg.value = '';
+  try {
+    openTicketUrl(await fetchPreviewTicket(f.id), true, f.originalName);
+  } catch (e) {
+    errorMsg.value = e.response?.data?.msg || '下载失败，请稍后重试';
+  }
 }
 
 async function deleteFile(f) {
@@ -342,6 +383,13 @@ async function deleteFile(f) {
 
 onMounted(() => {
   fetchFiles();
+});
+
+onUnmounted(() => {
+  resetBodyScroll();
+  if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
+    URL.revokeObjectURL(previewUrl.value);
+  }
 });
 </script>
 
@@ -483,7 +531,7 @@ onMounted(() => {
   gap: 16px;
   padding: 16px 20px;
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   margin-bottom: 8px;
@@ -637,10 +685,12 @@ onMounted(() => {
   .modal-card--wide {
     max-width: 100%;
     max-height: 90vh;
+    max-height: 90dvh;
     padding: 18px 16px;
   }
   .preview-frame {
     height: 60vh;
+    height: 60dvh;
   }
 }
 
@@ -688,7 +738,7 @@ onMounted(() => {
   inset: 0;
   z-index: 200;
   background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -696,12 +746,13 @@ onMounted(() => {
 }
 .modal-card {
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)); backdrop-filter: blur(var(--glass-blur-heavy));
   border: 1px solid var(--color-border);
   border-radius: 12px;
   width: 100%;
   max-width: 560px;
   max-height: 80vh;
+  max-height: 80dvh;
   overflow-y: auto;
   padding: 24px 28px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
@@ -755,6 +806,7 @@ onMounted(() => {
 .preview-frame {
   width: 100%;
   height: 70vh;
+  height: 70dvh;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: #fff;
@@ -809,15 +861,18 @@ onMounted(() => {
     border-radius: 16px 16px 0 0;
     max-width: 100%;
     max-height: 90vh;
+    max-height: 90dvh;
     padding: 18px 16px;
   }
   .modal-card--wide {
     border-radius: 16px 16px 0 0;
     max-width: 100%;
     max-height: 90vh;
+    max-height: 90dvh;
   }
   .preview-frame {
     height: 60vh;
+    height: 60dvh;
   }
   .modal-close {
     width: var(--touch-min);

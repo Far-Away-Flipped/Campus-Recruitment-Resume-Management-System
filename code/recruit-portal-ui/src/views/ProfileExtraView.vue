@@ -33,7 +33,8 @@
       <p class="empty-hint">点击上方按钮添加</p>
     </div>
 
-    <!-- 新增/编辑弹窗 -->
+    <!-- 新增/编辑弹窗（Teleport 到 body：祖先 transform 会让 fixed 定位失效，弹窗跑到屏幕外） -->
+    <Teleport to="body">
     <div class="modal-overlay" v-if="showModal" @click.self="closeModal">
       <div class="modal">
         <h3 class="modal-title">{{ isEdit ? '编辑' : '新增' }}{{ itemLabel }}</h3>
@@ -117,15 +118,17 @@
         </form>
       </div>
     </div>
+    </Teleport>
 
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../utils/axios.js';
 import LoadingSpinner from '../components/LoadingSpinner.vue';
+import { lockBodyScroll, unlockBodyScroll, resetBodyScroll } from '../utils/scroll-lock.js';
 
 const props = defineProps({
   type: { type: String, required: true } // 'internship' | 'certificate' | 'activity'
@@ -295,6 +298,14 @@ async function handleDelete(id) {
 }
 
 onMounted(loadItems);
+
+// 弹窗打开时锁背景滚动（移动端否则会在弹窗后面跟着滚）
+watch(showModal, (open) => {
+  if (open) lockBodyScroll();
+  else unlockBodyScroll();
+});
+
+onUnmounted(resetBodyScroll);
 </script>
 
 <style scoped>
@@ -318,7 +329,7 @@ onMounted(loadItems);
 .list-item {
   display: flex; align-items: flex-start; justify-content: space-between;
   background: var(--bg-glass); border: 1px solid var(--color-border);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border-radius: 8px; padding: 16px 20px; gap: 16px;
 }
 .list-item__info { flex: 1; min-width: 0; }
@@ -343,7 +354,7 @@ onMounted(loadItems);
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal { background: var(--bg-glass-strong); backdrop-filter: blur(var(--glass-blur-heavy)); border: 1px solid var(--color-border); border-radius: 12px; padding: 28px; width: 90%; max-width: 520px; max-height: 80vh; overflow-y: auto; }
+.modal { background: var(--bg-glass-strong); -webkit-backdrop-filter: blur(var(--glass-blur-heavy)); backdrop-filter: blur(var(--glass-blur-heavy)); border: 1px solid var(--color-border); border-radius: 12px; padding: 28px; width: 90%; max-width: 520px; max-height: 80vh; overflow-y: auto; }
 .modal-title { font-size: 18px; margin-bottom: 20px; color: var(--color-text); }
 .form-group { margin-bottom: 14px; }
 .form-group label { display: block; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; }
@@ -403,6 +414,7 @@ onMounted(loadItems);
     width: 100%;
     max-width: 100%;
     max-height: 85vh;
+    max-height: 85dvh;
     padding: 24px 20px;
   }
 

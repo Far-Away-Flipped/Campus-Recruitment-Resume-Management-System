@@ -2,6 +2,7 @@ package com.atmoto.recruit.biz.portal.controller;
 
 import com.atmoto.recruit.biz.common.domain.ResumeFile;
 import com.atmoto.recruit.biz.common.mapper.ResumeFileMapper;
+import com.atmoto.recruit.biz.common.service.PreviewTicketService;
 import com.atmoto.recruit.biz.file.DocumentConversionService;
 import com.atmoto.recruit.biz.file.FileValidator;
 import com.atmoto.recruit.common.enums.ErrorCode;
@@ -9,6 +10,7 @@ import com.atmoto.recruit.common.exception.BizException;
 import com.atmoto.recruit.framework.security.context.PortalUserHolder;
 import com.atmoto.recruit.common.core.domain.AjaxResult;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -42,6 +45,7 @@ public class PortalFileController {
 
     private final ResumeFileMapper resumeFileMapper;
     private final DocumentConversionService conversionService;
+    private final PreviewTicketService previewTicketService;
 
     @Value("${file.upload-root}")
     private String uploadRoot;
@@ -159,6 +163,7 @@ public class PortalFileController {
 
     /**
      * 预览简历附件（鉴权返回文件流）
+     * <p>仅桌面端使用：手机浏览器无法在 iframe 里渲染 PDF，走下面的 ticket 方案。</p>
      */
     @GetMapping("/{id}/preview")
     public ResponseEntity<Resource> preview(@PathVariable Long id) {
@@ -210,5 +215,55 @@ public class PortalFileController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "inline; filename=\"" + file.getOriginalName() + "\"")
                 .body(resource);
+    }
+
+    // ────────── 一次性 ticket 预览 / 下载（移动端） ──────────
+
+    /**
+     * 为本人简历附件签发一次性预览/下载 ticket
+     * <p>
+     * 为什么需要它：手机浏览器（尤其 iOS Safari）无法在页内 iframe 渲染 PDF，
+     * 且新标签页请求带不上 Authorization 头。改为签发一次性 ticket，前端用真实 URL
+     * 打开 {@code /api/portal/files/preview?ticket=xxx}，交给系统 PDF 阅读器处理。
+     * 安全模型与 HR 端 /api/common/file/preview 完全一致（一次性、60s、用后即焚）。
+     * </p>
+     */
+    @PostMapping("/{id}/ticket")
+    public AjaxResult createPreviewTicket(@PathVariable Long id) {
+        Long studentId = PortalUserHolder.get();
+        if (studentId == null) {
+            throw new BizException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // 越权保护：只能为自己名下的文件签发
+        ResumeFile file = resumeFileMapper.selectOne(
+                new LambdaQueryWrapper<ResumeFile>()
+                        .eq(ResumeFile::getId, id)
+                        .eq(ResumeFile::getStudentId, studentId));
+        if (file == null) {
+            throw new BizException(ErrorCode.FILE_NOT_FOUND);
+        }
+
+        // 提前确认磁盘文件存在，让"文件已被清理"这类错误在页面内暴露，
+        // 而不是等用户跳到新标签页才看到一个 JSON 报错
+        previewTicketService.resolveExistingFile(file);
+
+        String ticket = previewTicketService.issue(id);
+        log.info("学生端签发附件预览ticket：studentId={}, fileId={}", studentId, id);
+        return AjaxResult.success(Map.of("ticket", ticket));
+    }
+
+    /**
+     * 凭一次性 ticket 返回文件流
+     * <p>SecurityConfig 中为 permitAll —— ticket 即凭证，URL 中不携带 token。</p>
+     *
+     * @param download true=作为附件下载，false=内联预览
+     */
+    @GetMapping("/preview")
+    public void previewByTicket(@RequestParam("ticket") String ticket,
+                                @RequestParam(value = "download", required = false, defaultValue = "false")
+                                boolean download,
+                                HttpServletResponse response) {
+        previewTicketService.consumeAndStream(ticket, response, download);
     }
 }

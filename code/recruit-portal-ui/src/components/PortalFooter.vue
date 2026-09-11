@@ -30,7 +30,7 @@
   z-index: 1;
   background: var(--bg-glass-strong);
   border-top: 1px solid var(--color-border);
-  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)); backdrop-filter: blur(var(--glass-blur-heavy));
   box-shadow: 0 -1px 0 rgba(95, 184, 214, 0.25);
   padding: 40px 0 24px;
   margin-top: auto;
@@ -115,10 +115,33 @@
     padding: 0 16px;
   }
   .portal-footer {
-    padding: 28px 0 20px;
+    /* 底部避开 iPhone home indicator 区域 */
+    padding: 28px 0 calc(20px + env(safe-area-inset-bottom, 0px));
   }
   .footer-brand {
     align-items: center;
+  }
+  /* 链接行撑到 44px 触摸目标（原 13px 字号仅约 19px 高，手机上极易误点） */
+  .footer-links a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--touch-min);
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+  .footer-contact p {
+    font-size: 14px;
+  }
+  .footer-contact a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-min);
+  }
+  .footer-icp {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-min);
   }
 }
 </style>

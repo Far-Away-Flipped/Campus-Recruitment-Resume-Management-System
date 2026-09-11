@@ -22,6 +22,7 @@
   justify-content: center;
   align-items: center;
   min-height: calc(100vh - 200px);
+  min-height: calc(100dvh - 200px);
   padding: 40px 24px;
 }
 
@@ -29,7 +30,7 @@
   text-align: center;
   max-width: 480px;
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 48px 40px;

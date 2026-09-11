@@ -66,7 +66,10 @@ public class SecurityConfig {
                     "/api/portal/jobs/**",
                     "/api/portal/brand/**",
                     "/api/portal/dict/**",
-                    "/api/portal/profile/avatar/**"
+                    "/api/portal/profile/avatar/**",
+                    // 附件一次性 ticket 预览/下载 —— 新标签页带不上 Authorization 头，
+                    // 只能凭 ticket 鉴权（一次性、60s、用后即焚，与 HR 端 ticket 同源）
+                    "/api/portal/files/preview"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

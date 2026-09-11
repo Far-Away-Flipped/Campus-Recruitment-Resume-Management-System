@@ -96,7 +96,9 @@
                 </span>
                 岗位职责
               </h2>
-              <div class="detail-section__content" v-html="job.description"></div>
+              <div class="detail-section__content">
+                <p v-for="(line, i) in descriptionLines" :key="i">{{ line }}</p>
+              </div>
             </section>
 
             <!-- 任职要求 -->
@@ -107,7 +109,9 @@
                 </span>
                 任职要求
               </h2>
-              <div class="detail-section__content" v-html="job.requirement"></div>
+              <div class="detail-section__content">
+                <p v-for="(line, i) in requirementLines" :key="i">{{ line }}</p>
+              </div>
             </section>
           </div>
 
@@ -185,6 +189,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/utils/axios';
 import { formatLoc, formatDegree, parseTags } from '@/utils/location';
+import { splitNumberedLines } from '@/utils/text';
+import { formatDate as formatDateOnly } from '@/utils/date';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
@@ -244,11 +250,16 @@ function goToLogin() {
   router.push({ path: '/login', query: { redirect: route.fullPath } });
 }
 
+// ---- 岗位描述 / 任职要求：按行渲染 ----
+// 换行在入库时就被 Jsoup.clean() 折叠掉了（见 utils/text.js 说明），
+// 这里按换行 + 序号标记反推分段。
+const descriptionLines = computed(() => splitNumberedLines(job.value?.description));
+const requirementLines = computed(() => splitNumberedLines(job.value?.requirement));
+
 // ---- 工具函数 ----
+// Safari 无法解析后端 'yyyy-MM-dd HH:mm:ss' 格式（会得到 NaN-NaN-NaN），统一走 parseDateTime
 function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return formatDateOnly(dateStr, '');
 }
 
 // ---- 获取岗位详情 ----
@@ -361,7 +372,7 @@ onUnmounted(() => {
   gap: 8px;
   padding: 12px 16px;
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border-radius: 8px;
   border: 1px solid rgba(95, 184, 214, 0.1);
 }
@@ -426,38 +437,25 @@ onUnmounted(() => {
   color: #5FB8D6;
 }
 
-/* 富文本内容区（v-html 渲染后端富文本） */
+/* 岗位职责 / 任职要求正文
+   内容来自 HR 后台的纯文本 textarea；换行在**后端入库时**就被 Jsoup.clean() 折叠掉了
+   （见 utils/text.js 的说明），所以前端按「换行 + 序号标记」拆成 <p> 逐段渲染。
+   注意：这里不能再用 v-html —— 它会把 HR 输入的 <...> 当 HTML 执行，
+   而后端对这两个字段不做转义，等于给门户开注入点。 */
 .detail-section__content {
   color: #9CA3AF;
   font-size: 15px;
   line-height: 1.9;
+  overflow-wrap: anywhere;    /* 超长 URL / 连续字符不撑破窄屏 */
+  overflow-x: auto;
 }
-/* 富文本内元素样式重置 */
-.detail-section__content :deep(h1),
-.detail-section__content :deep(h2),
-.detail-section__content :deep(h3),
-.detail-section__content :deep(h4) {
-  color: #fff;
-  margin: 20px 0 12px;
-  font-weight: 600;
+.detail-section__content p {
+  margin: 0 0 10px;
 }
-.detail-section__content :deep(h3) { font-size: 17px; }
-.detail-section__content :deep(h4) { font-size: 15px; }
-.detail-section__content :deep(p) {
-  margin-bottom: 12px;
+.detail-section__content p:last-child {
+  margin-bottom: 0;
 }
-.detail-section__content :deep(ul),
-.detail-section__content :deep(ol) {
-  padding-left: 20px;
-  margin-bottom: 12px;
-}
-.detail-section__content :deep(li) {
-  margin-bottom: 6px;
-}
-.detail-section__content :deep(strong) {
-  color: #ddd;
-  font-weight: 600;
-}
+
 .detail-section__content :deep(a) {
   color: #5FB8D6;
   text-decoration: none;
@@ -493,7 +491,7 @@ onUnmounted(() => {
 }
 .apply-card {
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%); backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
   border: 1px solid rgba(95, 184, 214, 0.15);
   border-radius: 12px;
   padding: 32px 24px;
@@ -528,7 +526,7 @@ onUnmounted(() => {
   margin-bottom: 24px;
   padding: 16px;
   background: var(--bg-trans);
-  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   border-radius: 8px;
   border: 1px solid rgba(95, 184, 214, 0.1);
 }
@@ -742,17 +740,28 @@ onUnmounted(() => {
   .detail-meta {
     grid-template-columns: 1fr;
   }
+  .detail-layout {
+    /* 必须改成块级流：grid 下投递条是网格项，sticky 的包含块只有它自己那块网格区域，
+       没有位移空间，sticky 会完全失效。块级流下它的包含块是整个 detail-layout（很高），
+       才能"滚动中吸底、滚到页底归位到内容末尾"。 */
+    display: block;
+    padding-bottom: 0;
+  }
   .detail-sidebar {
-    position: fixed;
+    /* 不能用 position: fixed —— .main-content(z-index:1) 与 .portal-footer(z-index:1)
+       同级、页脚在后，fixed 元素会被页脚盖住（就是"隐藏到页脚后面"）。
+       改成 sticky：滚动时吸在视口底部，滚到页底归位到内容末尾，自然落在页脚上方。
+       并取消 ≤1024 的 order:-1，否则它会被排到正文上方。 */
+    order: 0;
+    margin-top: 24px;
+    position: sticky;
     bottom: 0;
-    left: 0;
-    right: 0;
     z-index: 90;
     background: rgba(10, 14, 23, 0.95);
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     border-top: 1px solid var(--color-border);
     padding: 12px 16px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 16px));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 12px));
   }
   .apply-card {
     flex-direction: row;
@@ -770,9 +779,6 @@ onUnmounted(() => {
   .apply-card__btn {
     flex: 1;
     min-height: var(--touch-min);
-  }
-  .detail-layout {
-    padding-bottom: 80px;
   }
   .detail-header {
     flex-direction: column;

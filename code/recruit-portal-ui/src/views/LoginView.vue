@@ -452,12 +452,13 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   min-height: calc(100vh - 200px);
+  min-height: calc(100dvh - 200px);
   padding: 40px 24px;
 }
 
 .form-card {
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%); backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 40px;
@@ -729,6 +730,23 @@ onUnmounted(() => {
     width: 100%;
     height: 48px;
     object-fit: contain;
+  }
+  /* 短信行同样需要堆叠：375px 以下（iPhone SE 等）输入框 + 按钮会横向溢出 */
+  .sms-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .btn-sms {
+    width: 100%;
+    min-height: var(--input-min-h);
+  }
+  /* "忘记密码？" 这类 13px 小链接触摸目标需撑到 44px */
+  .form-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-min);
+    font-size: 14px;
   }
 }
 </style>

@@ -150,7 +150,7 @@
               @keyup.enter="handleSearch"
             />
           </div>
-          <button class="filter-bar__filter-btn" @click="showFilterSheet = true">
+          <button class="filter-bar__filter-btn" @click="openFilterSheet()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="8" x2="20" y2="8"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
             筛选
             <span class="filter-bar__filter-badge" v-if="activeFilterCount > 0">{{ activeFilterCount }}</span>
@@ -345,6 +345,8 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/utils/axios';
 import { formatLoc, formatDegree, parseTags } from '@/utils/location';
+import { onMediaChange, MOBILE_QUERY } from '@/utils/media';
+import { lockBodyScroll, unlockBodyScroll, resetBodyScroll, scrollToTop } from '@/utils/scroll-lock';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 
 const router = useRouter();
@@ -354,11 +356,17 @@ const isMobile = ref(false);
 const showFilterSheet = ref(false);
 
 function checkMobile() {
-  isMobile.value = window.matchMedia('(max-width: 767px)').matches;
+  isMobile.value = window.matchMedia(MOBILE_QUERY).matches;
+}
+
+function openFilterSheet() {
+  showFilterSheet.value = true;
+  lockBodyScroll();
 }
 
 function closeFilterSheet() {
   showFilterSheet.value = false;
+  unlockBodyScroll();
 }
 
 // ---- 筛选条件 ----
@@ -521,8 +529,8 @@ function goToPage(page) {
   if (page < 1 || page > totalPages.value) return;
   pagination.pageNum = page;
   fetchJobs();
-  // 滚动到顶部
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // 滚动到顶部（Safari 旧版不支持 ScrollToOptions，见 scrollToTop 注释）
+  scrollToTop(true);
 }
 
 async function fetchJobs() {
@@ -594,16 +602,20 @@ function onDocumentClick(e) {
 }
 
 // ---- 生命周期 ----
+let offMediaChange = () => {};
+
 onMounted(async () => {
   checkMobile();
-  const mediaQuery = window.matchMedia('(max-width: 767px)');
-  mediaQuery.addEventListener('change', checkMobile);
+  // 共享 helper：iOS ≤13 的 MediaQueryList 没有 addEventListener
+  offMediaChange = onMediaChange(window.matchMedia(MOBILE_QUERY), checkMobile);
   document.addEventListener('click', onDocumentClick);
   await Promise.all([fetchJobs(), fetchFilterOptions()]);
 });
 
 onUnmounted(() => {
+  offMediaChange();
   document.removeEventListener('click', onDocumentClick);
+  resetBodyScroll();
 });
 </script>
 
@@ -682,7 +694,7 @@ onUnmounted(() => {
   width: 100%;
   padding: 10px 12px 10px 36px;
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid rgba(95, 184, 214, 0.15);
   border-radius: 8px;
   color: #fff;
@@ -697,6 +709,13 @@ onUnmounted(() => {
 .filter-bar__search-input:focus {
   border-color: #5FB8D6;
 }
+/* 移动端搜索框字号必须 ≥16px，否则 iOS Safari 聚焦时自动放大页面且不缩回 */
+@media (max-width: 767px) {
+  .filter-bar__search-input {
+    font-size: 16px;
+    min-height: var(--input-min-h);
+  }
+}
 
 /* 自定义下拉选择器 */
 .filter-bar__select-wrapper {
@@ -708,7 +727,7 @@ onUnmounted(() => {
   gap: 6px;
   padding: 10px 14px;
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid rgba(95, 184, 214, 0.15);
   border-radius: 8px;
   color: #9CA3AF;
@@ -732,7 +751,7 @@ onUnmounted(() => {
   max-height: 280px;
   overflow-y: auto;
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)); backdrop-filter: blur(var(--glass-blur-heavy));
   border: 1px solid rgba(95, 184, 214, 0.2);
   border-radius: 8px;
   padding: 6px 0;
@@ -865,7 +884,7 @@ onUnmounted(() => {
 /* 岗位卡片 — 玻璃态 + 光锥旋转边框（sys-card-conic-glow 处理 hover） */
 .job-card {
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border-radius: 12px;
   padding: 28px;
   border: 1px solid rgba(95, 184, 214, 0.1);
@@ -967,7 +986,7 @@ onUnmounted(() => {
   gap: 6px;
   padding: 8px 16px;
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid rgba(95, 184, 214, 0.12);
   border-radius: 8px;
   color: #9CA3AF;
@@ -1035,7 +1054,7 @@ onUnmounted(() => {
   min-height: 48px;
   padding: 0 16px;
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   color: var(--color-text-secondary);
@@ -1075,9 +1094,11 @@ onUnmounted(() => {
 }
 .filter-sheet {
   width: 100%;
+  /* vh 在 iOS Safari 取的是含地址栏的大视口，面板底部按钮会被顶出可视区；dvh 跟随可视区 */
   max-height: 70vh;
+  max-height: 70dvh;
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)); backdrop-filter: blur(var(--glass-blur-heavy));
   border-radius: 16px 16px 0 0;
   display: flex;
   flex-direction: column;
@@ -1089,6 +1110,7 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;                 /* 面板被压缩时头尾不参与收缩 */
 }
 .filter-sheet__header h3 {
   font-size: 17px;
@@ -1108,7 +1130,9 @@ onUnmounted(() => {
 }
 .filter-sheet__body {
   flex: 1;
+  min-height: 0;                  /* flex 子项默认 min-height:auto，不置 0 会把面板撑破 */
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
@@ -1150,6 +1174,7 @@ onUnmounted(() => {
   gap: 12px;
   padding: 16px 20px;
   border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 .filter-sheet__btn {
   flex: 1;

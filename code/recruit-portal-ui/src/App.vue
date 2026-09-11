@@ -20,7 +20,7 @@ import PortalFooter from './components/PortalFooter.vue';
 </script>
 
 <style scoped>
-.app-shell { position: relative; min-height: 100vh; display: flex; flex-direction: column; }
+.app-shell { position: relative; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 .main-content {
   flex: 1;
   position: relative;

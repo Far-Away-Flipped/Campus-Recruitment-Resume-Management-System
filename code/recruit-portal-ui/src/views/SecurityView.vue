@@ -173,7 +173,7 @@ async function handleSubmit() {
 /* 卡片 */
 .security-card {
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 32px;

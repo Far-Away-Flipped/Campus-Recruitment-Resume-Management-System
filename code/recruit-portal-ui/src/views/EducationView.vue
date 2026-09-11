@@ -53,7 +53,8 @@
       </div>
     </div>
 
-    <!-- 新增/编辑弹窗 -->
+    <!-- 新增/编辑弹窗（Teleport 到 body：祖先 transform 会让 fixed 定位失效，弹窗跑到屏幕外） -->
+    <Teleport to="body">
     <div class="dialog-overlay" v-if="dialogVisible" @click.self="closeDialog">
       <div class="dialog-card">
         <h2 class="dialog-title">{{ editingId ? '编辑教育经历' : '新增教育经历' }}</h2>
@@ -124,12 +125,14 @@
         </form>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
 import api from '../utils/axios.js';
+import { lockBodyScroll, unlockBodyScroll, resetBodyScroll } from '../utils/scroll-lock.js';
 import LoadingSpinner from '../components/LoadingSpinner.vue';
 
 // --- 列表状态 ---
@@ -294,6 +297,14 @@ onMounted(() => {
   loadDegreeOptions();
   loadList();
 });
+
+// 弹窗打开时锁背景滚动（移动端否则会在弹窗后面跟着滚）
+watch(dialogVisible, (open) => {
+  if (open) lockBodyScroll();
+  else unlockBodyScroll();
+});
+
+onUnmounted(resetBodyScroll);
 </script>
 
 <style scoped>
@@ -366,7 +377,7 @@ onMounted(() => {
 }
 .edu-card {
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 24px;
@@ -472,7 +483,7 @@ onMounted(() => {
   inset: 0;
   z-index: 200;
   background: rgba(10, 14, 23, 0.75);
-  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -480,13 +491,14 @@ onMounted(() => {
 }
 .dialog-card {
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)); backdrop-filter: blur(var(--glass-blur-heavy));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 32px;
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
 }
 .dialog-title {
@@ -647,6 +659,7 @@ onMounted(() => {
     border-radius: 16px 16px 0 0;
     max-width: 100%;
     max-height: 85vh;
+    max-height: 85dvh;
     padding: 24px 20px;
   }
 
@@ -660,9 +673,16 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
-  /* 弹窗按钮 */
+  /* 弹窗按钮：取消在上、保存在下（贴近拇指），并吸在弹窗底部常驻可见 */
   .dialog-buttons {
-    flex-direction: column-reverse;
+    flex-direction: column;
+    position: sticky;
+    bottom: 0;
+    padding-top: 12px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--bg-glass-strong);
+    -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+    backdrop-filter: blur(var(--glass-blur-heavy));
   }
   .btn-cancel,
   .btn-submit {
@@ -670,6 +690,8 @@ onMounted(() => {
     min-height: var(--touch-min);
     text-align: center;
     justify-content: center;
+    order: 0;
   }
+  .btn-submit { order: 1; }
 }
 </style>

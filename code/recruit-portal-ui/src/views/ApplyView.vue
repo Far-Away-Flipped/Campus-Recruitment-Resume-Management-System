@@ -190,13 +190,15 @@
       </div>
     </template>
 
-    <!-- Toast 提示 -->
+    <!-- Toast 提示（Teleport 到 body：祖先 transform 会让 fixed 定位漂移到页面盒子里） -->
+    <Teleport to="body">
     <Transition name="toast">
       <div class="toast" v-if="toast.show">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         {{ toast.message }}
       </div>
     </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -439,7 +441,7 @@ onMounted(async () => {
 /* 区块卡片 */
 .section-card {
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 24px 28px;
@@ -754,7 +756,8 @@ onMounted(async () => {
 /* 响应式 */
 @media (max-width: 767px) {
   .apply-page {
-    padding: 24px 16px 100px;
+    /* 底部留出固定提交按钮的高度 + iPhone 安全区 */
+    padding: 24px 16px calc(100px + env(safe-area-inset-bottom, 0px));
   }
   .page-title {
     font-size: 24px;
@@ -787,6 +790,8 @@ onMounted(async () => {
     right: 0;
     z-index: 90;
     border-radius: 0;
+    /* 避开 iPhone 底部 home indicator */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .file-radio-item {
     padding: 14px 16px;

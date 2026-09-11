@@ -443,16 +443,24 @@ onMounted(() => {
   justify-content: space-between;
   gap: 20px;
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 18px 22px;
   cursor: pointer;
   transition: all 0.2s;
 }
-.app-card:hover {
-  border-color: rgba(95, 184, 214, 0.5);
-  transform: translateX(4px);
+/* 悬停位移只在真正支持 hover 的设备生效：
+   触屏上 :hover 会在点击后"卡住"，卡片永久偏移 4px */
+@media (hover: hover) and (pointer: fine) {
+  .app-card:hover {
+    border-color: rgba(95, 184, 214, 0.5);
+    transform: translateX(4px);
+  }
+  .app-card:hover .app-card__chevron {
+    transform: translateX(3px);
+    color: var(--color-primary);
+  }
 }
 .app-card__main {
   flex: 1;
@@ -494,10 +502,6 @@ onMounted(() => {
 .app-card__chevron {
   color: var(--color-text-secondary);
   transition: transform 0.2s;
-}
-.app-card:hover .app-card__chevron {
-  transform: translateX(3px);
-  color: var(--color-primary);
 }
 
 /* 状态标签 */
@@ -613,7 +617,7 @@ onMounted(() => {
   inset: 0;
   z-index: 300;
   background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
 }
 /* 右侧全高抽屉：顶部对齐 + 自身滚动，内容再多也不会顶出视口 */
 .drawer {
@@ -624,7 +628,7 @@ onMounted(() => {
   width: 560px;
   max-width: 92vw;
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)); backdrop-filter: blur(var(--glass-blur-heavy));
   border-left: 1px solid var(--color-border);
   box-shadow: -16px 0 48px rgba(0, 0, 0, 0.5);
   display: flex;
@@ -823,7 +827,7 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 14px 16px;
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   transition: border-color 0.2s;
 }
 .exp-card:hover {

@@ -278,7 +278,7 @@
 /* 内容卡片 */
 .privacy-card {
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 36px 40px;

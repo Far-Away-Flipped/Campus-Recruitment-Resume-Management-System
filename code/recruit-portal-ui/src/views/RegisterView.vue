@@ -345,12 +345,13 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   min-height: calc(100vh - 200px);
+  min-height: calc(100dvh - 200px);
   padding: 40px 24px;
 }
 
 .form-card {
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%); backdrop-filter: blur(var(--glass-blur-heavy)) saturate(150%);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 40px;
@@ -633,6 +634,23 @@ onUnmounted(() => {
   .checkbox-label input[type="checkbox"] {
     width: 20px;
     height: 20px;
+  }
+  /* 短信行堆叠：窄屏下输入框 + 按钮并排会溢出 */
+  .sms-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .btn-sms {
+    width: 100%;
+    min-height: var(--input-min-h);
+  }
+  /* 「《隐私政策》」是注册同意的入口，触摸目标不能只有 18px 高 */
+  .checkbox-text .form-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-min);
+    font-size: 14px;
   }
 }
 </style>

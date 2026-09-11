@@ -2,69 +2,30 @@
   <div class="profile-page" v-motion-fade="{ y: 24 }">
     <h1 class="page-title">个人中心</h1>
 
-    <!-- ===== 持久化 Tab 导航栏 ===== -->
-    <div class="tabs-scroll">
+    <!-- ===== 桌面端：横向 Tab 导航栏 ===== -->
+    <div class="tabs-scroll" v-if="!isMobile">
       <div class="tabs" ref="tabsRef">
-        <a
-          class="tab"
-          :class="{ 'tab--active': isBasicOrPrivacyTab && !localPrivacyActive }"
-          data-tab="home"
-          @click.prevent="switchToBasic"
-          href="#"
-        >
-          基本资料
-        </a>
-        <router-link
-          to="/profile/education"
-          class="tab"
-          :class="{ 'tab--active': routeName === 'education' }"
-        >
-          教育经历
-        </router-link>
-        <router-link
-          to="/profile/resume"
-          class="tab"
-          :class="{ 'tab--active': routeName === 'resume' }"
-        >
-          简历附件
-        </router-link>
-        <router-link
-          to="/profile/internship"
-          class="tab"
-          :class="{ 'tab--active': routeName === 'internship' }"
-        >
-          实习/项目
-        </router-link>
-        <router-link
-          to="/profile/certificate"
-          class="tab"
-          :class="{ 'tab--active': routeName === 'certificate' }"
-        >
-          技能证书
-        </router-link>
-        <router-link
-          to="/profile/activity"
-          class="tab"
-          :class="{ 'tab--active': routeName === 'activity' }"
-        >
-          社团经历
-        </router-link>
-        <a
-          class="tab"
-          :class="{ 'tab--active': localPrivacyActive }"
-          data-tab="privacy"
-          @click.prevent="switchToPrivacy"
-          href="#"
-        >
-          隐私设置
-        </a>
-        <router-link
-          to="/profile/security"
-          class="tab"
-          :class="{ 'tab--active': routeName === 'security' }"
-        >
-          账号安全
-        </router-link>
+        <template v-for="t in tabs" :key="t.key">
+          <router-link
+            v-if="t.to"
+            :to="t.to"
+            class="tab"
+            :class="{ 'tab--active': activeTabKey === t.key }"
+            :data-tab="t.key"
+          >
+            {{ t.label }}
+          </router-link>
+          <button
+            v-else
+            type="button"
+            class="tab"
+            :class="{ 'tab--active': activeTabKey === t.key }"
+            :data-tab="t.key"
+            @click="selectLocalTab(t.key)"
+          >
+            {{ t.label }}
+          </button>
+        </template>
 
         <!-- Active 指示器 -->
         <div
@@ -73,6 +34,79 @@
         ></div>
       </div>
     </div>
+
+    <!-- ===== 移动端：栏目侧边浮框 =====
+         横向 tab 条在 375px 上要左右滑动才能看到后半段；这里改成一条「当前栏目」触发条，
+         点击从右侧滑出一个浮层选栏目。行样式沿用 PortalHeader 抽屉导航的语言。 -->
+    <button
+      v-else
+      type="button"
+      class="pmenu__trigger"
+      aria-haspopup="true"
+      @click="menuOpen = true"
+    >
+      <svg class="pmenu__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path v-for="(d, i) in activeTab.paths" :key="i" :d="d" />
+      </svg>
+      <span class="pmenu__current">{{ activeTab.label }}</span>
+      <span class="pmenu__switch">切换栏目</span>
+      <svg class="pmenu__caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 6 15 12 9 18" />
+      </svg>
+    </button>
+
+    <!-- 侧边浮框（Teleport 到 body：祖先 transform 会让 fixed 定位失效） -->
+    <Teleport to="body">
+      <Transition name="pframe-fade">
+        <div v-if="menuOpen" class="pframe__overlay" @click="menuOpen = false"></div>
+      </Transition>
+      <Transition name="pframe-slide">
+        <aside v-if="menuOpen" class="pframe" role="menu" @click.stop>
+          <div class="pframe__head">
+            <span class="pframe__title">个人中心</span>
+            <button type="button" class="pframe__close" aria-label="关闭" @click="menuOpen = false">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+          <nav class="pframe__nav">
+            <template v-for="t in tabs" :key="t.key">
+              <router-link
+                v-if="t.to"
+                :to="t.to"
+                class="pframe__item"
+                :class="{ 'pframe__item--active': activeTabKey === t.key }"
+                @click="menuOpen = false"
+              >
+                <svg class="pmenu__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path v-for="(d, i) in t.paths" :key="i" :d="d" />
+                </svg>
+                <span class="pframe__label">{{ t.label }}</span>
+                <svg v-if="activeTabKey === t.key" class="pframe__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </router-link>
+              <button
+                v-else
+                type="button"
+                class="pframe__item"
+                :class="{ 'pframe__item--active': activeTabKey === t.key }"
+                @click="selectLocalTab(t.key)"
+              >
+                <svg class="pmenu__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path v-for="(d, i) in t.paths" :key="i" :d="d" />
+                </svg>
+                <span class="pframe__label">{{ t.label }}</span>
+                <svg v-if="activeTabKey === t.key" class="pframe__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+            </template>
+          </nav>
+        </aside>
+      </Transition>
+    </Teleport>
 
     <!-- 加载中 -->
     <LoadingSpinner :visible="loading" text="加载个人信息..." />
@@ -269,10 +303,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../utils/axios.js';
 import LoadingSpinner from '../components/LoadingSpinner.vue';
+import { scrollToTop, lockBodyScroll, unlockBodyScroll, resetBodyScroll } from '../utils/scroll-lock.js';
+import { onMediaChange, MOBILE_QUERY } from '../utils/media.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -301,9 +337,79 @@ const showChildRoute = computed(() => {
     routeName.value && routeName.value !== 'profile' && routeName.value !== 'profile-home';
 });
 
-// 基本资料/隐私设置 Tab 是否 active
-const isBasicOrPrivacyTab = computed(() => {
-  return routeName.value === 'profile' || routeName.value === 'profile-home' || !routeName.value;
+// ===== 栏目定义：桌面 tab 条与移动端子菜单共用同一份数据 =====
+// （文案只写一处，避免两个断点各维护一份而逐渐写歪）
+// to 为空 => 本地状态切换（不产生路由跳转）；paths 为 24×24 描边图标的 path 数据
+const tabs = [
+  {
+    key: 'home', label: '基本资料',
+    paths: ['M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2', 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+  },
+  {
+    key: 'education', label: '教育经历', to: '/profile/education',
+    paths: ['M4 19.5A2.5 2.5 0 0 1 6.5 17H20', 'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'],
+  },
+  {
+    key: 'resume', label: '简历附件', to: '/profile/resume',
+    paths: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', 'M14 2v6h6', 'M16 13H8', 'M16 17H8'],
+  },
+  {
+    key: 'internship', label: '实习/项目', to: '/profile/internship',
+    paths: ['M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z', 'M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16'],
+  },
+  {
+    key: 'certificate', label: '技能证书', to: '/profile/certificate',
+    paths: ['M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 'M8.21 13.89L7 23l5-3 5 3-1.21-9.12'],
+  },
+  {
+    key: 'activity', label: '社团经历', to: '/profile/activity',
+    paths: ['M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M23 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
+  },
+  {
+    key: 'privacy', label: '隐私设置',
+    paths: ['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'],
+  },
+  {
+    key: 'security', label: '账号安全', to: '/profile/security',
+    paths: ['M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z', 'M7 11V7a5 5 0 0 1 10 0v4'],
+  },
+];
+
+// 当前栏目（本地状态优先，其余按路由名匹配）
+const activeTabKey = computed(() => {
+  if (localPrivacyActive.value) return 'privacy';
+  const name = routeName.value;
+  if (!name || name === 'profile' || name === 'profile-home') return 'home';
+  return tabs.some((t) => t.key === name) ? name : 'home';
+});
+const activeTab = computed(
+  () => tabs.find((t) => t.key === activeTabKey.value) || tabs[0]
+);
+
+// ===== 移动端栏目侧边浮框 =====
+// 横向 tab 条在窄屏要左右滑动才能看到后半段，移动端改为「触发条 + 右侧浮框」。
+// setup 期同步取值，避免首帧先渲染出 tab 条再切换（闪一下）。
+const mqMobile = window.matchMedia(MOBILE_QUERY);
+const isMobile = ref(mqMobile.matches);
+const menuOpen = ref(false);
+let offMediaChange = () => {};
+
+/** 点击本地状态类栏目（基本资料 / 隐私设置） */
+function selectLocalTab(key) {
+  menuOpen.value = false;
+  if (key === 'privacy') switchToPrivacy();
+  else switchToBasic();
+}
+
+/** Esc 关闭浮框（点遮罩关闭由模板处理） */
+function onKeydown(e) {
+  if (e.key === 'Escape' && menuOpen.value) menuOpen.value = false;
+}
+
+// 浮框打开时锁背景滚动（移动端否则会在浮层后面跟着滚）
+watch(menuOpen, (open) => {
+  if (open) lockBodyScroll();
+  else unlockBodyScroll();
 });
 
 // 指示器位置
@@ -328,27 +434,15 @@ function switchToBasic() {
   nextTick(updateIndicator);
 }
 
-/** 更新指示器位置 + 自动滚动到可见 */
+/** 更新指示器位置 + 自动滚动到可见（仅桌面 tab 条；移动端走折叠菜单） */
 function updateIndicator() {
-  if (!tabsRef.value) return;
-  const selector = localPrivacyActive.value
-    ? '[data-tab="privacy"]'
-    : routeName.value === 'profile' || routeName.value === 'profile-home' || !routeName.value
-      ? '[data-tab="home"]'
-      : `.tab--active`;
-  const activeEl = tabsRef.value.querySelector(selector);
+  if (isMobile.value || !tabsRef.value) return;
+  const activeEl = tabsRef.value.querySelector(`[data-tab="${activeTabKey.value}"]`);
   if (!activeEl) return;
 
-  // offsetLeft 相对于 offsetParent，需补偿横向滚动偏移（移动端）
-  const scrollContainer = tabsRef.value.parentElement; // .tabs-scroll
-  const scrollOffset = scrollContainer ? scrollContainer.scrollLeft : 0;
-  indicatorLeft.value = activeEl.offsetLeft - scrollOffset;
+  // offsetLeft 相对于 offsetParent
+  indicatorLeft.value = activeEl.offsetLeft;
   indicatorWidth.value = activeEl.offsetWidth;
-
-  // 移动端自动滚动到视野中央
-  if (window.innerWidth <= 767) {
-    activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  }
 }
 
 // 路由变化 → 退出隐私模式 + 更新指示器 + 滚动到顶部 + 刷新数据
@@ -359,13 +453,16 @@ watch(() => route.path, (newPath) => {
     // 回到基本资料 Tab 时重新加载个人信息（可能在子 Tab 中修改了关联数据）
     loadProfile();
   }
+  menuOpen.value = false;   // 浏览器前进/后退等外部跳转时，移动端菜单要收起
   // Tab 切换时滚动到页面顶部，避免停留在上一页的滚动位置
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  // （scrollToTop 内部做了旧版 Safari 兼容，见 utils/scroll-lock.js）
+  scrollToTop();
   nextTick(updateIndicator);
 });
 
 // 监听隐私设置状态 → 更新指示器
 watch(localPrivacyActive, () => {
+  menuOpen.value = false;
   nextTick(updateIndicator);
 });
 
@@ -574,8 +671,20 @@ async function handleDeleteAccount() {
 }
 
 onMounted(() => {
+  // 断点变化时切换 tab 条 / 侧边浮框（iOS ≤13 用 addListener，见 utils/media.js）
+  offMediaChange = onMediaChange(mqMobile, () => {
+    isMobile.value = mqMobile.matches;
+    if (!isMobile.value) menuOpen.value = false;
+  });
+  document.addEventListener('keydown', onKeydown);
   loadProfile();
   nextTick(updateIndicator);
+});
+
+onUnmounted(() => {
+  offMediaChange();
+  document.removeEventListener('keydown', onKeydown);
+  resetBodyScroll();
 });
 </script>
 
@@ -636,6 +745,11 @@ onMounted(() => {
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: color 0.2s ease;
+  /* 两个"基本资料/隐私设置"tab 是 button，需要抹掉浏览器默认样式 */
+  background: none;
+  border: none;
+  font-family: inherit;
+  line-height: 1.4;
 }
 .tab:hover {
   color: var(--color-text);
@@ -664,6 +778,176 @@ onMounted(() => {
   will-change: left, width;       /* GPU 加速 */
 }
 
+/* ===== 移动端栏目触发条 + 侧边浮框（≤767px 替代横向 tab 条） =====
+   行样式沿用 PortalHeader 抽屉导航的语言：48px 行高、左侧 3px 高亮条、青色激活态。 */
+.pmenu__trigger {
+  position: sticky;                 /* 吸在 Header 下方，滚到页面中段也能切栏目 */
+  top: var(--header-h, 56px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 24px;
+  padding: 12px 14px;
+  background: var(--bg-glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius);
+  color: var(--color-primary);
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pmenu__trigger:active {
+  background: rgba(95, 184, 214, 0.1);
+}
+.pmenu__current {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pmenu__switch {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+}
+.pmenu__icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+/* ---- 浮框本体 ---- */
+.pframe__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.pframe {
+  position: fixed;
+  top: calc(var(--header-h, 56px) + 12px);
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 210;
+  width: min(266px, 78vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(95, 184, 214, 0.12);
+  overflow: hidden;
+}
+.pframe__head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 8px 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.pframe__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.pframe__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pframe__close:active {
+  background: rgba(95, 184, 214, 0.1);
+}
+.pframe__nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ---- 浮框内单行栏目 ---- */
+.pframe__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+.pframe__item:active {
+  background: rgba(95, 184, 214, 0.1);
+}
+.pframe__item--active {
+  color: var(--color-primary);
+  background: rgba(95, 184, 214, 0.08);
+  border-left-color: var(--color-primary);
+  font-weight: 600;
+}
+.pframe__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pframe__check {
+  flex-shrink: 0;
+}
+
+/* ---- 过渡 ---- */
+.pframe-fade-enter-active,
+.pframe-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.pframe-fade-enter-from,
+.pframe-fade-leave-to {
+  opacity: 0;
+}
+.pframe-slide-enter-active,
+.pframe-slide-leave-active {
+  transition: transform 0.28s var(--ease-out, ease), opacity 0.28s ease;
+}
+.pframe-slide-enter-from,
+.pframe-slide-leave-to {
+  transform: translateX(calc(100% + 16px));
+  opacity: 0;
+}
+
 /* Toast 提示 */
 .form-toast {
   padding: 10px 14px;
@@ -685,7 +969,7 @@ onMounted(() => {
 /* 卡片 */
 .profile-card {
   background: var(--bg-glass);
-  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 32px;
@@ -1032,6 +1316,9 @@ onMounted(() => {
   .page-title {
     font-size: 22px;
   }
+
+  /* 注意：移动端已改用 .pmenu 折叠子菜单（横向 tab 条不渲染），
+     原先给 .tabs-scroll 加的吸顶规则随之删除 */
 
   /* 表单输入防iOS缩放 */
   .form-group input[type="text"],
