@@ -26,3 +26,35 @@ file:
 # 可选项：BrandConfig 可覆盖；给标准 Linux 路径而非强制（缺 env 不卡启动）。
 libreoffice:
   path: ${LIBREOFFICE_PATH:/usr/bin/soffice}
+
+# ────────── 短信（SMS_PROVIDER=aliyun 且 AK 齐备才走真实短信） ──────────
+# 未注入 SMS_PROVIDER 时显式回落 mock（签名报备过渡期可继续 mock 运行）；
+# provider=aliyun 但 AK/签名/模板码缺失时由 AliyunSmsSender 启动校验
+# 拒绝启动（fail-closed），绝不带空凭证静默运行。
+sms:
+  provider: ${SMS_PROVIDER:mock}
+  aliyun:
+    access-key-id: ${SMS_ACCESS_KEY_ID:}
+    access-key-secret: ${SMS_ACCESS_KEY_SECRET:}
+    sign-name: 遨天科技
+    template-code: ${SMS_TEMPLATE_CODE:}
+    endpoint: dysmsapi.aliyuncs.com
+
+# ────────── 邮件（MAIL_PROVIDER=smtp 且 SMTP 配置齐备才真发验证码邮件） ──────────
+# 未注入 MAIL_PROVIDER 时显式回落 mock（验证码打日志）；
+# provider=smtp 但 host/username/password 缺失时由 SmtpEmailSender 启动校验
+# 拒绝启动（fail-closed）。当前注册/重置密码主验证通道即邮箱验证码。
+mail:
+  provider: ${MAIL_PROVIDER:mock}
+
+spring:
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 10000

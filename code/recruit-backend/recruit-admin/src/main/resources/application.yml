@@ -23,6 +23,18 @@ spring:
       max-file-size: 10MB
       max-request-size: 11MB
 
+  # 邮件 SMTP（mail.provider=smtp 时由 SmtpEmailSender 使用；mock 模式不读取）
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 10000
+
 # ────────── JWT 密钥 ──────────
 # dev 直接使用内置弱密钥即可运行；生产必须由环境变量 JWT_ADMIN_SECRET /
 # JWT_PORTAL_SECRET 注入（docker-compose 用 ${VAR:?} 强制提供，application-prod.yml
@@ -48,6 +60,25 @@ file:
 # 可选项：BrandConfig 可覆盖；生产默认 Linux 标准路径（见 application-prod.yml）。
 libreoffice:
   path: ${LIBREOFFICE_PATH:D:/Program Files/LibreOffice/program/soffice.exe}
+
+# ────────── 短信（默认 mock：不配任何凭证即可本地运行） ──────────
+# 生产环境由 application-prod.yml 按 SMS_PROVIDER 环境变量切换；
+# aliyun 模式下 AK/签名/模板码由甲方在阿里云控制台报备后注入。
+sms:
+  provider: mock
+  aliyun:
+    access-key-id: ${SMS_ACCESS_KEY_ID:}
+    access-key-secret: ${SMS_ACCESS_KEY_SECRET:}
+    sign-name: 遨天科技
+    template-code: ${SMS_TEMPLATE_CODE:}
+    endpoint: dysmsapi.aliyuncs.com
+
+# ────────── 邮件（默认 mock：验证码打日志，不配任何凭证即可运行） ──────────
+# 生产环境由 application-prod.yml 按 MAIL_PROVIDER 环境变量切换到 SMTP 真发
+# （个人/企业邮箱均可，如 QQ 邮箱 smtp.qq.com:465 + 授权码）。
+# SMTP 连接参数见上方 spring.mail 段。
+mail:
+  provider: mock
 
 # ────────── Actuator（安全：仅暴露 health，避免信息泄露） ──────────
 management:

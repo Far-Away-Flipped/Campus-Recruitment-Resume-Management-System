@@ -41,5 +41,16 @@
             <artifactId>jsoup</artifactId>
             <version>1.17.2</version>
         </dependency>
+        <!-- 阿里云短信 SDK（AliyunSmsSender，sms.provider=aliyun 时使用） -->
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>dysmsapi20170525</artifactId>
+            <version>4.6.0</version>
+        </dependency>
+        <!-- 邮件发送（SmtpEmailSender，mail.provider=smtp 时使用） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
     </dependencies>
 </project>

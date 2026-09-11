@@ -7,12 +7,12 @@ public interface SmsCodeService {
 
     /**
      * 发送短信验证码
-     * <p>包含六层防刷：手机号60秒限制、IP 60秒3次、日上限10条、图形验证码前置校验</p>
+     * <p>包含六层防刷：手机号60秒限制、IP 60秒3次、日上限10条、图形验证码前置校验。
+     * 验证码不外传——mock 走日志、真实短信走网关，接口与前端均不可见。</p>
      *
      * @param phone 手机号
-     * @return 生成的验证码（开发环境通过日志输出，生产环境通过短信网关发送）
      */
-    String sendCode(String phone);
+    void sendCode(String phone);
 
     /**
      * 校验短信验证码并消费（一次性验证）

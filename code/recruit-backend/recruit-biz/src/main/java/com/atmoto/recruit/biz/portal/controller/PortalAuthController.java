@@ -28,9 +28,6 @@ public class PortalAuthController {
     @Qualifier("captchaCache")
     private final Cache<String, Object> captchaCache;
 
-    @Qualifier("smsCodeCache")
-    private final Cache<String, String> smsCodeCache;
-
     /**
      * 获取图形验证码
      * <p>返回 captchaKey + 验证码图片Base64</p>
@@ -68,12 +65,25 @@ public class PortalAuthController {
 
     /**
      * 发送短信验证码
-     * <p>需先通过图形验证码校验（captchaKey + captchaCode），再由短信服务执行六层防刷</p>
+     * <p>需先通过图形验证码校验（captchaKey + captchaCode），再由短信服务执行六层防刷。
+     * 验证码不回传前端——mock 模式打后端日志，真实模式经短信网关下发。</p>
      */
     @PostMapping("/sms-code")
     public AjaxResult sendSmsCode(@RequestBody SmsCodeRequest request) {
-        String code = portalAuthService.sendSmsCode(request);
-        return AjaxResult.success(Map.of("message", "验证码已发送", "code", code));
+        portalAuthService.sendSmsCode(request);
+        return AjaxResult.success(Map.of("message", "验证码已发送"));
+    }
+
+    /**
+     * 发送邮箱验证码（当前注册/重置密码的主验证通道）
+     * <p>需先通过图形验证码校验；按手机号定位账号并校验邮箱匹配（防枚举：
+     * 不匹配也返回已发送）。验证码不回传前端——mock 模式打后端日志，
+     * SMTP 模式经邮件下发。</p>
+     */
+    @PostMapping("/email-code")
+    public AjaxResult sendEmailCode(@RequestBody EmailCodeRequest request) {
+        portalAuthService.sendEmailCode(request);
+        return AjaxResult.success(Map.of("message", "验证码已发送"));
     }
 
     /**

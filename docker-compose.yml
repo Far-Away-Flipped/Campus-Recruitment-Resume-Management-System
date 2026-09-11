@@ -67,6 +67,17 @@ services:
       JWT_PORTAL_SECRET: ${JWT_PORTAL_SECRET:?必填：请在.env中配置JWT_PORTAL_SECRET}
       FILE_UPLOAD_ROOT: ${FILE_UPLOAD_ROOT:-/data}
       LIBREOFFICE_PATH: ${LIBREOFFICE_PATH:-/usr/bin/soffice}
+      # 短信：默认 mock；甲方完成阿里云签名/模板报备后改 aliyun 并填 AK（见 .env.example）
+      SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+      SMS_ACCESS_KEY_ID: ${SMS_ACCESS_KEY_ID:-}
+      SMS_ACCESS_KEY_SECRET: ${SMS_ACCESS_KEY_SECRET:-}
+      SMS_TEMPLATE_CODE: ${SMS_TEMPLATE_CODE:-}
+      # 邮件：默认 mock；填个人/企业邮箱 SMTP 授权码即真发验证码邮件（见 .env.example）
+      MAIL_PROVIDER: ${MAIL_PROVIDER:-mock}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       TZ: Asia/Shanghai
     volumes:
       # 简历/头像/文档转换产物持久化（bind mount，便于人工备份）

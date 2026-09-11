@@ -10,12 +10,21 @@ public interface PortalAuthService {
 
     /**
      * 发送短信验证码
-     * <p>包含图形验证码前置校验 + 六层防刷</p>
+     * <p>包含图形验证码前置校验 + 六层防刷。验证码不外传（mock 走日志、
+     * 真实短信走网关），接口不向前端回传。</p>
      *
      * @param request 请求（手机号 + 图形验证码）
-     * @return 生成的验证码（开发环境可返回给前端）
      */
-    String sendSmsCode(SmsCodeRequest request);
+    void sendSmsCode(SmsCodeRequest request);
+
+    /**
+     * 发送邮箱验证码
+     * <p>图形验证码前置校验 + 防刷。按手机号定位账号并校验邮箱匹配——
+     * 账号不存在或邮箱不匹配时静默返回（防枚举），仅匹配时真发。</p>
+     *
+     * @param request 请求（手机号 + 邮箱 + 图形验证码）
+     */
+    void sendEmailCode(EmailCodeRequest request);
 
     /**
      * 学生注册

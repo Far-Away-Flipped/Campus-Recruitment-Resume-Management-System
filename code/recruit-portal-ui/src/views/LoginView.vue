@@ -55,7 +55,7 @@
     <!-- ==================== 重置密码模式 ==================== -->
     <div class="form-card" v-else v-motion-fade="{ y: 24 }">
       <h2 class="form-title">重置密码</h2>
-      <p class="form-sub">通过短信验证码重置您的登录密码</p>
+      <p class="form-sub">通过邮箱验证码重置您的登录密码</p>
 
       <!-- 成功 / 错误提示 -->
       <div class="form-toast form-toast--error" v-if="error">{{ error }}</div>
@@ -74,6 +74,18 @@
             @input="resetErrors.phone = ''"
           />
           <span class="form-hint" v-if="resetErrors.phone">{{ resetErrors.phone }}</span>
+        </div>
+
+        <!-- 绑定邮箱 -->
+        <div class="form-group" :class="{ 'form-group--error': resetErrors.email }">
+          <label>绑定邮箱</label>
+          <input
+            v-model="resetForm.email"
+            type="email"
+            placeholder="注册时绑定的邮箱"
+            @input="resetErrors.email = ''"
+          />
+          <span class="form-hint" v-if="resetErrors.email">{{ resetErrors.email }}</span>
         </div>
 
         <!-- 图形验证码 -->
@@ -99,14 +111,14 @@
           <span class="form-hint" v-if="resetErrors.captchaCode">{{ resetErrors.captchaCode }}</span>
         </div>
 
-        <!-- 短信验证码 -->
+        <!-- 邮箱验证码 -->
         <div class="form-group" :class="{ 'form-group--error': resetErrors.smsCode }">
-          <label>短信验证码</label>
+          <label>邮箱验证码</label>
           <div class="sms-row">
             <input
               v-model="resetForm.smsCode"
               type="text"
-              placeholder="请输入短信验证码"
+              placeholder="请输入邮箱验证码"
               maxlength="6"
               class="sms-input"
               @input="resetErrors.smsCode = ''"
@@ -246,6 +258,7 @@ async function handleLogin() {
 // ==================== 重置密码 ====================
 const resetForm = reactive({
   phone: '',
+  email: '',
   captchaCode: '',
   smsCode: '',
   newPassword: '',
@@ -253,6 +266,7 @@ const resetForm = reactive({
 });
 const resetErrors = reactive({
   phone: '',
+  email: '',
   captchaCode: '',
   smsCode: '',
   newPassword: '',
@@ -297,7 +311,7 @@ async function refreshCaptcha() {
   }
 }
 
-/** 发送短信验证码 */
+/** 发送邮箱验证码 */
 async function sendResetSmsCode() {
   if (!resetForm.phone) {
     resetErrors.phone = '请先输入手机号';
@@ -305,6 +319,14 @@ async function sendResetSmsCode() {
   }
   if (!/^1[3-9]\d{9}$/.test(resetForm.phone)) {
     resetErrors.phone = '请输入正确的11位手机号';
+    return;
+  }
+  if (!resetForm.email) {
+    resetErrors.email = '请先输入绑定邮箱';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetForm.email)) {
+    resetErrors.email = '请输入正确的邮箱地址';
     return;
   }
   if (!resetForm.captchaCode) {
@@ -315,8 +337,10 @@ async function sendResetSmsCode() {
   error.value = '';
   sendingSms.value = true;
   try {
-    await api.post('/auth/sms-code', {
+    await api.post('/auth/email-code', {
+      scene: 'reset',
       phone: resetForm.phone,
+      email: resetForm.email,
       captchaKey: captchaKey.value,
       captchaCode: resetForm.captchaCode,
     });
@@ -353,12 +377,19 @@ function validateReset() {
     resetErrors.phone = '请输入正确的11位手机号';
     valid = false;
   }
+  if (!resetForm.email) {
+    resetErrors.email = '请输入绑定邮箱';
+    valid = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetForm.email)) {
+    resetErrors.email = '请输入正确的邮箱地址';
+    valid = false;
+  }
   if (!resetForm.captchaCode) {
     resetErrors.captchaCode = '请输入图形验证码';
     valid = false;
   }
   if (!resetForm.smsCode) {
-    resetErrors.smsCode = '请输入短信验证码';
+    resetErrors.smsCode = '请输入邮箱验证码';
     valid = false;
   }
   if (!resetForm.newPassword) {
@@ -388,6 +419,7 @@ async function handleReset() {
   try {
     await api.post('/auth/reset-password', {
       phone: resetForm.phone,
+      email: resetForm.email,
       smsCode: resetForm.smsCode,
       newPassword: resetForm.newPassword,
     });

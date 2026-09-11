@@ -15,11 +15,23 @@
           <input
             v-model="form.phone"
             type="tel"
-            placeholder="请输入11位手机号"
+            placeholder="请输入11位手机号（登录账号）"
             maxlength="11"
             @input="errors.phone = ''"
           />
           <span class="form-hint" v-if="errors.phone">{{ errors.phone }}</span>
+        </div>
+
+        <!-- 邮箱 -->
+        <div class="form-group" :class="{ 'form-group--error': errors.email }">
+          <label>邮箱</label>
+          <input
+            v-model="form.email"
+            type="email"
+            placeholder="请输入邮箱（接收验证码）"
+            @input="errors.email = ''"
+          />
+          <span class="form-hint" v-if="errors.email">{{ errors.email }}</span>
         </div>
 
         <!-- 图形验证码 -->
@@ -45,14 +57,14 @@
           <span class="form-hint" v-if="errors.captchaCode">{{ errors.captchaCode }}</span>
         </div>
 
-        <!-- 短信验证码 -->
+        <!-- 邮箱验证码 -->
         <div class="form-group" :class="{ 'form-group--error': errors.smsCode }">
-          <label>短信验证码</label>
+          <label>邮箱验证码</label>
           <div class="sms-row">
             <input
               v-model="form.smsCode"
               type="text"
-              placeholder="请输入短信验证码"
+              placeholder="请输入邮箱验证码"
               maxlength="6"
               class="sms-input"
               @input="errors.smsCode = ''"
@@ -67,9 +79,6 @@
             </button>
           </div>
           <span class="form-hint" v-if="errors.smsCode">{{ errors.smsCode }}</span>
-          <span class="form-hint form-hint--code" v-if="smsCodeHint">
-            📱 验证码：<strong>{{ smsCodeHint }}</strong>（已自动填入）
-          </span>
         </div>
 
         <!-- 密码 -->
@@ -133,6 +142,7 @@ const auth = useAuthStore();
 
 const form = reactive({
   phone: '',
+  email: '',
   captchaCode: '',
   smsCode: '',
   password: '',
@@ -142,6 +152,7 @@ const form = reactive({
 
 const errors = reactive({
   phone: '',
+  email: '',
   captchaCode: '',
   smsCode: '',
   password: '',
@@ -153,7 +164,6 @@ const captchaKey = ref('');
 const captchaImage = ref('');
 const smsCountdown = ref(0);
 const sendingSms = ref(false);
-const smsCodeHint = ref('');
 const loading = ref(false);
 const error = ref('');
 const success = ref('');
@@ -173,7 +183,7 @@ async function refreshCaptcha() {
   }
 }
 
-/** 发送短信验证码 */
+/** 发送邮箱验证码 */
 async function sendSmsCode() {
   // 前置校验
   if (!form.phone) {
@@ -184,6 +194,14 @@ async function sendSmsCode() {
     errors.phone = '请输入正确的11位手机号';
     return;
   }
+  if (!form.email) {
+    errors.email = '请先输入邮箱';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errors.email = '请输入正确的邮箱地址';
+    return;
+  }
   if (!form.captchaCode) {
     errors.captchaCode = '请先输入图形验证码';
     return;
@@ -192,16 +210,12 @@ async function sendSmsCode() {
   error.value = '';
   sendingSms.value = true;
   try {
-    const res = await api.post('/auth/sms-code', {
+    const res = await api.post('/auth/email-code', {
       phone: form.phone,
+      email: form.email,
       captchaKey: captchaKey.value,
       captchaCode: form.captchaCode,
     });
-    // 开发环境：API直接返回验证码，展示在页面上
-    if (res.data?.code) {
-      smsCodeHint.value = res.data.code;
-      form.smsCode = res.data.code; // 自动填入
-    }
     // 启动60秒倒计时
     smsCountdown.value = 60;
     countdownTimer = setInterval(() => {
@@ -238,13 +252,21 @@ function validate() {
     valid = false;
   }
 
+  if (!form.email) {
+    errors.email = '请输入邮箱';
+    valid = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errors.email = '请输入正确的邮箱地址';
+    valid = false;
+  }
+
   if (!form.captchaCode) {
     errors.captchaCode = '请输入图形验证码';
     valid = false;
   }
 
   if (!form.smsCode) {
-    errors.smsCode = '请输入短信验证码';
+    errors.smsCode = '请输入邮箱验证码';
     valid = false;
   }
 
@@ -282,6 +304,7 @@ async function handleRegister() {
   try {
     const res = await api.post('/auth/register', {
       phone: form.phone,
+      email: form.email,
       smsCode: form.smsCode,
       password: form.password,
       privacyAgreed: true,
@@ -379,6 +402,7 @@ onUnmounted(() => {
 }
 .form-group input[type="text"],
 .form-group input[type="tel"],
+.form-group input[type="email"],
 .form-group input[type="password"] {
   width: 100%;
   padding: 10px 14px;
@@ -578,6 +602,7 @@ onUnmounted(() => {
   }
   .form-group input[type="text"],
   .form-group input[type="tel"],
+  .form-group input[type="email"],
   .form-group input[type="password"] {
     min-height: var(--input-min-h);
     font-size: 16px;

@@ -2,6 +2,7 @@ package com.atmoto.recruit.biz.sms.impl;
 
 import com.atmoto.recruit.biz.sms.SmsCodeService;
 import com.atmoto.recruit.biz.sms.SmsSender;
+import com.atmoto.recruit.biz.sms.config.SmsProperties;
 import com.atmoto.recruit.common.enums.ErrorCode;
 import com.atmoto.recruit.common.exception.BizException;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -14,6 +15,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.util.Map;
 
 /**
  * 短信验证码服务实现
@@ -33,6 +35,8 @@ import java.time.LocalDate;
 public class SmsCodeServiceImpl implements SmsCodeService {
 
     private final SmsSender smsSender;
+
+    private final SmsProperties smsProperties;
 
     @Qualifier("smsCodeCache")
     private final Cache<String, String> smsCodeCache;
@@ -62,59 +66,56 @@ public class SmsCodeServiceImpl implements SmsCodeService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     @Override
-    public String sendCode(String phone) {
-        // ── 防刷1：同手机号60秒内只能发1次 ──
+    public void sendCode(String phone) {
+        // ── 防刷1：同手机号60秒内只能发1次（只读检查，计数在发送成功后才写入） ──
         String phoneRateKey = "phone_rate:" + phone;
-        int[] phoneRate = smsRateCache.getIfPresent(phoneRateKey);
-        if (phoneRate != null) {
+        if (smsRateCache.getIfPresent(phoneRateKey) != null) {
             throw new BizException(ErrorCode.RATE_LIMITED, "60秒内仅可发送1次验证码");
         }
-        // 写入手机号频率标记，60秒后过期（由 smsRateCache 的 expireAfterWrite 控制）
-        smsRateCache.put(phoneRateKey, new int[]{1});
 
-        // ── 防刷2：同IP 60秒内最多3次 ──
+        // ── 防刷2：同IP 60秒内最多3次（只读检查） ──
         String clientIp = getClientIp();
         String ipRateKey = "ip_rate:" + clientIp;
         int[] ipRate = smsRateCache.getIfPresent(ipRateKey);
         if (ipRate != null && ipRate[0] >= IP_RATE_LIMIT) {
             throw new BizException(ErrorCode.RATE_LIMITED, "当前IP发送过于频繁，请稍后再试");
         }
-        if (ipRate == null) {
-            smsRateCache.put(ipRateKey, new int[]{1});
-        } else {
-            ipRate[0]++;
-        }
 
-        // ── 防刷3：同手机号日上限10条 ──
+        // ── 防刷3：同手机号日上限10条（只读检查） ──
         String dailyKey = "sms_daily:" + phone + ":" + LocalDate.now();
         int[] dailyCount = smsDailyCache.getIfPresent(dailyKey);
         if (dailyCount != null && dailyCount[0] >= DAILY_LIMIT) {
             throw new BizException(ErrorCode.RATE_LIMITED, "今日验证码发送已达上限（" + DAILY_LIMIT + "条）");
         }
 
-        // ── 生成6位随机验证码 ──
+        // ── 生成6位随机验证码，存入Caffeine缓存（5分钟过期） ──
         String code = String.format("%06d", RANDOM.nextInt(1000000));
-
-        // ── 存入Caffeine缓存（5分钟过期） ──
         smsCodeCache.put(phone, code);
 
-        // ── 更新日发送计数 ──
+        // ── 发送短信（模板码+参数，正文由平台侧模板渲染；mock 走日志） ──
+        // 发送在一切防刷计数写入之前执行：发送失败不占防刷额度、不上60s锁，用户可立即重试
+        boolean sent = smsSender.send(phone, smsProperties.getAliyun().getTemplateCode(),
+                Map.of("code", code));
+        if (!sent) {
+            log.error("短信发送失败：phone={}", phone);
+            throw new BizException(ErrorCode.INTERNAL_ERROR, "短信发送失败，请稍后再试");
+        }
+
+        // ── 发送成功，写入防刷计数 ──
+        // 手机号频率标记，60秒后过期（由 smsRateCache 的 expireAfterWrite 控制）
+        smsRateCache.put(phoneRateKey, new int[]{1});
+        if (ipRate == null) {
+            smsRateCache.put(ipRateKey, new int[]{1});
+        } else {
+            ipRate[0]++;
+        }
         if (dailyCount == null) {
             smsDailyCache.put(dailyKey, new int[]{1});
         } else {
             dailyCount[0]++;
         }
 
-        // ── 发送短信（开发环境日志打印） ──
-        String content = "您的验证码是：" + code + "，有效期" + CODE_EXPIRE_MINUTES + "分钟，请勿泄露。";
-        boolean sent = smsSender.send(phone, content);
-        if (!sent) {
-            log.error("短信发送失败：phone={}", phone);
-            throw new BizException(ErrorCode.INTERNAL_ERROR, "短信发送失败，请稍后再试");
-        }
-
-        log.info("验证码已发送：phone={}, code={}", phone, code);
-        return code;
+        log.info("验证码已发送：phone={}", phone);
     }
 
     @Override

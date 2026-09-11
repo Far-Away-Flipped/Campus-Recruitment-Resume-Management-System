@@ -180,21 +180,24 @@ public interface ApplicationMapper extends BaseMapper<Application> {
     List<ReportDataVO> countBySnapshotSchool(@Param("ownerUserId") Long ownerUserId);
 
     /**
-     * 学历分布：按快照学历字段分组统计投递数
-     * <p>含数据范围约束</p>
+     * 学历分布：按快照学历分组统计投递数（码值经 education_degree 字典翻译为中文）
+     * <p>含数据范围约束；字典未命中/缺失时兜底显示原码值</p>
      *
      * @param ownerUserId 数据范围限制（可空=全部权限）
      * @return 学历+投递数的列表
      */
     @Select("<script>" +
-            "SELECT a.snapshot_degree AS name, COUNT(*) AS value " +
+            "SELECT COALESCE(d.dict_label, a.snapshot_degree) AS name, COUNT(*) AS value " +
             "FROM app_application a " +
+            "LEFT JOIN sys_dict_data d " +
+            "ON d.dict_type = 'education_degree' AND d.dict_value = a.snapshot_degree " +
+            "AND d.del_flag = '0' AND d.status = '0' " +
             "<if test='ownerUserId != null'>" +
             "LEFT JOIN job_position jp ON a.job_id = jp.job_id " +
             "</if>" +
             "WHERE a.del_flag = '0' " +
             "<if test='ownerUserId != null'>AND jp.owner_user_id = #{ownerUserId}</if> " +
-            "GROUP BY a.snapshot_degree " +
+            "GROUP BY COALESCE(d.dict_label, a.snapshot_degree) " +
             "ORDER BY value DESC" +
             "</script>")
     List<ReportDataVO> countBySnapshotDegree(@Param("ownerUserId") Long ownerUserId);

@@ -6,6 +6,7 @@ import com.atmoto.recruit.biz.common.domain.StudentRefreshToken;
 import com.atmoto.recruit.biz.common.mapper.StudentMapper;
 import com.atmoto.recruit.biz.common.mapper.StudentProfileMapper;
 import com.atmoto.recruit.biz.common.mapper.StudentRefreshTokenMapper;
+import com.atmoto.recruit.biz.mail.EmailCodeService;
 import com.atmoto.recruit.biz.portal.dto.*;
 import com.atmoto.recruit.biz.portal.service.PortalAuthService;
 import com.atmoto.recruit.biz.sms.SmsCodeService;
@@ -51,6 +52,7 @@ public class PortalAuthServiceImpl implements PortalAuthService {
     private final StudentProfileMapper studentProfileMapper;
     private final StudentRefreshTokenMapper refreshTokenMapper;
     private final SmsCodeService smsCodeService;
+    private final EmailCodeService emailCodeService;
     private final PortalTokenService portalTokenService;
     private final PasswordEncoder passwordEncoder;
 
@@ -67,7 +69,7 @@ public class PortalAuthServiceImpl implements PortalAuthService {
     private static final int LOCK_DURATION_MINUTES = 15;
 
     @Override
-    public String sendSmsCode(SmsCodeRequest request) {
+    public void sendSmsCode(SmsCodeRequest request) {
         // 校验请求参数非空
         if (request.getCaptchaKey() == null || request.getCaptchaCode() == null) {
             throw new BizException(ErrorCode.PARAM_INVALID, "图形验证码不能为空");
@@ -76,14 +78,56 @@ public class PortalAuthServiceImpl implements PortalAuthService {
         // 校验图形验证码（必须成功）
         smsCodeService.verifyCaptcha(request.getCaptchaKey(), request.getCaptchaCode());
 
-        // 发送短信验证码
-        return smsCodeService.sendCode(request.getPhone());
+        // 发送短信验证码（验证码不外传：mock 走日志、真实短信走网关）
+        smsCodeService.sendCode(request.getPhone());
+    }
+
+    @Override
+    public void sendEmailCode(EmailCodeRequest request) {
+        // 1. 校验图形验证码（必须成功）
+        if (request.getCaptchaKey() == null || request.getCaptchaCode() == null) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "图形验证码不能为空");
+        }
+        smsCodeService.verifyCaptcha(request.getCaptchaKey(), request.getCaptchaCode());
+
+        String phone = request.getPhone();
+        String email = request.getEmail();
+        boolean isResetScene = "reset".equalsIgnoreCase(request.getScene());
+
+        // 2. 邮箱/手机号格式校验（格式错误直接拒绝，不算防枚举泄露）
+        if (email == null || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "邮箱格式不正确");
+        }
+        if (phone == null || !phone.matches("^1[3-9]\\d{9}$")) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "手机号格式不正确");
+        }
+
+        // 3. 场景分流：
+        //    reset（重置密码）——按手机号定位账号并校验邮箱匹配，防枚举：
+        //    账号不存在或邮箱不匹配时静默返回（统一表现"已发送"）。
+        //    register（注册）——新手机号必然未注册，直接向邮箱发码。
+        if (isResetScene) {
+            Student student = studentMapper.selectOne(
+                    new LambdaQueryWrapper<Student>().eq(Student::getPhone, phone));
+            if (student == null) {
+                log.info("邮箱验证码请求：手机号 {} 未注册，静默返回防枚举", phone);
+                return;
+            }
+            if (!email.equalsIgnoreCase(student.getEmail())) {
+                log.info("邮箱验证码请求：手机号 {} 与邮箱 {} 不匹配，静默返回防枚举", phone, email);
+                return;
+            }
+        }
+
+        // 4. 发送验证码（验证码不外传：mock 走日志、SMTP 真发）
+        emailCodeService.sendCode(email);
     }
 
     @Override
     @Transactional
     public TokenResponse register(RegisterRequest request) {
         String phone = request.getPhone();
+        String email = request.getEmail();
         String password = request.getPassword();
 
         // 0. 校验隐私协议同意
@@ -96,13 +140,18 @@ public class PortalAuthServiceImpl implements PortalAuthService {
             throw new BizException(ErrorCode.PARAM_INVALID, "手机号格式不正确");
         }
 
-        // 0b. 密码强度校验
+        // 0b. 邮箱格式校验（必填：验证码接收地址）
+        if (email == null || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "邮箱格式不正确");
+        }
+
+        // 0c. 密码强度校验
         if (password == null || password.length() < 8) {
             throw new BizException(ErrorCode.PARAM_INVALID, "密码长度不能少于8位");
         }
 
-        // 1. 校验短信验证码
-        if (!smsCodeService.verifyCode(phone, request.getSmsCode())) {
+        // 1. 校验邮箱验证码（缓存 key 为邮箱）
+        if (!emailCodeService.verifyCode(email, request.getSmsCode())) {
             throw new BizException(ErrorCode.CAPTCHA_ERROR);
         }
 
@@ -116,9 +165,10 @@ public class PortalAuthServiceImpl implements PortalAuthService {
         // 3. BCrypt 加密密码
         String hashedPassword = passwordEncoder.encode(request.getPassword());
 
-        // 4. 插入 stu_user
+        // 4. 插入 stu_user（email 一并落库）
         Student student = new Student();
         student.setPhone(phone);
+        student.setEmail(email);
         student.setPasswordHash(hashedPassword);
         student.setStatus("ACTIVE");
         student.setDataRetentionDays(365);
@@ -129,13 +179,14 @@ public class PortalAuthServiceImpl implements PortalAuthService {
         student.setPrivacyAgreedTime(LocalDateTime.now());
         studentMapper.insert(student);
 
-        // 5. 插入 stu_profile 空记录（仅 studentId + phone）
+        // 5. 插入 stu_profile 空记录（studentId + phone + email）
         StudentProfile profile = new StudentProfile();
         profile.setStudentId(student.getStudentId());
         profile.setPhone(phone);
+        profile.setEmail(email);
         studentProfileMapper.insert(profile);
 
-        log.info("学生注册成功：studentId={}, phone={}", student.getStudentId(), phone);
+        log.info("学生注册成功：studentId={}, phone={}, email={}", student.getStudentId(), phone, email);
 
         // 6. 签发并返回 Token
         return issueTokens(student.getStudentId(), phone);
@@ -281,9 +332,10 @@ public class PortalAuthServiceImpl implements PortalAuthService {
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         String phone = request.getPhone();
+        String email = request.getEmail();
 
-        // 1. 校验短信验证码
-        if (!smsCodeService.verifyCode(phone, request.getSmsCode())) {
+        // 1. 校验邮箱验证码（缓存 key 为邮箱；手机号+邮箱不匹配时码从未发出，天然防绕过）
+        if (!emailCodeService.verifyCode(email, request.getSmsCode())) {
             throw new BizException(ErrorCode.CAPTCHA_ERROR);
         }
 
@@ -293,6 +345,12 @@ public class PortalAuthServiceImpl implements PortalAuthService {
         if (student == null) {
             log.info("密码重置请求：手机号 {} 未注册，统一返回成功防止账号枚举", phone);
             return;
+        }
+
+        // 3. 校验邮箱与账号匹配（验证码已消费，此处不匹配说明绕过了发送端校验）
+        if (!email.equalsIgnoreCase(student.getEmail())) {
+            log.warn("密码重置请求：手机号 {} 与邮箱 {} 不匹配，拒绝重置", phone, email);
+            throw new BizException(ErrorCode.CAPTCHA_ERROR);
         }
 
         // 3. BCrypt 加密新密码并更新

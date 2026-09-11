@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
  * - rateLimitCache：接口限流计数（60s写入后过期）
  * - loginFailCache：登录失败计数（15min写入后过期）
  * - smsRateCache：短信发送频率（60s写入后过期）
+ * - emailCodeCache/emailRateCache/emailDailyCache：邮箱验证码族（与 sms 族对称）
  * - corsWhitelistCache：CORS动态白名单规则整表缓存（无过期，写操作后主动invalidate）
  * </p>
  */
@@ -130,6 +131,44 @@ public class CaffeineCacheConfig {
      */
     @Bean("smsDailyCache")
     public Cache<String, int[]> smsDailyCache() {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(24, TimeUnit.HOURS)
+                .maximumSize(5000)
+                .build();
+    }
+
+    // ────────── 邮箱频率（与 sms 族对称） ──────────
+
+    @Bean("emailRateCache")
+    public Cache<String, int[]> emailRateCache() {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(60, TimeUnit.SECONDS)
+                .maximumSize(2000)
+                .build();
+    }
+
+    // ────────── 邮箱验证码存储 ──────────
+
+    /**
+     * 邮箱验证码缓存 —— 写入后5分钟过期
+     * <p>Key: 邮箱地址，Value: 6位验证码</p>
+     */
+    @Bean("emailCodeCache")
+    public Cache<String, String> emailCodeCache() {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(5, TimeUnit.MINUTES)
+                .maximumSize(5000)
+                .build();
+    }
+
+    // ────────── 邮箱日发送计数 ──────────
+
+    /**
+     * 邮箱日发送次数缓存 —— 写入后24小时过期
+     * <p>Key: email_daily:邮箱:日期，Value: int[1]计数</p>
+     */
+    @Bean("emailDailyCache")
+    public Cache<String, int[]> emailDailyCache() {
         return Caffeine.newBuilder()
                 .expireAfterWrite(24, TimeUnit.HOURS)
                 .maximumSize(5000)

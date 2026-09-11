@@ -199,14 +199,15 @@
       <!-- 个人信息权利中心 -->
       <div class="profile-card" style="margin-top: 20px;">
         <h3 class="section-title">个人信息权利</h3>
-        <p class="section-desc">根据《个人信息保护法》，您对自己的个人信息享有查阅、复制、更正、删除、撤回同意、注销账号等权利。</p>
+        <p class="section-desc">根据《个人信息保护法》，您对自己的个人信息享有查阅、更正、删除、注销账号等权利。</p>
 
         <!-- Toast 提示 -->
         <div class="form-toast form-toast--success" v-if="privacySuccess">{{ privacySuccess }}</div>
         <div class="form-toast form-toast--error" v-if="privacyError">{{ privacyError }}</div>
 
         <div class="rights-list">
-          <!-- 导出我的数据 -->
+          <!-- 导出我的数据（暂时下线：导出链路与撤回链路待合规复核，后续恢复） -->
+          <!--
           <div class="rights-item">
             <div class="rights-item__text">
               <p class="rights-item__title">导出我的数据</p>
@@ -221,8 +222,10 @@
               {{ exporting ? '导出中...' : '导出数据' }}
             </button>
           </div>
+          -->
 
-          <!-- 撤回同意 -->
+          <!-- 撤回同意（暂时下线：撤回后账号数据处理流程待合规复核，后续恢复） -->
+          <!--
           <div class="rights-item">
             <div class="rights-item__text">
               <p class="rights-item__title">撤回同意</p>
@@ -236,6 +239,7 @@
               {{ withdrawing ? '处理中...' : '撤回同意' }}
             </button>
           </div>
+          -->
 
           <!-- 注销账号 -->
           <div class="rights-item">
